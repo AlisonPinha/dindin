@@ -1,0 +1,197 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum AccountType {
+  CORRENTE
+  POUPANCA
+  CARTAO_CREDITO
+  INVESTIMENTO
+}
+
+enum CategoryType {
+  RECEITA
+  DESPESA
+  INVESTIMENTO
+}
+
+enum CategoryGroup {
+  ESSENCIAL
+  INVESTIMENTO
+  LIVRE
+}
+
+enum TransactionType {
+  ENTRADA
+  SAIDA
+  TRANSFERENCIA
+  INVESTIMENTO
+}
+
+enum InvestmentType {
+  RENDA_FIXA
+  RENDA_VARIAVEL
+  CRIPTO
+  FUNDO
+}
+
+enum GoalType {
+  ECONOMIA_CATEGORIA
+  INVESTIMENTO_MENSAL
+  PATRIMONIO
+  REGRA_PERCENTUAL
+}
+
+// ============================================
+// MODELS
+// ============================================
+
+model User {
+  id        String   @id @default(cuid())
+  nome      String
+  email     String   @unique
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts     Account[]
+  transactions Transaction[]
+  investments  Investment[]
+  goals        Goal[]
+  budgets      Budget[]
+}
+
+model Account {
+  id           String      @id @default(cuid())
+  nome         String
+  tipo         AccountType
+  banco        String?
+  saldoInicial Float       @default(0)
+  cor          String?
+  icone        String?
+  ativo        Boolean     @default(true)
+  userId       String
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@index([userId])
+}
+
+model Category {
+  id              String        @id @default(cuid())
+  nome            String
+  tipo            CategoryType
+  cor             String
+  icone           String?
+  grupo           CategoryGroup
+  orcamentoMensal Float?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  transactions Transaction[]
+  goals        Goal[]
+}
+
+model Transaction {
+  id             String          @id @default(cuid())
+  descricao      String
+  valor          Float
+  tipo           TransactionType
+  data           DateTime
+  recorrente     Boolean         @default(false)
+  parcelas       Int?
+  parcelaAtual   Int?
+  transacaoPaiId String?
+  tags           String[]        // PostgreSQL suporta arrays nativos
+  anexoUrl       String?
+  notas          String?
+  categoryId     String?
+  accountId      String?
+  userId         String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  category        Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  account         Account?     @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transacaoPai    Transaction? @relation("TransacaoParcelas", fields: [transacaoPaiId], references: [id], onDelete: SetNull)
+  parcelas_filhas Transaction[] @relation("TransacaoParcelas")
+
+  @@index([userId])
+  @@index([categoryId])
+  @@index([accountId])
+  @@index([data])
+  @@index([transacaoPaiId])
+}
+
+model Investment {
+  id             String         @id @default(cuid())
+  nome           String
+  tipo           InvestmentType
+  instituicao    String?
+  valorAplicado  Float
+  valorAtual     Float
+  rentabilidade  Float          @default(0)
+  dataAplicacao  DateTime
+  dataVencimento DateTime?
+  userId         String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Goal {
+  id         String    @id @default(cuid())
+  nome       String
+  tipo       GoalType
+  valorMeta  Float
+  valorAtual Float     @default(0)
+  prazo      DateTime?
+  ativo      Boolean   @default(true)
+  categoryId String?
+  userId     String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([categoryId])
+}
+
+model Budget {
+  id          String   @id @default(cuid())
+  mesAno      String   // Formato: "2024-01" (YYYY-MM)
+  projetado50 Float    @default(0) // Essenciais (50%)
+  projetado30 Float    @default(0) // Livre (30%)
+  projetado20 Float    @default(0) // Investimentos (20%)
+  realizado50 Float    @default(0)
+  realizado30 Float    @default(0)
+  realizado20 Float    @default(0)
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([mesAno, userId])
+  @@index([userId])
+}

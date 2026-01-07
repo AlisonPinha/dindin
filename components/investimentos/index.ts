@@ -1,0 +1,6 @@
+export { InvestmentSummaryCards } from "./investment-summary-cards"
+export { PortfolioEvolutionChart } from "./portfolio-evolution-chart"
+export { InvestmentsTable } from "./investments-table"
+export type { Investment, InvestmentType } from "./investments-table"
+export { AllocationCard } from "./allocation-card"
+export { InvestmentModal } from "./investment-modal"
