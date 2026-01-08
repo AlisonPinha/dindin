@@ -9,6 +9,9 @@ import {
   TrendingUp,
   Target,
   Plus,
+  X,
+  ArrowDownCircle,
+  ArrowUpCircle,
   type LucideIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -29,11 +32,33 @@ const navigation: NavItem[] = [
   { name: "Metas", href: "/metas", icon: Target },
 ]
 
+const addOptions = [
+  {
+    type: "expense" as const,
+    label: "Despesa",
+    icon: ArrowDownCircle,
+    color: "bg-rose-500",
+  },
+  {
+    type: "income" as const,
+    label: "Receita",
+    icon: ArrowUpCircle,
+    color: "bg-emerald-500",
+  },
+  {
+    type: "transfer" as const,
+    label: "Transferência",
+    icon: ArrowLeftRight,
+    color: "bg-blue-500",
+  },
+]
+
 export function MobileNav() {
   const pathname = usePathname()
-  const { setAddTransactionOpen } = useStore()
+  const { openAddTransaction } = useStore()
   const navRef = React.useRef<HTMLDivElement>(null)
   const [indicatorStyle, setIndicatorStyle] = React.useState({ left: 0, width: 0 })
+  const [isMenuOpen, setIsMenuOpen] = React.useState(false)
 
   // Calculate active indicator position
   React.useEffect(() => {
@@ -56,51 +81,115 @@ export function MobileNav() {
     }
   }, [pathname])
 
-  return (
-    <nav
-      className={cn(
-        "fixed bottom-0 left-0 right-0 z-50 lg:hidden",
-        "border-t border-border",
-        "bg-background/95 backdrop-blur-lg",
-        "supports-[backdrop-filter]:bg-background/80"
-      )}
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-      role="navigation"
-      aria-label="Navegação principal mobile"
-    >
-      {/* Active indicator line */}
-      <div
-        className="absolute top-0 h-0.5 bg-primary rounded-full transition-all duration-300 ease-out"
-        style={{
-          left: indicatorStyle.left,
-          width: indicatorStyle.width,
-          opacity: indicatorStyle.width > 0 ? 1 : 0,
-        }}
-      />
+  const handleOptionClick = (type: "expense" | "income" | "transfer") => {
+    setIsMenuOpen(false)
+    openAddTransaction(type)
+  }
 
-      <div ref={navRef} className="flex h-16 items-center justify-around px-2">
-        {navigation.map((item, index) => {
-          if (item.isAction) {
+  return (
+    <>
+      {/* Backdrop when menu is open */}
+      {isMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-40 lg:hidden"
+          onClick={() => setIsMenuOpen(false)}
+        />
+      )}
+
+      <nav
+        className={cn(
+          "fixed bottom-0 left-0 right-0 z-50 lg:hidden",
+          "border-t border-border",
+          "bg-background/95 backdrop-blur-lg",
+          "supports-[backdrop-filter]:bg-background/80"
+        )}
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        role="navigation"
+        aria-label="Navegação principal mobile"
+      >
+        {/* Active indicator line */}
+        <div
+          className="absolute top-0 h-0.5 bg-primary rounded-full transition-all duration-300 ease-out"
+          style={{
+            left: indicatorStyle.left,
+            width: indicatorStyle.width,
+            opacity: indicatorStyle.width > 0 ? 1 : 0,
+          }}
+        />
+
+        {/* Floating menu options */}
+        <div
+          className={cn(
+            "absolute left-1/2 -translate-x-1/2 bottom-20 flex flex-col gap-3 transition-all duration-300",
+            isMenuOpen
+              ? "opacity-100 translate-y-0 pointer-events-auto"
+              : "opacity-0 translate-y-4 pointer-events-none"
+          )}
+        >
+          {addOptions.map((option, index) => {
+            const Icon = option.icon
             return (
               <button
-                key={item.name}
-                onClick={() => setAddTransactionOpen(true)}
+                key={option.type}
+                onClick={() => handleOptionClick(option.type)}
                 className={cn(
-                  "flex h-14 w-14 items-center justify-center",
-                  "rounded-full bg-primary text-primary-foreground",
-                  "shadow-lg shadow-primary/25",
-                  "-mt-7",
-                  "transition-all duration-200",
-                  "hover:scale-105 hover:shadow-xl hover:shadow-primary/30",
-                  "active:scale-95",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  "flex items-center gap-3 px-4 py-2.5 rounded-full shadow-lg",
+                  "bg-card border border-border",
+                  "transition-all duration-200 hover:scale-105 active:scale-95",
+                  "animate-in fade-in slide-in-from-bottom-2"
                 )}
-                aria-label="Adicionar transação"
+                style={{
+                  animationDelay: `${index * 50}ms`,
+                  animationFillMode: "backwards",
+                }}
               >
-                <item.icon className="h-6 w-6" aria-hidden="true" />
+                <div
+                  className={cn(
+                    "h-8 w-8 rounded-full flex items-center justify-center",
+                    option.color
+                  )}
+                >
+                  <Icon className="h-4 w-4 text-white" />
+                </div>
+                <span className="text-sm font-medium whitespace-nowrap pr-2">
+                  {option.label}
+                </span>
               </button>
             )
-          }
+          })}
+        </div>
+
+        <div ref={navRef} className="flex h-16 items-center justify-around px-2">
+          {navigation.map((item, index) => {
+            if (item.isAction) {
+              return (
+                <button
+                  key={item.name}
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className={cn(
+                    "flex h-14 w-14 items-center justify-center",
+                    "rounded-full text-primary-foreground",
+                    "shadow-lg",
+                    "-mt-7",
+                    "transition-all duration-300",
+                    "hover:scale-105 hover:shadow-xl",
+                    "active:scale-95",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    isMenuOpen
+                      ? "bg-muted-foreground rotate-45 shadow-muted-foreground/25"
+                      : "bg-primary shadow-primary/25 hover:shadow-primary/30"
+                  )}
+                  aria-label={isMenuOpen ? "Fechar menu" : "Adicionar transação"}
+                  aria-expanded={isMenuOpen}
+                >
+                  {isMenuOpen ? (
+                    <X className="h-6 w-6" aria-hidden="true" />
+                  ) : (
+                    <Plus className="h-6 w-6" aria-hidden="true" />
+                  )}
+                </button>
+              )
+            }
 
           const isActive = pathname === item.href
           const navIndex = navigation.filter((n, i) => !n.isAction && i < index).length
@@ -150,7 +239,8 @@ export function MobileNav() {
             </Link>
           )
         })}
-      </div>
-    </nav>
+        </div>
+      </nav>
+    </>
   )
 }

@@ -12,7 +12,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { setSidebarOpen, setFamilyMembers, setUser, user, isAddTransactionOpen, setAddTransactionOpen } = useStore()
+  const { setSidebarOpen, setFamilyMembers, setUser, user, isAddTransactionOpen, setAddTransactionOpen, addTransactionType } = useStore()
 
   // Initialize with sample users if not set
   useEffect(() => {
@@ -72,7 +72,7 @@ export default function DashboardLayout({
       <QuickTransactionModal
         open={isAddTransactionOpen}
         onOpenChange={setAddTransactionOpen}
-        type="expense"
+        type={addTransactionType}
       />
     </div>
   )

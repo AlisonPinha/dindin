@@ -27,6 +27,7 @@ interface AppState {
   isLoading: boolean
   isSidebarOpen: boolean
   isAddTransactionOpen: boolean
+  addTransactionType: "expense" | "income" | "transfer"
   notifications: Notification[]
 
   // User actions
@@ -36,6 +37,8 @@ interface AppState {
   setSelectedPeriod: (period: { month: number; year: number }) => void
   setSidebarOpen: (open: boolean) => void
   setAddTransactionOpen: (open: boolean) => void
+  setAddTransactionType: (type: "expense" | "income" | "transfer") => void
+  openAddTransaction: (type: "expense" | "income" | "transfer") => void
   addNotification: (notification: Omit<Notification, "id">) => void
   removeNotification: (id: string) => void
 
@@ -91,6 +94,7 @@ export const useStore = create<AppState>()(
       isLoading: false,
       isSidebarOpen: false,
       isAddTransactionOpen: false,
+      addTransactionType: "expense",
       notifications: [],
 
       // User actions
@@ -100,6 +104,8 @@ export const useStore = create<AppState>()(
       setSelectedPeriod: (selectedPeriod) => set({ selectedPeriod }),
       setSidebarOpen: (isSidebarOpen) => set({ isSidebarOpen }),
       setAddTransactionOpen: (isAddTransactionOpen) => set({ isAddTransactionOpen }),
+      setAddTransactionType: (addTransactionType) => set({ addTransactionType }),
+      openAddTransaction: (type) => set({ addTransactionType: type, isAddTransactionOpen: true }),
       addNotification: (notification) =>
         set((state) => ({
           notifications: [
