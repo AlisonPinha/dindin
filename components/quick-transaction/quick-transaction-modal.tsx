@@ -261,10 +261,8 @@ export function QuickTransactionModal({
     })
   }
 
-  const handleUndo = (transactionId: string) => {
-    // In real app, delete the transaction
-    console.log("Undoing transaction:", transactionId)
-
+  const handleUndo = (_transactionId: string) => {
+    // TODO: Implement actual undo logic - delete the transaction via API
     toast({
       title: "Transação desfeita",
       description: "A transação foi removida com sucesso.",

@@ -61,7 +61,7 @@ export function Header({ onMenuClick }: HeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-card-border glass px-4 sm:px-6 lg:px-8">
       {/* Mobile Menu Button */}
       <Button
         variant="ghost"
@@ -91,7 +91,7 @@ export function Header({ onMenuClick }: HeaderProps) {
               className="min-w-[160px] justify-center gap-2 font-medium"
             >
               <span>{MONTHS[selectedPeriod.month]}</span>
-              <span className="text-muted-foreground">{selectedPeriod.year}</span>
+              <span className="text-secondary">{selectedPeriod.year}</span>
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-4" align="start">
@@ -150,13 +150,13 @@ export function Header({ onMenuClick }: HeaderProps) {
 
       {/* Search Bar */}
       <div className="hidden sm:flex relative max-w-md flex-1">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary" />
         <Input
           type="search"
           placeholder="Buscar transações..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 bg-muted/50 border-0 focus-visible:ring-1"
+          className="pl-9 bg-secondary border-0"
         />
       </div>
 

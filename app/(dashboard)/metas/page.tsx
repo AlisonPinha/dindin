@@ -380,18 +380,18 @@ export default function MetasPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-transition">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Metas</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-display">Metas</h1>
+          <p className="text-callout text-secondary mt-1">
             Defina e acompanhe suas metas financeiras
           </p>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button size="lg" className="gap-2 shadow-lg">
+            <Button size="lg" className="gap-2">
               <Plus className="h-5 w-5" />
               Nova Meta
               <ChevronDown className="h-4 w-4" />
@@ -444,7 +444,7 @@ export default function MetasPage() {
           {/* Active Goals */}
           {activeGoals.length > 0 && (
             <div>
-              <h2 className="text-lg font-semibold mb-4">
+              <h2 className="text-title mb-4">
                 Metas Ativas ({activeGoals.length})
               </h2>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -467,7 +467,7 @@ export default function MetasPage() {
           {/* Completed Goals */}
           {completedGoals.length > 0 && (
             <div>
-              <h2 className="text-lg font-semibold mb-4">
+              <h2 className="text-title mb-4">
                 Metas Concluídas ({completedGoals.length})
               </h2>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -487,7 +487,7 @@ export default function MetasPage() {
           {/* Paused Goals */}
           {pausedGoals.length > 0 && (
             <div>
-              <h2 className="text-lg font-semibold mb-4">
+              <h2 className="text-title mb-4">
                 Metas Pausadas ({pausedGoals.length})
               </h2>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -509,10 +509,10 @@ export default function MetasPage() {
         <TabsContent value="savings" className="mt-6 space-y-6">
           {activeGoals.length === 0 && completedGoals.length === 0 && pausedGoals.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <p className="text-lg font-medium text-muted-foreground">
+              <p className="text-lg font-medium text-callout text-secondary mt-1">
                 Nenhuma meta de economia
               </p>
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="text-sm text-callout text-secondary mt-1 mb-4">
                 Crie metas para reservas, viagens e projetos
               </p>
               <Button onClick={handleOpenCreateModal}>
@@ -537,7 +537,7 @@ export default function MetasPage() {
               )}
               {completedGoals.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-3">Concluídas</h3>
+                  <h3 className="text-sm font-medium text-callout text-secondary mt-1 mb-3">Concluídas</h3>
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {completedGoals.map((goal) => (
                       <GoalCardEnhanced
@@ -559,10 +559,10 @@ export default function MetasPage() {
         <TabsContent value="investment" className="mt-6 space-y-6">
           {activeGoals.length === 0 && completedGoals.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <p className="text-lg font-medium text-muted-foreground">
+              <p className="text-lg font-medium text-callout text-secondary mt-1">
                 Nenhuma meta de investimento
               </p>
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="text-sm text-callout text-secondary mt-1 mb-4">
                 Defina metas para sua carteira e aportes
               </p>
               <Button onClick={handleOpenCreateModal}>
@@ -589,10 +589,10 @@ export default function MetasPage() {
         <TabsContent value="patrimony" className="mt-6 space-y-6">
           {activeGoals.length === 0 && completedGoals.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <p className="text-lg font-medium text-muted-foreground">
+              <p className="text-lg font-medium text-callout text-secondary mt-1">
                 Nenhuma meta de patrimônio
               </p>
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="text-sm text-callout text-secondary mt-1 mb-4">
                 Planeje a compra de bens de alto valor
               </p>
               <Button onClick={handleOpenCreateModal}>

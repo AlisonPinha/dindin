@@ -54,7 +54,7 @@ const mockTransactions: Transaction[] = [
     date: new Date("2026-01-05"),
     userId: "1",
     categoryId: "1",
-    category: { id: "1", name: "Salário", type: "income", color: "#10b981", userId: "1", createdAt: new Date(), updatedAt: new Date() },
+    category: { id: "1", name: "Salário", type: "income", color: "#34C759", userId: "1", createdAt: new Date(), updatedAt: new Date() },
     user: { id: "1", name: "Alison", email: "alison@familia.com", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alison", createdAt: new Date(), updatedAt: new Date() },
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -67,7 +67,7 @@ const mockTransactions: Transaction[] = [
     date: new Date("2026-01-03"),
     userId: "1",
     categoryId: "5",
-    category: { id: "5", name: "Moradia", type: "expense", color: "#ef4444", userId: "1", createdAt: new Date(), updatedAt: new Date() },
+    category: { id: "5", name: "Moradia", type: "expense", color: "#FF3B30", userId: "1", createdAt: new Date(), updatedAt: new Date() },
     user: { id: "1", name: "Alison", email: "alison@familia.com", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alison", createdAt: new Date(), updatedAt: new Date() },
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -80,7 +80,7 @@ const mockTransactions: Transaction[] = [
     date: new Date("2026-01-02"),
     userId: "2",
     categoryId: "6",
-    category: { id: "6", name: "Alimentação", type: "expense", color: "#f97316", userId: "2", createdAt: new Date(), updatedAt: new Date() },
+    category: { id: "6", name: "Alimentação", type: "expense", color: "#FF9500", userId: "2", createdAt: new Date(), updatedAt: new Date() },
     user: { id: "2", name: "Esposa", email: "esposa@familia.com", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Maria", createdAt: new Date(), updatedAt: new Date() },
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -93,7 +93,7 @@ const mockTransactions: Transaction[] = [
     date: new Date("2026-01-01"),
     userId: "1",
     categoryId: "2",
-    category: { id: "2", name: "Freelance", type: "income", color: "#8b5cf6", userId: "1", createdAt: new Date(), updatedAt: new Date() },
+    category: { id: "2", name: "Freelance", type: "income", color: "#5856D6", userId: "1", createdAt: new Date(), updatedAt: new Date() },
     user: { id: "1", name: "Alison", email: "alison@familia.com", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alison", createdAt: new Date(), updatedAt: new Date() },
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -106,7 +106,7 @@ const mockTransactions: Transaction[] = [
     date: new Date("2025-12-28"),
     userId: "2",
     categoryId: "11",
-    category: { id: "11", name: "Assinaturas", type: "expense", color: "#64748b", userId: "2", createdAt: new Date(), updatedAt: new Date() },
+    category: { id: "11", name: "Assinaturas", type: "expense", color: "#8E8E93", userId: "2", createdAt: new Date(), updatedAt: new Date() },
     user: { id: "2", name: "Esposa", email: "esposa@familia.com", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Maria", createdAt: new Date(), updatedAt: new Date() },
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -166,7 +166,7 @@ const mockAccounts: (Account & {
     name: "Nubank",
     type: "checking",
     balance: 8500,
-    color: "#8b5cf6",
+    color: "#5856D6",
     userId: "1",
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -189,7 +189,7 @@ const mockAccounts: (Account & {
     name: "Itaú",
     type: "checking",
     balance: 12350,
-    color: "#f97316",
+    color: "#FF9500",
     userId: "2",
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -209,7 +209,7 @@ const mockAccounts: (Account & {
     name: "Cartão Nubank",
     type: "credit",
     balance: 2850,
-    color: "#f43f5e",
+    color: "#FF2D55",
     userId: "1",
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -229,7 +229,7 @@ const mockAccounts: (Account & {
     name: "Poupança",
     type: "savings",
     balance: 15000,
-    color: "#10b981",
+    color: "#34C759",
     userId: "1",
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -259,11 +259,11 @@ const mockProjectionData = {
 // Mock data for Monthly Savings
 const mockSavingsData = {
   categorySavings: [
-    { categoryId: "1", categoryName: "Delivery", categoryColor: "#f97316", budgetAmount: 600, spentAmount: 180, savedAmount: 420 },
-    { categoryId: "2", categoryName: "Lazer", categoryColor: "#a855f7", budgetAmount: 800, spentAmount: 520, savedAmount: 280 },
-    { categoryId: "3", categoryName: "Compras", categoryColor: "#f43f5e", budgetAmount: 500, spentAmount: 350, savedAmount: 150 },
-    { categoryId: "4", categoryName: "Assinaturas", categoryColor: "#64748b", budgetAmount: 200, spentAmount: 185, savedAmount: 15 },
-    { categoryId: "5", categoryName: "Transporte", categoryColor: "#eab308", budgetAmount: 400, spentAmount: 520, savedAmount: -120 },
+    { categoryId: "1", categoryName: "Delivery", categoryColor: "#FF9500", budgetAmount: 600, spentAmount: 180, savedAmount: 420 },
+    { categoryId: "2", categoryName: "Lazer", categoryColor: "#5856D6", budgetAmount: 800, spentAmount: 520, savedAmount: 280 },
+    { categoryId: "3", categoryName: "Compras", categoryColor: "#FF2D55", budgetAmount: 500, spentAmount: 350, savedAmount: 150 },
+    { categoryId: "4", categoryName: "Assinaturas", categoryColor: "#8E8E93", budgetAmount: 200, spentAmount: 185, savedAmount: 15 },
+    { categoryId: "5", categoryName: "Transporte", categoryColor: "#FFCC00", budgetAmount: 400, spentAmount: 520, savedAmount: -120 },
   ],
   totalBudget: 2500,
   totalSpent: 1755,
@@ -282,15 +282,15 @@ const mockComparisonData = [
 // Mock data for Top Expenses
 const mockTopExpenses = {
   expenses: [
-    { categoryId: "1", categoryName: "Moradia", categoryColor: "#ef4444", currentAmount: 2500, previousAmount: 2500, percentage: 31.8 },
-    { categoryId: "2", categoryName: "Alimentação", categoryColor: "#f97316", currentAmount: 1800, previousAmount: 1650, percentage: 22.9 },
-    { categoryId: "3", categoryName: "Transporte", categoryColor: "#eab308", currentAmount: 850, previousAmount: 920, percentage: 10.8 },
-    { categoryId: "4", categoryName: "Lazer", categoryColor: "#a855f7", currentAmount: 720, previousAmount: 580, percentage: 9.2 },
-    { categoryId: "5", categoryName: "Saúde", categoryColor: "#ec4899", currentAmount: 650, previousAmount: 450, percentage: 8.3 },
-    { categoryId: "6", categoryName: "Educação", categoryColor: "#06b6d4", currentAmount: 450, previousAmount: 450, percentage: 5.7 },
-    { categoryId: "7", categoryName: "Assinaturas", categoryColor: "#64748b", currentAmount: 280, previousAmount: 280, percentage: 3.6 },
-    { categoryId: "8", categoryName: "Compras", categoryColor: "#f43f5e", currentAmount: 350, previousAmount: 520, percentage: 4.5 },
-    { categoryId: "9", categoryName: "Outros", categoryColor: "#94a3b8", currentAmount: 250, previousAmount: 350, percentage: 3.2 },
+    { categoryId: "1", categoryName: "Moradia", categoryColor: "#FF3B30", currentAmount: 2500, previousAmount: 2500, percentage: 31.8 },
+    { categoryId: "2", categoryName: "Alimentação", categoryColor: "#FF9500", currentAmount: 1800, previousAmount: 1650, percentage: 22.9 },
+    { categoryId: "3", categoryName: "Transporte", categoryColor: "#FFCC00", currentAmount: 850, previousAmount: 920, percentage: 10.8 },
+    { categoryId: "4", categoryName: "Lazer", categoryColor: "#5856D6", currentAmount: 720, previousAmount: 580, percentage: 9.2 },
+    { categoryId: "5", categoryName: "Saúde", categoryColor: "#FF2D55", currentAmount: 650, previousAmount: 450, percentage: 8.3 },
+    { categoryId: "6", categoryName: "Educação", categoryColor: "#5AC8FA", currentAmount: 450, previousAmount: 450, percentage: 5.7 },
+    { categoryId: "7", categoryName: "Assinaturas", categoryColor: "#8E8E93", currentAmount: 280, previousAmount: 280, percentage: 3.6 },
+    { categoryId: "8", categoryName: "Compras", categoryColor: "#FF2D55", currentAmount: 350, previousAmount: 520, percentage: 4.5 },
+    { categoryId: "9", categoryName: "Outros", categoryColor: "#8E8E93", currentAmount: 250, previousAmount: 350, percentage: 3.2 },
   ],
   totalExpenses: 7850,
 }
@@ -321,7 +321,7 @@ const mockCoupleRanking = {
 }
 
 export default function DashboardPage() {
-  const { selectedPeriod } = useStore()
+  const { user, selectedPeriod } = useStore()
 
   const MONTHS = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -329,12 +329,14 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 page-transition">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Visão geral das finanças em {MONTHS[selectedPeriod.month]} de {selectedPeriod.year}
+        <h1 className="text-display">
+          Olá, {user?.name || "Alison"}
+        </h1>
+        <p className="text-callout text-secondary mt-1">
+          Aqui está o resumo das suas finanças em {MONTHS[selectedPeriod.month]} de {selectedPeriod.year}
         </p>
       </div>
 
@@ -365,8 +367,8 @@ export default function DashboardPage() {
       {/* Insights Section */}
       <div className="space-y-6">
         <div>
-          <h2 className="text-xl font-bold tracking-tight">Insights</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-headline">Insights</h2>
+          <p className="text-callout text-secondary mt-1">
             Análises e projeções do seu mês
           </p>
         </div>

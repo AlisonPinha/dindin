@@ -421,12 +421,12 @@ export default function TransacoesPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Transações</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-display">Transações</h1>
+          <p className="text-callout text-secondary mt-1">
             Gerencie suas receitas e despesas
           </p>
         </div>
-        <Button size="lg" className="gap-2 shadow-lg" onClick={handleOpenCreateModal}>
+        <Button size="lg" className="gap-2" onClick={handleOpenCreateModal}>
           <Plus className="h-5 w-5" />
           Nova Transação
         </Button>
@@ -443,7 +443,7 @@ export default function TransacoesPage() {
       />
 
       {/* Results count */}
-      <div className="text-sm text-muted-foreground">
+      <div className="text-sm text-callout text-secondary mt-1">
         {filteredTransactions.length} transação
         {filteredTransactions.length !== 1 ? "ões" : ""} encontrada
         {filteredTransactions.length !== 1 ? "s" : ""}

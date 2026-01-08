@@ -47,7 +47,7 @@ export default function DashboardLayout({
       <SkipLinks />
 
       {/* Desktop Sidebar */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
+      <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-64 lg:flex-col">
         <nav id="main-navigation" aria-label="Navegação principal">
           <Sidebar />
         </nav>
@@ -57,9 +57,9 @@ export default function DashboardLayout({
       <MobileSidebar />
 
       {/* Main content area */}
-      <div className="lg:pl-72">
+      <div className="lg:pl-64">
         <Header onMenuClick={() => setSidebarOpen(true)} />
-        <main id="main-content" className="py-6 px-4 sm:px-6 lg:px-8 pb-24 lg:pb-6">
+        <main id="main-content" className="py-8 px-4 sm:px-6 lg:px-8 pb-24 lg:pb-8">
           <Breadcrumbs />
           {children}
         </main>

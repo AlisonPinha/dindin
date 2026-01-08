@@ -2,13 +2,36 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, type, ...props }, ref) => {
+export interface InputProps
+  extends React.InputHTMLAttributes<HTMLInputElement> {
+  error?: boolean
+}
+
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, type, error, ...props }, ref) => {
     return (
       <input
         type={type}
         className={cn(
-          "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+          `flex h-11 w-full rounded-lg border bg-background px-4 py-2
+           text-base text-foreground
+           placeholder:text-secondary
+           transition-all duration-150
+           file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground
+
+           /* Focus state */
+           focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary
+
+           /* Disabled */
+           disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted
+
+           /* Hover */
+           hover:border-foreground-secondary`,
+
+          error
+            ? "border-danger focus:ring-danger/30 focus:border-danger"
+            : "border-card-border",
+
           className
         )}
         ref={ref}
