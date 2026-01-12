@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         ...goal,
-        category: goal.categories,
+        category: goal.categorias,
       },
       { status: 201 }
     );
@@ -200,7 +200,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({
       ...goal,
-      category: goal.categories,
+      category: goal.categorias,
     });
   } catch (error) {
     console.error("Erro ao atualizar meta:", error);
@@ -263,7 +263,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({
       ...goal,
-      category: goal.categories,
+      category: goal.categorias,
       progresso: goal.valor_alvo > 0 ? (goal.valor_atual / goal.valor_alvo) * 100 : 0,
       atingida: goal.valor_atual >= goal.valor_alvo,
     });
