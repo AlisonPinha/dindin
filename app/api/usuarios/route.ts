@@ -11,7 +11,7 @@ export async function GET() {
 
     // Buscar usuário no banco
     const { data: user, error } = await supabase
-      .from("users")
+      .from("usuarios")
       .select("*")
       .eq("id", auth.user.id)
       .single();
@@ -24,10 +24,10 @@ export async function GET() {
 
     // Get counts
     const [accountsCount, transactionsCount, investmentsCount, goalsCount] = await Promise.all([
-      supabase.from("accounts").select("id", { count: "exact", head: true }).eq("user_id", auth.user.id).eq("ativo", true),
-      supabase.from("transactions").select("id", { count: "exact", head: true }).eq("user_id", auth.user.id),
-      supabase.from("investments").select("id", { count: "exact", head: true }).eq("user_id", auth.user.id),
-      supabase.from("goals").select("id", { count: "exact", head: true }).eq("user_id", auth.user.id),
+      supabase.from("contas").select("id", { count: "exact", head: true }).eq("user_id", auth.user.id).eq("ativo", true),
+      supabase.from("transacoes").select("id", { count: "exact", head: true }).eq("user_id", auth.user.id),
+      supabase.from("investimentos").select("id", { count: "exact", head: true }).eq("user_id", auth.user.id),
+      supabase.from("metas").select("id", { count: "exact", head: true }).eq("user_id", auth.user.id),
     ]);
 
     // Retorna array com o usuário para compatibilidade com SWR
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     // Verificar se usuário já existe
     const { data: existingUser } = await supabase
-      .from("users")
+      .from("usuarios")
       .select("id")
       .eq("id", auth.user.id)
       .single();
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     // Criar usuário com o ID do Supabase Auth
     const { data: user, error } = await supabase
-      .from("users")
+      .from("usuarios")
       .insert({
         id: auth.user.id,
         nome: nome || auth.user.email.split("@")[0],
@@ -112,7 +112,7 @@ export async function PUT(request: NextRequest) {
 
     // Verificar se usuário existe
     const { data: existingUser } = await supabase
-      .from("users")
+      .from("usuarios")
       .select("id")
       .eq("id", auth.user.id)
       .single();
@@ -131,7 +131,7 @@ export async function PUT(request: NextRequest) {
     if (rendaMensal !== undefined) updateData.renda_mensal = rendaMensal;
 
     const { data: user, error } = await supabase
-      .from("users")
+      .from("usuarios")
       .update(updateData)
       .eq("id", auth.user.id)
       .select()
@@ -159,15 +159,15 @@ export async function DELETE() {
 
     // Get counts before deleting
     const [accountsCount, transactionsCount, investmentsCount, goalsCount] = await Promise.all([
-      supabase.from("accounts").select("id", { count: "exact", head: true }).eq("user_id", auth.user.id),
-      supabase.from("transactions").select("id", { count: "exact", head: true }).eq("user_id", auth.user.id),
-      supabase.from("investments").select("id", { count: "exact", head: true }).eq("user_id", auth.user.id),
-      supabase.from("goals").select("id", { count: "exact", head: true }).eq("user_id", auth.user.id),
+      supabase.from("contas").select("id", { count: "exact", head: true }).eq("user_id", auth.user.id),
+      supabase.from("transacoes").select("id", { count: "exact", head: true }).eq("user_id", auth.user.id),
+      supabase.from("investimentos").select("id", { count: "exact", head: true }).eq("user_id", auth.user.id),
+      supabase.from("metas").select("id", { count: "exact", head: true }).eq("user_id", auth.user.id),
     ]);
 
     // Delete user (cascade should handle related data)
     const { error } = await supabase
-      .from("users")
+      .from("usuarios")
       .delete()
       .eq("id", auth.user.id);
 

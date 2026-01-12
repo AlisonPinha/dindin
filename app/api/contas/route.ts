@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
     // Query 1: Buscar todas as contas do usuário
     let query = supabase
-      .from("accounts")
+      .from("contas")
       .select("*")
       .eq("user_id", auth.user.id);
 
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     const accountIds = accounts.map(a => a.id);
 
     const { data: allTransactions, error: txError } = await supabase
-      .from("transactions")
+      .from("transacoes")
       .select("account_id, valor, tipo")
       .in("account_id", accountIds);
 
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { data: account, error } = await supabase
-      .from("accounts")
+      .from("contas")
       .insert({
         user_id: auth.user.id, // SEMPRE usar o ID do usuário logado
         nome: nome.trim(),
@@ -187,7 +187,7 @@ export async function PUT(request: NextRequest) {
 
     // Verificar se a conta pertence ao usuário
     const { data: existingAccount } = await supabase
-      .from("accounts")
+      .from("contas")
       .select("id")
       .eq("id", id)
       .eq("user_id", auth.user.id)
@@ -210,7 +210,7 @@ export async function PUT(request: NextRequest) {
     if (ativo !== undefined) updateData.ativo = ativo;
 
     const { data: account, error } = await supabase
-      .from("accounts")
+      .from("contas")
       .update(updateData)
       .eq("id", id)
       .eq("user_id", auth.user.id) // Garantir que só atualiza do próprio usuário
@@ -250,7 +250,7 @@ export async function DELETE(request: NextRequest) {
 
     // Verificar se a conta pertence ao usuário
     const { data: existingAccount } = await supabase
-      .from("accounts")
+      .from("contas")
       .select("id")
       .eq("id", id)
       .eq("user_id", auth.user.id)
@@ -265,14 +265,14 @@ export async function DELETE(request: NextRequest) {
 
     // Check if account has transactions
     const { count } = await supabase
-      .from("transactions")
+      .from("transacoes")
       .select("id", { count: "exact", head: true })
       .eq("account_id", id);
 
     if (count && count > 0 && !force) {
       // Soft delete - just deactivate
       const { error } = await supabase
-        .from("accounts")
+        .from("contas")
         .update({ ativo: false })
         .eq("id", id)
         .eq("user_id", auth.user.id);
@@ -288,7 +288,7 @@ export async function DELETE(request: NextRequest) {
 
     // Hard delete if no transactions or force=true
     const { error } = await supabase
-      .from("accounts")
+      .from("contas")
       .delete()
       .eq("id", id)
       .eq("user_id", auth.user.id);

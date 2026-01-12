@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     // Verificar se usuário existe
     const { data: existingUser, error: userError } = await supabase
-      .from("users")
+      .from("usuarios")
       .select("*")
       .eq("id", userId)
       .single();
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
 
     // Verificar se email já está em uso por outro usuário
     const { data: emailInUse } = await supabase
-      .from("users")
+      .from("usuarios")
       .select("id")
       .eq("email", email)
       .neq("id", userId)
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
 
     // 1. Atualizar usuário com dados do perfil + marcar como onboarded
     const { data: updatedUser, error: updateUserError } = await supabase
-      .from("users")
+      .from("usuarios")
       .update({
         nome: nome.trim(),
         email: email.trim(),
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
 
     // 2. Deletar contas existentes do usuário (se houver do seed)
     await supabase
-      .from("accounts")
+      .from("contas")
       .delete()
       .eq("user_id", userId);
 
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
     }));
 
     const { data: createdAccounts, error: accountsError } = await supabase
-      .from("accounts")
+      .from("contas")
       .insert(accountsToInsert)
       .select();
 
@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
 
     // Verificar se já existe orçamento para este mês
     const { data: existingBudget } = await supabase
-      .from("budgets")
+      .from("orcamentos")
       .select("*")
       .eq("mes_ano", mesAno)
       .eq("user_id", userId)
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
     let budget;
     if (existingBudget) {
       const { data: updatedBudget, error: budgetUpdateError } = await supabase
-        .from("budgets")
+        .from("orcamentos")
         .update({
           projetado_50: rendaMensal * 0.5,
           projetado_30: rendaMensal * 0.3,
@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
       budget = updatedBudget;
     } else {
       const { data: newBudget, error: budgetCreateError } = await supabase
-        .from("budgets")
+        .from("orcamentos")
         .insert({
           mes_ano: mesAno,
           projetado_50: rendaMensal * 0.5,

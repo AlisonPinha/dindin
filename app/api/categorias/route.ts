@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 
     // Buscar categorias do sistema (user_id = null) E do usuário logado
     let query = supabase
-      .from("categories")
+      .from("categorias")
       .select("*")
       .or(`user_id.is.null,user_id.eq.${auth.user.id}`);
 
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { data: category, error } = await supabase
-      .from("categories")
+      .from("categorias")
       .insert({
         user_id: auth.user.id, // SEMPRE associar ao usuário
         nome: nome.trim(),
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
         cor,
         icone: icone || null,
         grupo: grupo as DbCategoryGroup,
-        orcamento_mensal: orcamentoMensal || null,
+        limite_mensal: orcamentoMensal || null,
       })
       .select()
       .single();
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PUT - Atualizar categoria (somente do próprio usuário, não do sistema)
+    // PUT - Atualizar categoria (somente do próprio usuário, não do sistema)
 export async function PUT(request: NextRequest) {
   try {
     const auth = await getAuthenticatedUser();
@@ -143,7 +143,7 @@ export async function PUT(request: NextRequest) {
 
     // Verificar se categoria existe e pertence ao usuário
     const { data: existing } = await supabase
-      .from("categories")
+      .from("categorias")
       .select("id, user_id")
       .eq("id", id)
       .single();
@@ -177,10 +177,10 @@ export async function PUT(request: NextRequest) {
     if (cor !== undefined) updateData.cor = cor;
     if (icone !== undefined) updateData.icone = icone;
     if (grupo !== undefined) updateData.grupo = grupo;
-    if (orcamentoMensal !== undefined) updateData.orcamento_mensal = orcamentoMensal;
+    if (orcamentoMensal !== undefined) updateData.limite_mensal = orcamentoMensal;
 
     const { data: category, error } = await supabase
-      .from("categories")
+      .from("categorias")
       .update(updateData)
       .eq("id", id)
       .eq("user_id", auth.user.id) // Garantir que só atualiza do próprio usuário
@@ -219,7 +219,7 @@ export async function DELETE(request: NextRequest) {
 
     // Verificar se categoria existe e pertence ao usuário
     const { data: existing } = await supabase
-      .from("categories")
+      .from("categorias")
       .select("id, user_id")
       .eq("id", id)
       .single();
@@ -249,7 +249,7 @@ export async function DELETE(request: NextRequest) {
 
     // Verificar se categoria tem transações vinculadas
     const { count } = await supabase
-      .from("transactions")
+      .from("transacoes")
       .select("id", { count: "exact", head: true })
       .eq("category_id", id);
 
@@ -264,7 +264,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const { error } = await supabase
-      .from("categories")
+      .from("categorias")
       .delete()
       .eq("id", id)
       .eq("user_id", auth.user.id); // Garantir que só deleta do próprio usuário

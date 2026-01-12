@@ -13,7 +13,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
     const supabase = await getSupabaseClient();
 
     const { data: account, error } = await supabase
-      .from("accounts")
+      .from("contas")
       .select("*")
       .eq("id", id)
       .eq("user_id", auth.user.id)
@@ -28,7 +28,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
 
     // Calculate current balance
     const { data: transactions } = await supabase
-      .from("transactions")
+      .from("transacoes")
       .select("valor, tipo")
       .eq("account_id", account.id);
 
@@ -66,7 +66,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
     // Verificar se conta pertence ao usuário
     const { data: existing } = await supabase
-      .from("accounts")
+      .from("contas")
       .select("id")
       .eq("id", id)
       .eq("user_id", auth.user.id)
@@ -89,7 +89,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     if (body.ativo !== undefined) updateData.ativo = body.ativo;
 
     const { data: account, error } = await supabase
-      .from("accounts")
+      .from("contas")
       .update(updateData)
       .eq("id", id)
       .eq("user_id", auth.user.id)
@@ -119,7 +119,7 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
 
     // Verificar se conta pertence ao usuário
     const { data: existing } = await supabase
-      .from("accounts")
+      .from("contas")
       .select("id")
       .eq("id", id)
       .eq("user_id", auth.user.id)
@@ -134,14 +134,14 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
 
     // Check if account has transactions
     const { count } = await supabase
-      .from("transactions")
+      .from("transacoes")
       .select("id", { count: "exact", head: true })
       .eq("account_id", id);
 
     if (count && count > 0) {
       // Soft delete - just deactivate
       const { error } = await supabase
-        .from("accounts")
+        .from("contas")
         .update({ ativo: false })
         .eq("id", id)
         .eq("user_id", auth.user.id);
@@ -157,7 +157,7 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
 
     // Hard delete if no transactions
     const { error } = await supabase
-      .from("accounts")
+      .from("contas")
       .delete()
       .eq("id", id)
       .eq("user_id", auth.user.id);

@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const offset = searchParams.get("offset");
 
     let query = supabase
-      .from("investments")
+      .from("investimentos")
       .select("*")
       .eq("user_id", auth.user.id);
 
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     // Get total count
     let countQuery = supabase
-      .from("investments")
+      .from("investimentos")
       .select("id", { count: "exact", head: true })
       .eq("user_id", auth.user.id);
 
@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
         : 0;
 
     const { data: investment, error } = await supabase
-      .from("investments")
+      .from("investimentos")
       .insert({
         nome: nome.trim(),
         tipo: tipo as DbInvestmentType,
@@ -183,7 +183,7 @@ export async function PUT(request: NextRequest) {
 
     // Verificar se investimento pertence ao usuário
     const { data: existing } = await supabase
-      .from("investments")
+      .from("investimentos")
       .select("id, valor_aplicado, valor_atual")
       .eq("id", id)
       .eq("user_id", auth.user.id)
@@ -216,7 +216,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const { data: investment, error } = await supabase
-      .from("investments")
+      .from("investimentos")
       .update(updateData)
       .eq("id", id)
       .eq("user_id", auth.user.id)
@@ -255,7 +255,7 @@ export async function DELETE(request: NextRequest) {
 
     // Verificar se investimento pertence ao usuário
     const { data: existing } = await supabase
-      .from("investments")
+      .from("investimentos")
       .select("id")
       .eq("id", id)
       .eq("user_id", auth.user.id)
@@ -269,7 +269,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const { error } = await supabase
-      .from("investments")
+      .from("investimentos")
       .delete()
       .eq("id", id)
       .eq("user_id", auth.user.id);

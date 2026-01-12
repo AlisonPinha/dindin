@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const tipo = searchParams.get("tipo");
 
     let query = supabase
-      .from("goals")
+      .from("metas")
       .select("*, categories(*)")
       .eq("user_id", auth.user.id);
 
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     // Verificar se a categoria pertence ao usuário (se fornecida)
     if (categoryId) {
       const { data: category } = await supabase
-        .from("categories")
+        .from("categorias")
         .select("id")
         .eq("id", categoryId)
         .single();
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { data: goal, error } = await supabase
-      .from("goals")
+      .from("metas")
       .insert({
         nome: nome.trim(),
         tipo: tipo as DbGoalType,
@@ -150,7 +150,7 @@ export async function PUT(request: NextRequest) {
 
     // Verificar se meta pertence ao usuário
     const { data: existing } = await supabase
-      .from("goals")
+      .from("metas")
       .select("id")
       .eq("id", id)
       .eq("user_id", auth.user.id)
@@ -166,7 +166,7 @@ export async function PUT(request: NextRequest) {
     // Verificar se a categoria pertence ao usuário (se fornecida)
     if (categoryId) {
       const { data: category } = await supabase
-        .from("categories")
+        .from("categorias")
         .select("id")
         .eq("id", categoryId)
         .single();
@@ -189,7 +189,7 @@ export async function PUT(request: NextRequest) {
     if (ativo !== undefined) updateData.ativo = ativo;
 
     const { data: goal, error } = await supabase
-      .from("goals")
+      .from("metas")
       .update(updateData)
       .eq("id", id)
       .eq("user_id", auth.user.id)
@@ -231,7 +231,7 @@ export async function PATCH(request: NextRequest) {
 
     // Verificar se meta pertence ao usuário e obter valor atual
     const { data: current } = await supabase
-      .from("goals")
+      .from("metas")
       .select("id, valor_atual")
       .eq("id", id)
       .eq("user_id", auth.user.id)
@@ -252,7 +252,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const { data: goal, error } = await supabase
-      .from("goals")
+      .from("metas")
       .update({ valor_atual: newValorAtual })
       .eq("id", id)
       .eq("user_id", auth.user.id)
@@ -296,7 +296,7 @@ export async function DELETE(request: NextRequest) {
 
     // Verificar se meta pertence ao usuário
     const { data: existing } = await supabase
-      .from("goals")
+      .from("metas")
       .select("id")
       .eq("id", id)
       .eq("user_id", auth.user.id)
@@ -310,7 +310,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const { error } = await supabase
-      .from("goals")
+      .from("metas")
       .delete()
       .eq("id", id)
       .eq("user_id", auth.user.id);

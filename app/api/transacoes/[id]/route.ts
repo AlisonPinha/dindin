@@ -14,7 +14,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
     const supabase = await getSupabaseClient();
 
     const { data: transaction, error } = await supabase
-      .from("transactions")
+      .from("transacoes")
       .select("*, categories(*), accounts(*)")
       .eq("id", id)
       .eq("user_id", auth.user.id)
@@ -53,7 +53,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
     // Verificar se transação pertence ao usuário
     const { data: existing } = await supabase
-      .from("transactions")
+      .from("transacoes")
       .select("id")
       .eq("id", id)
       .eq("user_id", auth.user.id)
@@ -71,7 +71,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     // Verificar se a conta pertence ao usuário (se fornecida)
     if (accountId) {
       const { data: account } = await supabase
-        .from("accounts")
+        .from("contas")
         .select("id")
         .eq("id", accountId)
         .eq("user_id", auth.user.id)
@@ -98,7 +98,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     if (ownership !== undefined) updateData.ownership = ownership as DbOwnershipType;
 
     const { data: transaction, error } = await supabase
-      .from("transactions")
+      .from("transacoes")
       .update(updateData)
       .eq("id", id)
       .eq("user_id", auth.user.id)
@@ -132,7 +132,7 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
 
     // Verificar se transação pertence ao usuário
     const { data: existing } = await supabase
-      .from("transactions")
+      .from("transacoes")
       .select("id")
       .eq("id", id)
       .eq("user_id", auth.user.id)
@@ -146,7 +146,7 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
     }
 
     const { error } = await supabase
-      .from("transactions")
+      .from("transacoes")
       .delete()
       .eq("id", id)
       .eq("user_id", auth.user.id);

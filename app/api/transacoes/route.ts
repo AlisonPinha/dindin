@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const offset = searchParams.get("offset");
 
     let query = supabase
-      .from("transactions")
+      .from("transacoes")
       .select("*, categories(*), accounts(*)")
       .eq("user_id", auth.user.id);
 
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 
     // Get total count
     let countQuery = supabase
-      .from("transactions")
+      .from("transacoes")
       .select("id", { count: "exact", head: true })
       .eq("user_id", auth.user.id);
 
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
     // Verificar se a conta pertence ao usuário (se fornecida)
     if (accountId) {
       const { data: account } = await supabase
-        .from("accounts")
+        .from("contas")
         .select("id")
         .eq("id", accountId)
         .eq("user_id", auth.user.id)
@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
 
       // Insert ALL installments atomically (se uma falhar, nenhuma é criada)
       const { data: createdTransactions, error } = await supabase
-        .from("transactions")
+        .from("transacoes")
         .insert(transactions)
         .select();
 
@@ -227,7 +227,7 @@ export async function POST(request: NextRequest) {
 
     // Single transaction
     const { data: transaction, error } = await supabase
-      .from("transactions")
+      .from("transacoes")
       .insert({
         descricao: descricao.trim(),
         valor,
@@ -283,7 +283,7 @@ export async function PUT(request: NextRequest) {
 
     // Verificar se transação pertence ao usuário
     const { data: existing } = await supabase
-      .from("transactions")
+      .from("transacoes")
       .select("id")
       .eq("id", id)
       .eq("user_id", auth.user.id)
@@ -299,7 +299,7 @@ export async function PUT(request: NextRequest) {
     // Verificar se a conta pertence ao usuário (se fornecida)
     if (accountId) {
       const { data: account } = await supabase
-        .from("accounts")
+        .from("contas")
         .select("id")
         .eq("id", accountId)
         .eq("user_id", auth.user.id)
@@ -326,7 +326,7 @@ export async function PUT(request: NextRequest) {
     if (ownership !== undefined) updateData.ownership = ownership;
 
     const { data: transaction, error } = await supabase
-      .from("transactions")
+      .from("transacoes")
       .update(updateData)
       .eq("id", id)
       .eq("user_id", auth.user.id)
@@ -369,7 +369,7 @@ export async function DELETE(request: NextRequest) {
 
     // Verificar se transação pertence ao usuário
     const { data: existing } = await supabase
-      .from("transactions")
+      .from("transacoes")
       .select("id")
       .eq("id", id)
       .eq("user_id", auth.user.id)
@@ -383,7 +383,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const { error } = await supabase
-      .from("transactions")
+      .from("transacoes")
       .delete()
       .eq("id", id)
       .eq("user_id", auth.user.id);
