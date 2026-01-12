@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
         preco_compra: valorAplicado,
         preco_atual: valorAtual || valorAplicado,
         rentabilidade,
-        data_aplicacao: new Date(dataAplicacao).toISOString(),
+        data_compra: new Date(dataAplicacao).toISOString(),
         data_vencimento: dataVencimento ? new Date(dataVencimento).toISOString() : null,
         user_id: auth.user.id,
       })
