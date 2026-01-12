@@ -15,7 +15,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
 
     const { data: transaction, error } = await supabase
       .from("transacoes")
-      .select("*, categories(*), accounts(*)")
+      .select("*, categorias(*), contas(*)")
       .eq("id", id)
       .eq("user_id", auth.user.id)
       .single();
@@ -102,7 +102,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
       .update(updateData)
       .eq("id", id)
       .eq("user_id", auth.user.id)
-      .select("*, categories(*), accounts(*)")
+      .select("*, categorias(*), contas(*)")
       .single();
 
     if (error) throw error;

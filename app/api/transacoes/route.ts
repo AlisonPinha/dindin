@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from("transacoes")
-      .select("*, categories(*), accounts(*)")
+      .select("*, categorias(*), contas(*)")
       .eq("user_id", auth.user.id);
 
     // Aplicar filtros
@@ -67,8 +67,8 @@ export async function GET(request: NextRequest) {
     // Map to expected format
     const mappedTransactions = (transactions || []).map((t) => ({
       ...t,
-      category: t.categories,
-      account: t.accounts,
+      category: t.categorias,
+      account: t.contas,
     }));
 
     const currentLimit = limit ? parseInt(limit) : 50;
@@ -241,7 +241,7 @@ export async function POST(request: NextRequest) {
         notas: notas || null,
         ownership: (ownership || "CASA") as DbOwnershipType,
       })
-      .select("*, categories(*), accounts(*)")
+      .select("*, categorias(*), contas(*)")
       .single();
 
     if (error) throw error;
@@ -249,8 +249,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         ...transaction,
-        category: transaction.categories,
-        account: transaction.accounts,
+        category: transaction.categorias,
+        account: transaction.contas,
       },
       { status: 201 }
     );
@@ -330,7 +330,7 @@ export async function PUT(request: NextRequest) {
       .update(updateData)
       .eq("id", id)
       .eq("user_id", auth.user.id)
-      .select("*, categories(*), accounts(*)")
+      .select("*, categorias(*), contas(*)")
       .single();
 
     if (error) throw error;

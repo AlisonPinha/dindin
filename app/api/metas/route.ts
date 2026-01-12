@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from("metas")
-      .select("*, categories(*)")
+      .select("*, categorias(*)")
       .eq("user_id", auth.user.id);
 
     if (ativo !== null && ativo !== undefined) query = query.eq("ativo", ativo === "true");
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     // Add progress calculation and map to expected format
     const goalsWithProgress = (goals || []).map((goal) => ({
       ...goal,
-      category: goal.categories,
+      category: goal.categorias,
       progresso: goal.valor_alvo > 0 ? (goal.valor_atual / goal.valor_alvo) * 100 : 0,
       restante: Math.max(0, goal.valor_alvo - goal.valor_atual),
       atingida: goal.valor_atual >= goal.valor_alvo,
