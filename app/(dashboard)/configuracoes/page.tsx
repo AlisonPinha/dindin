@@ -420,11 +420,12 @@ export default function ConfiguracoesPage() {
           if (!line) continue
           
           const values = line.split(",").map(v => v.trim().replace(/"/g, ""))
-          const date = values[headers.indexOf("data")] ?? values[0]
-          const description = values[headers.indexOf("descrição")] ?? values[headers.indexOf("descricao")] ?? values[1]
-          const value = parseFloat(values[headers.indexOf("valor")] ?? values[2])
-          const typeStr = values[headers.indexOf("tipo")] ?? values[3]
-          const categoryName = values[headers.indexOf("categoria")] ?? values[4]
+          const date = values[headers.indexOf("data")] ?? values[0] ?? ""
+          const description = values[headers.indexOf("descrição")] ?? values[headers.indexOf("descricao")] ?? values[1] ?? ""
+          const valueStr = values[headers.indexOf("valor")] ?? values[2] ?? ""
+          const value = parseFloat(valueStr)
+          const typeStr = values[headers.indexOf("tipo")] ?? values[3] ?? ""
+          const categoryName = values[headers.indexOf("categoria")] ?? values[4] ?? ""
 
           if (!date || !description || isNaN(value)) {
             errors++
