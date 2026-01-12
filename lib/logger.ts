@@ -67,9 +67,13 @@ function output(entry: LogEntry): void {
 
   switch (entry.level) {
     case "debug":
-      if (isDev) console.debug(jsonString)
+      if (isDev) {
+        // eslint-disable-next-line no-console
+        console.debug(jsonString)
+      }
       break
     case "info":
+      // eslint-disable-next-line no-console
       console.info(jsonString)
       break
     case "warn":

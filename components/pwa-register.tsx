@@ -12,7 +12,11 @@ export function PWARegister() {
       navigator.serviceWorker
         .register("/sw.js")
         .then((registration) => {
-          console.log("SW registered:", registration.scope)
+          // SW registered successfully
+          if (process.env.NODE_ENV === "development") {
+            // eslint-disable-next-line no-console
+            console.log("SW registered:", registration.scope)
+          }
 
           // Check for updates
           registration.addEventListener("updatefound", () => {
@@ -24,7 +28,10 @@ export function PWARegister() {
                   navigator.serviceWorker.controller
                 ) {
                   // New content available, notify user
-                  console.log("New content available, refresh to update")
+                  if (process.env.NODE_ENV === "development") {
+                    // eslint-disable-next-line no-console
+                    console.log("New content available, refresh to update")
+                  }
                 }
               })
             }
