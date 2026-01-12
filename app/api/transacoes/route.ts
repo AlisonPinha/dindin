@@ -337,8 +337,8 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({
       ...transaction,
-      category: transaction.categories,
-      account: transaction.accounts,
+      category: transaction.categorias,
+      account: transaction.contas,
     });
   } catch (error) {
     console.error("Erro ao atualizar transação:", error);
