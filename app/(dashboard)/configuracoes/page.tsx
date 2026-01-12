@@ -524,7 +524,6 @@ export default function ConfiguracoesPage() {
           color: a.color,
           icon: a.icon,
           bank: a.bank,
-          isActive: a.isActive,
         })),
         categories: categories.map(c => ({
           id: c.id,
@@ -551,10 +550,10 @@ export default function ConfiguracoesPage() {
           id: g.id,
           name: g.name,
           type: g.type,
-          targetValue: g.targetValue,
-          currentValue: g.currentValue,
+          targetAmount: g.targetAmount,
+          currentAmount: g.currentAmount,
           deadline: g.deadline,
-          isActive: g.isActive,
+          isActive: g.isActive ?? g.status === "active",
         })),
       }
 
