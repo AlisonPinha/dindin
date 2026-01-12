@@ -641,8 +641,6 @@ export default function ConfiguracoesPage() {
           variant: "destructive",
         })
       }
-
-      return { restored, errors }
     } catch (error) {
       toast({
         title: "Erro ao restaurar backup",
