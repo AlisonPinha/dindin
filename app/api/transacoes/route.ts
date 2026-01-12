@@ -177,7 +177,6 @@ export async function POST(request: NextRequest) {
       const transactions = [];
       const valorParcela = Math.round((valor / parcelas) * 100) / 100; // Arredondar para 2 casas
       const dataBase = new Date(data);
-      const grupoParcela = crypto.randomUUID(); // Agrupar parcelas relacionadas
 
       for (let i = 0; i < parcelas; i++) {
         const dataParcela = new Date(dataBase);
@@ -191,7 +190,6 @@ export async function POST(request: NextRequest) {
           recorrente: false,
           parcelas,
           parcela_atual: i + 1,
-          grupo_parcela: grupoParcela, // UUID para agrupar
           category_id: categoryId || null,
           account_id: accountId || null,
           user_id: auth.user.id,
@@ -218,7 +216,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           count: createdTransactions?.length || 0,
-          grupoParcela,
           transactions: createdTransactions,
         },
         { status: 201 }
