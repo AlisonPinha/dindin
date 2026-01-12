@@ -5,8 +5,20 @@ import type { DbCategoryType, DbCategoryGroup } from "@/lib/supabase";
 // GET - Listar categorias (do sistema + do usuário)
 export async function GET(request: NextRequest) {
   try {
+    // Check environment variables
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      console.error("Variáveis de ambiente do Supabase não configuradas");
+      return NextResponse.json(
+        { error: "Configuração do servidor incompleta" },
+        { status: 500 }
+      );
+    }
+
     const auth = await getAuthenticatedUser();
-    if (auth.error) return auth.error;
+    if (auth.error) {
+      console.error("Erro de autenticação:", auth.error);
+      return auth.error;
+    }
 
     const supabase = await getSupabaseClient();
     const { searchParams } = new URL(request.url);
@@ -26,13 +38,20 @@ export async function GET(request: NextRequest) {
 
     const { data: categories, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      console.error("Erro na query do Supabase:", error);
+      return NextResponse.json(
+        { error: "Erro ao buscar categorias", details: error.message },
+        { status: 500 }
+      );
+    }
 
-    return NextResponse.json(categories);
+    return NextResponse.json(categories || []);
   } catch (error) {
     console.error("Erro ao buscar categorias:", error);
+    const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
     return NextResponse.json(
-      { error: "Erro ao buscar categorias" },
+      { error: "Erro ao buscar categorias", details: errorMessage },
       { status: 500 }
     );
   }
