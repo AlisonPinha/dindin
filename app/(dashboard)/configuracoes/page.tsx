@@ -416,7 +416,10 @@ export default function ConfiguracoesPage() {
       // Skip header row
       for (let i = 1; i < lines.length; i++) {
         try {
-          const values = lines[i].split(",").map(v => v.trim().replace(/"/g, ""))
+          const line = lines[i]
+          if (!line) continue
+          
+          const values = line.split(",").map(v => v.trim().replace(/"/g, ""))
           const date = values[headers.indexOf("data")] ?? values[0]
           const description = values[headers.indexOf("descrição")] ?? values[headers.indexOf("descricao")] ?? values[1]
           const value = parseFloat(values[headers.indexOf("valor")] ?? values[2])
