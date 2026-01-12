@@ -33,9 +33,9 @@ export async function GET(request: NextRequest) {
     const goalsWithProgress = (goals || []).map((goal) => ({
       ...goal,
       category: goal.categories,
-      progresso: goal.valor_meta > 0 ? (goal.valor_atual / goal.valor_meta) * 100 : 0,
-      restante: Math.max(0, goal.valor_meta - goal.valor_atual),
-      atingida: goal.valor_atual >= goal.valor_meta,
+      progresso: goal.valor_alvo > 0 ? (goal.valor_atual / goal.valor_alvo) * 100 : 0,
+      restante: Math.max(0, goal.valor_alvo - goal.valor_atual),
+      atingida: goal.valor_atual >= goal.valor_alvo,
     }));
 
     return NextResponse.json(goalsWithProgress);
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
       .insert({
         nome: nome.trim(),
         tipo: tipo as DbGoalType,
-        valor_meta: valorMeta,
+        valor_alvo: valorMeta,
         valor_atual: valorAtual || 0,
         prazo: prazo ? new Date(prazo).toISOString() : null,
         category_id: categoryId || null,
@@ -182,7 +182,7 @@ export async function PUT(request: NextRequest) {
     const updateData: Record<string, unknown> = {};
     if (nome !== undefined) updateData.nome = nome;
     if (tipo !== undefined) updateData.tipo = tipo;
-    if (valorMeta !== undefined) updateData.valor_meta = valorMeta;
+    if (valorMeta !== undefined) updateData.valor_alvo = valorMeta;
     if (valorAtual !== undefined) updateData.valor_atual = valorAtual;
     if (prazo !== undefined) updateData.prazo = prazo ? new Date(prazo).toISOString() : null;
     if (categoryId !== undefined) updateData.category_id = categoryId;
@@ -264,8 +264,8 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({
       ...goal,
       category: goal.categories,
-      progresso: goal.valor_meta > 0 ? (goal.valor_atual / goal.valor_meta) * 100 : 0,
-      atingida: goal.valor_atual >= goal.valor_meta,
+      progresso: goal.valor_alvo > 0 ? (goal.valor_atual / goal.valor_alvo) * 100 : 0,
+      atingida: goal.valor_atual >= goal.valor_alvo,
     });
   } catch (error) {
     console.error("Erro ao atualizar progresso da meta:", error);

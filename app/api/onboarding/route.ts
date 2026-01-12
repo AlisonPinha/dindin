@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
       nome: account.nome,
       tipo: account.tipo,
       banco: account.banco,
-      saldo_inicial: account.saldoInicial,
+      saldo: account.saldoInicial,
       cor: account.cor,
       icone: getIconForAccountType(account.tipo),
       ativo: true,

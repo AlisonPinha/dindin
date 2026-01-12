@@ -43,7 +43,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
 
     return NextResponse.json({
       ...account,
-      saldoAtual: account.saldo_inicial + saldoTransacoes,
+      saldoAtual: account.saldo + saldoTransacoes,
     });
   } catch (error) {
     console.error("Erro ao buscar conta:", error);
@@ -83,7 +83,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     if (body.nome !== undefined) updateData.nome = body.nome;
     if (body.tipo !== undefined) updateData.tipo = body.tipo;
     if (body.banco !== undefined) updateData.banco = body.banco;
-    if (body.saldoInicial !== undefined) updateData.saldo_inicial = body.saldoInicial;
+    if (body.saldoInicial !== undefined) updateData.saldo = body.saldoInicial;
     if (body.cor !== undefined) updateData.cor = body.cor;
     if (body.icone !== undefined) updateData.icone = body.icone;
     if (body.ativo !== undefined) updateData.ativo = body.ativo;

@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
     if (tipo) query = query.eq("tipo", tipo);
 
-    query = query.order("valor_atual", { ascending: false });
+    query = query.order("preco_atual", { ascending: false });
 
     // Apply pagination
     const currentLimit = limit ? parseInt(limit) : 100;
@@ -46,8 +46,8 @@ export async function GET(request: NextRequest) {
     // Calculate totals
     const totals = (investments || []).reduce(
       (acc, inv) => ({
-        valorAplicado: acc.valorAplicado + (inv.valor_aplicado || 0),
-        valorAtual: acc.valorAtual + (inv.valor_atual || 0),
+        valorAplicado: acc.valorAplicado + (inv.preco_compra || 0),
+        valorAtual: acc.valorAtual + (inv.preco_atual || 0),
       }),
       { valorAplicado: 0, valorAtual: 0 }
     );
@@ -141,8 +141,8 @@ export async function POST(request: NextRequest) {
         nome: nome.trim(),
         tipo: tipo as DbInvestmentType,
         instituicao: instituicao || null,
-        valor_aplicado: valorAplicado,
-        valor_atual: valorAtual || valorAplicado,
+        preco_compra: valorAplicado,
+        preco_atual: valorAtual || valorAplicado,
         rentabilidade,
         data_aplicacao: new Date(dataAplicacao).toISOString(),
         data_vencimento: dataVencimento ? new Date(dataVencimento).toISOString() : null,
@@ -184,7 +184,7 @@ export async function PUT(request: NextRequest) {
     // Verificar se investimento pertence ao usuário
     const { data: existing } = await supabase
       .from("investimentos")
-      .select("id, valor_aplicado, valor_atual")
+      .select("id, preco_compra, preco_atual")
       .eq("id", id)
       .eq("user_id", auth.user.id)
       .single();
@@ -200,15 +200,15 @@ export async function PUT(request: NextRequest) {
     if (nome !== undefined) updateData.nome = nome;
     if (tipo !== undefined) updateData.tipo = tipo;
     if (instituicao !== undefined) updateData.instituicao = instituicao;
-    if (valorAplicado !== undefined) updateData.valor_aplicado = valorAplicado;
-    if (valorAtual !== undefined) updateData.valor_atual = valorAtual;
-    if (dataAplicacao !== undefined) updateData.data_aplicacao = new Date(dataAplicacao).toISOString();
+    if (valorAplicado !== undefined) updateData.preco_compra = valorAplicado;
+    if (valorAtual !== undefined) updateData.preco_atual = valorAtual;
+    if (dataAplicacao !== undefined) updateData.data_compra = new Date(dataAplicacao).toISOString();
     if (dataVencimento !== undefined) updateData.data_vencimento = dataVencimento ? new Date(dataVencimento).toISOString() : null;
 
     // Calculate new rentabilidade if values changed
     if (valorAplicado !== undefined || valorAtual !== undefined) {
-      const newValorAplicado = valorAplicado ?? existing.valor_aplicado;
-      const newValorAtual = valorAtual ?? existing.valor_atual;
+      const newValorAplicado = valorAplicado ?? existing.preco_compra;
+      const newValorAtual = valorAtual ?? existing.preco_atual;
       updateData.rentabilidade =
         newValorAplicado > 0
           ? ((newValorAtual - newValorAplicado) / newValorAplicado) * 100

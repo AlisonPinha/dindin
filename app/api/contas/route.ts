@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
 
       return {
         ...account,
-        saldoAtual: (Number(account.saldo_inicial) || 0) + saldoTransacoes,
+        saldoAtual: (Number(account.saldo) || 0) + saldoTransacoes,
       };
     });
 
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
         nome: nome.trim(),
         tipo: tipo as DbAccountType,
         banco: banco || null,
-        saldo_inicial: saldoInicial || 0,
+        saldo: saldoInicial || 0,
         cor: cor || "#6366f1",
         icone: icone || null,
         ativo: true,
@@ -204,7 +204,7 @@ export async function PUT(request: NextRequest) {
     if (nome !== undefined) updateData.nome = nome;
     if (tipo !== undefined) updateData.tipo = tipo;
     if (banco !== undefined) updateData.banco = banco;
-    if (saldoInicial !== undefined) updateData.saldo_inicial = saldoInicial;
+    if (saldoInicial !== undefined) updateData.saldo = saldoInicial;
     if (cor !== undefined) updateData.cor = cor;
     if (icone !== undefined) updateData.icone = icone;
     if (ativo !== undefined) updateData.ativo = ativo;
