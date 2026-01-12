@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/drawer"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
+import { useSWRData } from "@/hooks/use-swr-data"
+import { useStore } from "@/hooks/use-store"
 import { cn, formatCurrency } from "@/lib/utils"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -53,6 +55,8 @@ export function ImportDocumentModal({
   onOpenChange,
 }: ImportDocumentModalProps) {
   const { toast } = useToast()
+  const { mutators } = useSWRData()
+  const { accounts, categories } = useStore()
   const isDesktop = useMediaQuery("(min-width: 768px)")
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -187,15 +191,66 @@ export function ImportDocumentModal({
       return
     }
 
-    // TODO: Actually import transactions to the store/API
-    // For now, just show success
+    // Import transactions to API
+    let success = 0
+    let errors = 0
+
+    for (const tx of selectedTransactions) {
+      try {
+        // Find matching category if provided
+        const category = tx.categoria
+          ? categories.find(c => c.name.toLowerCase().includes(tx.categoria!.toLowerCase()))
+          : null
+
+        // Use first account as default if no account specified
+        const account = accounts[0]
+
+        if (!account) {
+          errors++
+          continue
+        }
+
+        const response = await fetch("/api/transacoes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            descricao: tx.descricao,
+            valor: tx.valor,
+            tipo: tx.tipo,
+            data: new Date(tx.data).toISOString(),
+            categoryId: category?.id || null,
+            accountId: account.id,
+          }),
+        })
+
+        if (response.ok) {
+          success++
+        } else {
+          errors++
+        }
+      } catch {
+        errors++
+      }
+    }
+
+    // Reload data
+    mutators.transactions()
+    mutators.accounts()
 
     setStep("success")
 
-    toast({
-      title: "Transações importadas",
-      description: `${selectedTransactions.length} transação(ões) importada(s) com sucesso.`,
-    })
+    if (success > 0) {
+      toast({
+        title: "Transações importadas",
+        description: `${success} transação(ões) importada(s) com sucesso${errors > 0 ? `, ${errors} erros` : ""}.`,
+      })
+    } else {
+      toast({
+        title: "Erro ao importar",
+        description: `Nenhuma transação foi importada. ${errors > 0 ? `${errors} erros encontrados.` : ""}`,
+        variant: "destructive",
+      })
+    }
   }
 
   const selectedCount = transactions.filter((t) => t.selected).length
