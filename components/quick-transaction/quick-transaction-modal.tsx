@@ -182,7 +182,7 @@ export function QuickTransactionModal({
     setFormState((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (formState.value <= 0) {
       toast({
         title: "Valor inválido",

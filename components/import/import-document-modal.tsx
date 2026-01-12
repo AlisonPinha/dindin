@@ -179,7 +179,7 @@ export function ImportDocumentModal({
     setTransactions((prev) => prev.map((t) => ({ ...t, selected })))
   }
 
-  const handleImport = () => {
+  const handleImport = async () => {
     const selectedTransactions = transactions.filter((t) => t.selected)
 
     if (selectedTransactions.length === 0) {
