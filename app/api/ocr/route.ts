@@ -148,11 +148,22 @@ export async function POST(request: NextRequest) {
     // Se for imagem, usar diretamente
     const buffer = Buffer.from(bytes);
     const imageBase64 = buffer.toString("base64");
-    const finalMimeType = file.type || "image/jpeg";
+    
+    // Mapear MIME type para o formato aceito pelo Claude
+    const mimeTypeMap: Record<string, "image/jpeg" | "image/png" | "image/gif" | "image/webp"> = {
+      "image/jpeg": "image/jpeg",
+      "image/jpg": "image/jpeg",
+      "image/png": "image/png",
+      "image/gif": "image/gif",
+      "image/webp": "image/webp",
+    };
+    
+    const finalMimeType = mimeTypeMap[file.type] || "image/jpeg";
     
     console.log("✅ Arquivo convertido para base64:", {
       base64Length: imageBase64.length,
       estimatedSizeMB: (imageBase64.length * 3 / 4 / 1024 / 1024).toFixed(2),
+      mimeType: finalMimeType,
     });
 
     // Different prompts for boleto vs fatura

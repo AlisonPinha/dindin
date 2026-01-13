@@ -32,7 +32,7 @@ Este projeto requer as seguintes variáveis de ambiente para funcionar corretame
    NEXT_PUBLIC_SUPABASE_URL=seu_valor_aqui
    NEXT_PUBLIC_SUPABASE_ANON_KEY=seu_valor_aqui
    SUPABASE_SERVICE_ROLE_KEY=seu_valor_aqui
-   OPENAI_API_KEY=sk-sua-chave-aqui
+   ANTHROPIC_API_KEY=sk-ant-sua-chave-aqui
    ```
 3. Reinicie o servidor de desenvolvimento
 
