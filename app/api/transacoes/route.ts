@@ -225,7 +225,10 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     logger.error("Failed to create transaction", error, { action: "create", resource: "transacoes" });
-    return ErrorResponses.serverError("Erro ao criar transação");
+    // Retornar mensagem de erro mais detalhada para debugging
+    const errorMessage = error instanceof Error ? error.message :
+      (error as { message?: string })?.message || "Erro ao criar transação";
+    return ErrorResponses.serverError(errorMessage);
   }
 }
 
