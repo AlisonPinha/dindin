@@ -133,17 +133,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // A API da OpenAI Vision não aceita PDFs diretamente, apenas imagens
+    if (file.type === "application/pdf") {
+      console.log("❌ PDF detectado - A API OpenAI Vision não suporta PDFs diretamente");
+      return NextResponse.json(
+        { 
+          error: "PDFs não são suportados diretamente. Por favor, converta o PDF para uma imagem (JPG ou PNG) antes de importar. Você pode usar ferramentas online como ilovepdf.com ou simplesmente tirar uma captura de tela do PDF." 
+        },
+        { status: 400 }
+      );
+    }
+
+    // Se for imagem, usar diretamente
     const buffer = Buffer.from(bytes);
-    const base64 = buffer.toString("base64");
+    const imageBase64 = buffer.toString("base64");
+    const finalMimeType = file.type || "image/jpeg";
     
     console.log("✅ Arquivo convertido para base64:", {
-      base64Length: base64.length,
-      estimatedSizeMB: (base64.length * 3 / 4 / 1024 / 1024).toFixed(2),
+      base64Length: imageBase64.length,
+      estimatedSizeMB: (imageBase64.length * 3 / 4 / 1024 / 1024).toFixed(2),
     });
 
-    // Determine media type
-    const mimeType = file.type || "image/jpeg";
-    const dataUrl = `data:${mimeType};base64,${base64}`;
+    const dataUrl = `data:${finalMimeType};base64,${imageBase64}`;
 
     // Different prompts for boleto vs fatura
     const prompt = documentType === "fatura"

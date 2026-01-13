@@ -305,7 +305,10 @@ export function ImportDocumentModal({
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Suporta: JPG, PNG, PDF (máx. 10MB)
+                Suporta: JPG, PNG (máx. 10MB)
+              </p>
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                ⚠️ PDFs: Converta para imagem (JPG/PNG) antes de importar
               </p>
             </div>
           ) : (
