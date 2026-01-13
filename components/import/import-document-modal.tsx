@@ -30,6 +30,7 @@ import { cn, formatCurrency } from "@/lib/utils"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useStore } from "@/hooks/use-store"
+import { useSWRData } from "@/hooks/use-swr-data"
 
 type DocumentType = "boleto" | "fatura"
 
@@ -57,6 +58,7 @@ export function ImportDocumentModal({
   const isDesktop = useMediaQuery("(min-width: 768px)")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { categories } = useStore()
+  const { mutators } = useSWRData()
 
   const [step, setStep] = useState<Step>("select")
   const [documentType, setDocumentType] = useState<DocumentType | null>(null)
@@ -310,6 +312,9 @@ export function ImportDocumentModal({
       }
 
       if (successCount > 0) {
+        // Atualizar dados do SWR para refletir as novas transações
+        await mutators.transactions()
+        
         setStep("success")
         toast({
           title: "Importação concluída",
