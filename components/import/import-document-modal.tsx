@@ -563,8 +563,8 @@ export function ImportDocumentModal({
         // Validar valor (deve ser positivo)
         const valor = Math.abs(t.valor)
 
-        // Mapear tipo
-        const tipo = t.tipo === "ENTRADA" ? "income" : "expense"
+        // Manter tipo original (ENTRADA ou SAIDA) para a API
+        const tipo = t.tipo
 
         // Encontrar categoria
         const categoryId = findCategoryId(t.categoria)
@@ -597,7 +597,7 @@ export function ImportDocumentModal({
             body: JSON.stringify({
               descricao: transaction.descricao,
               valor: transaction.valor,
-              tipo: transaction.tipo === "income" ? "ENTRADA" : "SAIDA",
+              tipo: transaction.tipo,
               data: transaction.data,
               categoryId: transaction.categoryId,
             }),
