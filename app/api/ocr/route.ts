@@ -305,13 +305,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Validar e limpar os dados
+    const today = new Date().toISOString().split("T")[0] as string;
     const cleanedTransactions = resultado.transactions
       .filter((t) => t && (t.descricao || t.valor)) // Filtrar transações inválidas
       .map((t) => {
         const transaction: ExtractedTransaction = {
           descricao: t.descricao || "Transação importada",
           valor: typeof t.valor === "number" ? t.valor : parseFloat(String(t.valor).replace(",", ".")),
-          data: t.data || new Date().toISOString().split("T")[0],
+          data: t.data || today,
           tipo: t.tipo || "SAIDA",
           categoria: t.categoria || "Outros",
         };
