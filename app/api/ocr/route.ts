@@ -304,6 +304,43 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Função para normalizar data para formato YYYY-MM-DD
+    const normalizeDate = (dateStr: string | undefined, fallback: string): string => {
+      if (!dateStr) return fallback;
+
+      // Se já está no formato YYYY-MM-DD, retornar
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        return dateStr;
+      }
+
+      // Tentar formato DD/MM/YYYY (brasileiro)
+      const brMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (brMatch) {
+        const [, day, month, year] = brMatch;
+        return `${year}-${month?.padStart(2, "0")}-${day?.padStart(2, "0")}`;
+      }
+
+      // Tentar formato DD/MM/YY
+      const brShortMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+      if (brShortMatch) {
+        const [, day, month, yearShort] = brShortMatch;
+        const year = parseInt(yearShort || "0") > 50 ? `19${yearShort}` : `20${yearShort}`;
+        return `${year}-${month?.padStart(2, "0")}-${day?.padStart(2, "0")}`;
+      }
+
+      // Tentar parsear com Date
+      try {
+        const parsed = new Date(dateStr);
+        if (!isNaN(parsed.getTime())) {
+          return parsed.toISOString().split("T")[0] as string;
+        }
+      } catch {
+        // Ignorar erro de parse
+      }
+
+      return fallback;
+    };
+
     // Validar e limpar os dados
     const today = new Date().toISOString().split("T")[0] as string;
     const cleanedTransactions = resultado.transactions
@@ -312,7 +349,7 @@ export async function POST(request: NextRequest) {
         const transaction: ExtractedTransaction = {
           descricao: t.descricao || "Transação importada",
           valor: typeof t.valor === "number" ? t.valor : parseFloat(String(t.valor).replace(",", ".")),
-          data: t.data || today,
+          data: normalizeDate(t.data, today),
           tipo: t.tipo || "SAIDA",
           categoria: t.categoria || "Outros",
         };
