@@ -68,43 +68,66 @@ export async function POST(request: NextRequest) {
       .eq("id", userId)
       .single();
 
+    let updatedUser;
+
     if (userError || !existingUser) {
-      return NextResponse.json(
-        { error: "Usuário não encontrado" },
-        { status: 404 }
-      );
+      // Usuário não existe - criar novo
+      const { data: newUser, error: createUserError } = await supabase
+        .from("usuarios")
+        .insert({
+          id: userId,
+          nome: nome.trim(),
+          email: email.trim(),
+          avatar: avatar || null,
+          renda_mensal: rendaMensal,
+          is_onboarded: true,
+        })
+        .select()
+        .single();
+
+      if (createUserError) {
+        console.error("Erro ao criar usuário:", createUserError);
+        return NextResponse.json(
+          { error: "Erro ao criar usuário" },
+          { status: 500 }
+        );
+      }
+
+      updatedUser = newUser;
+    } else {
+      // Usuário existe - verificar email e atualizar
+      // Verificar se email já está em uso por outro usuário
+      const { data: emailInUse } = await supabase
+        .from("usuarios")
+        .select("id")
+        .eq("email", email)
+        .neq("id", userId)
+        .single();
+
+      if (emailInUse) {
+        return NextResponse.json(
+          { error: "Este email já está em uso" },
+          { status: 400 }
+        );
+      }
+
+      // Atualizar usuário com dados do perfil + marcar como onboarded
+      const { data: user, error: updateUserError } = await supabase
+        .from("usuarios")
+        .update({
+          nome: nome.trim(),
+          email: email.trim(),
+          avatar: avatar || existingUser.avatar,
+          renda_mensal: rendaMensal,
+          is_onboarded: true,
+        })
+        .eq("id", userId)
+        .select()
+        .single();
+
+      if (updateUserError) throw updateUserError;
+      updatedUser = user;
     }
-
-    // Verificar se email já está em uso por outro usuário
-    const { data: emailInUse } = await supabase
-      .from("usuarios")
-      .select("id")
-      .eq("email", email)
-      .neq("id", userId)
-      .single();
-
-    if (emailInUse) {
-      return NextResponse.json(
-        { error: "Este email já está em uso" },
-        { status: 400 }
-      );
-    }
-
-    // 1. Atualizar usuário com dados do perfil + marcar como onboarded
-    const { data: updatedUser, error: updateUserError } = await supabase
-      .from("usuarios")
-      .update({
-        nome: nome.trim(),
-        email: email.trim(),
-        avatar: avatar || existingUser.avatar,
-        renda_mensal: rendaMensal,
-        is_onboarded: true,
-      })
-      .eq("id", userId)
-      .select()
-      .single();
-
-    if (updateUserError) throw updateUserError;
 
     // 2. Deletar contas existentes do usuário (se houver do seed)
     await supabase
