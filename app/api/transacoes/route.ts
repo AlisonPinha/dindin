@@ -198,25 +198,39 @@ export async function POST(request: NextRequest) {
     }
 
     // Single transaction
+    const insertData = {
+      descricao: descricao.trim(),
+      valor,
+      tipo: tipo as DbTransactionType,
+      data: new Date(data).toISOString(),
+      recorrente: recorrente || false,
+      category_id: categoryId || null,
+      account_id: accountId || null,
+      user_id: auth.user.id,
+      tags: tags || [],
+      notas: notas || null,
+      ownership: (ownership || "CASA") as DbOwnershipType,
+    };
+
+    logger.info("Creating transaction", { insertData: JSON.stringify(insertData) });
+
     const { data: transaction, error } = await supabase
       .from("transacoes")
-      .insert({
-        descricao: descricao.trim(),
-        valor,
-        tipo: tipo as DbTransactionType,
-        data: new Date(data).toISOString(),
-        recorrente: recorrente || false,
-        category_id: categoryId || null,
-        account_id: accountId || null,
-        user_id: auth.user.id,
-        tags: tags || [],
-        notas: notas || null,
-        ownership: (ownership || "CASA") as DbOwnershipType,
-      })
+      .insert(insertData)
       .select("*, categorias(*), contas(*)")
       .single();
 
-    if (error) throw error;
+    if (error) {
+      logger.error("Supabase insert error", error, {
+        action: "insert",
+        resource: "transacoes",
+        errorCode: error.code,
+        errorMessage: error.message,
+        errorDetails: error.details,
+        errorHint: error.hint,
+      });
+      throw error;
+    }
 
     return SuccessResponses.created({
       ...transaction,
