@@ -9,8 +9,8 @@ Este projeto requer as seguintes variáveis de ambiente para funcionar corretame
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Chave anônima do Supabase
 - `SUPABASE_SERVICE_ROLE_KEY` - Chave de serviço do Supabase (para operações administrativas)
 
-### OpenAI (Opcional - apenas para OCR/importação de documentos)
-- `OPENAI_API_KEY` - Chave da API da OpenAI para processamento de PDFs/faturas
+### Anthropic Claude (Opcional - apenas para OCR/importação de documentos)
+- `ANTHROPIC_API_KEY` - Chave da API da Anthropic (Claude) para processamento de imagens/faturas
 
 ## Como Configurar
 
@@ -43,13 +43,13 @@ Este projeto requer as seguintes variáveis de ambiente para funcionar corretame
 - Crie um projeto ou use um existente
 - Vá em **Settings** → **API** para encontrar as chaves
 
-### OpenAI
-- Acesse https://platform.openai.com/api-keys
+### Anthropic Claude
+- Acesse https://console.anthropic.com/
 - Crie uma nova chave de API
-- **Nota**: O serviço de OCR usa o modelo `gpt-4o`, que tem custos por uso
+- **Nota**: O serviço de OCR usa o modelo `claude-3-5-sonnet`, que tem custos por uso
 
 ## Notas Importantes
 
 - ⚠️ **Nunca commite** arquivos `.env.local` ou `.env` no Git
 - 🔒 Mantenha suas chaves seguras e não as compartilhe publicamente
-- 💰 O uso da API da OpenAI gera custos - monitore seu uso em https://platform.openai.com/usage
+- 💰 O uso da API da Anthropic gera custos - monitore seu uso em https://console.anthropic.com/

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/supabase/auth-helper";
-import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 
 // Configurar runtime para suportar uploads maiores
 // No Vercel, o limite padrão é 10s (Hobby) ou 60s (Pro)
@@ -8,18 +8,18 @@ export const runtime = 'nodejs';
 export const maxDuration = 60; // 60 segundos para processar (requer Vercel Pro)
 
 // Lazy initialization - only create client when API is called
-let openaiClient: OpenAI | null = null;
+let claudeClient: Anthropic | null = null;
 
-function getOpenAIClient(): OpenAI | null {
-  if (!process.env.OPENAI_API_KEY) {
+function getClaudeClient(): Anthropic | null {
+  if (!process.env.ANTHROPIC_API_KEY) {
     return null;
   }
-  if (!openaiClient) {
-    openaiClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+  if (!claudeClient) {
+    claudeClient = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
     });
   }
-  return openaiClient;
+  return claudeClient;
 }
 
 interface ExtractedTransaction {
@@ -43,10 +43,10 @@ export async function POST(request: NextRequest) {
     if (auth.error) return auth.error;
 
     // Verificar se API key está configurada (lazy initialization)
-    const openai = getOpenAIClient();
-    if (!openai) {
+    const claude = getClaudeClient();
+    if (!claude) {
       return NextResponse.json(
-        { error: "Serviço de OCR não configurado" },
+        { error: "Serviço de OCR não configurado. Configure ANTHROPIC_API_KEY no Vercel." },
         { status: 503 }
       );
     }
@@ -133,9 +133,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // A API da OpenAI Vision não aceita PDFs diretamente, apenas imagens
+    // Claude também aceita apenas imagens, não PDFs diretamente
+    // Mas podemos tentar converter ou informar o usuário
     if (file.type === "application/pdf") {
-      console.log("❌ PDF detectado - A API OpenAI Vision não suporta PDFs diretamente");
+      console.log("❌ PDF detectado - Claude API também requer imagens");
       return NextResponse.json(
         { 
           error: "PDFs não são suportados diretamente. Por favor, converta o PDF para uma imagem (JPG ou PNG) antes de importar. Você pode usar ferramentas online como ilovepdf.com ou simplesmente tirar uma captura de tela do PDF." 
@@ -197,62 +198,64 @@ export async function POST(request: NextRequest) {
 
     let response;
     try {
-      response = await openai.chat.completions.create({
-        model: "gpt-4o",
+      // Claude API usa estrutura diferente
+      response = await claude.messages.create({
+        model: "claude-3-5-sonnet-20241022", // ou "claude-3-opus-20240229" para melhor qualidade
+        max_tokens: 4096,
         messages: [
           {
             role: "user",
             content: [
               {
-                type: "text",
-                text: prompt,
+                type: "image",
+                source: {
+                  type: "base64",
+                  media_type: finalMimeType,
+                  data: imageBase64,
+                },
               },
               {
-                type: "image_url",
-                image_url: {
-                  url: dataUrl,
-                  detail: "high",
-                },
+                type: "text",
+                text: prompt,
               },
             ],
           },
         ],
-        max_tokens: 4096,
       });
-    } catch (openaiError: any) {
-      console.error("Erro na API OpenAI:", openaiError);
+    } catch (claudeError: any) {
+      console.error("Erro na API Claude:", claudeError);
       
-      // Tratar erros específicos da OpenAI
-      if (openaiError?.status === 401) {
+      // Tratar erros específicos da Claude
+      if (claudeError?.status === 401) {
         return NextResponse.json(
-          { error: "Chave da API OpenAI inválida. Verifique a configuração." },
+          { error: "Chave da API Claude inválida. Verifique a configuração de ANTHROPIC_API_KEY." },
           { status: 503 }
         );
       }
-      if (openaiError?.status === 429) {
+      if (claudeError?.status === 429) {
         return NextResponse.json(
           { error: "Limite de requisições excedido. Tente novamente em alguns minutos." },
           { status: 429 }
         );
       }
-      if (openaiError?.status === 400 && openaiError?.message?.includes("image")) {
+      if (claudeError?.status === 400 && claudeError?.error?.message?.includes("image")) {
         return NextResponse.json(
           { error: "Erro ao processar a imagem. Verifique se o arquivo está corrompido ou em formato inválido." },
           { status: 400 }
         );
       }
       
-      // Erro genérico da OpenAI
+      // Erro genérico da Claude
       return NextResponse.json(
-        { error: `Erro na API OpenAI: ${openaiError?.message || "Erro desconhecido"}` },
+        { error: `Erro na API Claude: ${claudeError?.error?.message || claudeError?.message || "Erro desconhecido"}` },
         { status: 500 }
       );
     }
 
-    const content = response.choices[0]?.message?.content;
+    const content = response.content[0]?.type === "text" ? response.content[0].text : null;
 
     if (!content) {
-      console.error("Resposta da OpenAI sem conteúdo:", response);
+      console.error("Resposta da Claude sem conteúdo:", response);
       return NextResponse.json(
         { error: "A API não retornou conteúdo. Tente novamente ou use outro arquivo." },
         { status: 500 }
@@ -307,7 +310,7 @@ export async function POST(request: NextRequest) {
       console.error("Erro ao interpretar resposta OCR:", parseError);
       console.error("Conteúdo recebido:", content.substring(0, 500)); // Log parcial para debug
       return NextResponse.json(
-        { error: "Erro ao interpretar os dados extraídos. A IA pode não ter conseguido ler o documento corretamente. Tente uma imagem mais clara ou outro formato." },
+        { error: "Erro ao interpretar os dados extraídos. O Claude pode não ter conseguido ler o documento corretamente. Tente uma imagem mais clara ou outro formato." },
         { status: 500 }
       );
     }
@@ -330,11 +333,12 @@ export async function POST(request: NextRequest) {
     }
     
     // Erro genérico com mais detalhes no log
-    const errorMessage = error?.message || "Erro desconhecido";
+    const errorMessage = error?.message || error?.error?.message || "Erro desconhecido";
     console.error("Detalhes do erro:", {
       message: errorMessage,
       stack: error?.stack,
       name: error?.name,
+      status: error?.status,
     });
     
     return NextResponse.json(
