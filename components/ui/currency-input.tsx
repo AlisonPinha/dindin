@@ -22,6 +22,8 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
     ref
   ) => {
     const [displayValue, setDisplayValue] = React.useState("")
+    const [isFocused, setIsFocused] = React.useState(false)
+    const previousValueRef = React.useRef<number>(value)
 
     // Format number to currency display
     const formatCurrency = React.useCallback((num: number): string => {
@@ -31,21 +33,27 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
       }).format(num)
     }, [locale])
 
-    // Initialize display value
+    // Initialize display value - only update if value changed externally (not while typing)
     React.useEffect(() => {
-      setDisplayValue(formatCurrency(value))
-    }, [value, formatCurrency])
+      // Only reformat if value changed externally (not from user typing)
+      // and input is not focused
+      if (!isFocused && previousValueRef.current !== value) {
+        setDisplayValue(formatCurrency(value))
+        previousValueRef.current = value
+      }
+    }, [value, formatCurrency, isFocused])
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const input = e.target.value
 
-      // Allow only numbers, comma, and dot
+      // Allow only numbers and comma
       const cleaned = input.replace(/[^\d,]/g, "")
 
       // Handle the input
       if (cleaned === "") {
         setDisplayValue("")
         onChange(0)
+        previousValueRef.current = 0
         return
       }
 
@@ -63,15 +71,19 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
 
       // Convert to number (replace comma with dot)
       const numValue = parseFloat(formatted.replace(",", ".")) || 0
+      previousValueRef.current = numValue
       onChange(numValue)
     }
 
     const handleBlur = () => {
+      setIsFocused(false)
       // Format on blur
       setDisplayValue(formatCurrency(value))
+      previousValueRef.current = value
     }
 
     const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+      setIsFocused(true)
       // Select all on focus
       e.target.select()
     }
