@@ -394,6 +394,10 @@ Retorne APENAS um JSON válido no formato:
 }`,
   };
 
-  const documentType = type || "fatura";
-  return prompts[documentType] ?? prompts.fatura;
+  const documentType = (type || "fatura") as keyof typeof prompts;
+  const prompt = prompts[documentType];
+  if (prompt) {
+    return prompt;
+  }
+  return prompts.fatura;
 }
