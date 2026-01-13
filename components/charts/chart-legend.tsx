@@ -120,12 +120,6 @@ export function PercentageLegend({
   const calculatedTotal = total || items.reduce((sum, item) => sum + item.value, 0)
   const isInteractive = !!onItemClick
 
-  const formatCurrency = (value: number): string => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value)
-  }
 
   const getPercentage = (value: number): number => {
     if (calculatedTotal === 0) return 0
