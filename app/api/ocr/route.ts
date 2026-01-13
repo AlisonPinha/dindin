@@ -28,6 +28,8 @@ interface ExtractedTransaction {
   data: string;
   tipo: "SAIDA" | "ENTRADA";
   categoria?: string;
+  parcela?: number;      // Número da parcela atual (ex: 2)
+  totalParcelas?: number; // Total de parcelas (ex: 12)
 }
 
 interface ExtractionResult {
@@ -305,13 +307,23 @@ export async function POST(request: NextRequest) {
     // Validar e limpar os dados
     const cleanedTransactions = resultado.transactions
       .filter((t) => t && (t.descricao || t.valor)) // Filtrar transações inválidas
-      .map((t) => ({
-        descricao: t.descricao || "Transação importada",
-        valor: typeof t.valor === "number" ? t.valor : parseFloat(String(t.valor).replace(",", ".")),
-        data: t.data || new Date().toISOString().split("T")[0],
-        tipo: t.tipo || "SAIDA",
-        categoria: t.categoria || "Outros",
-      }));
+      .map((t) => {
+        const transaction: ExtractedTransaction = {
+          descricao: t.descricao || "Transação importada",
+          valor: typeof t.valor === "number" ? t.valor : parseFloat(String(t.valor).replace(",", ".")),
+          data: t.data || new Date().toISOString().split("T")[0],
+          tipo: t.tipo || "SAIDA",
+          categoria: t.categoria || "Outros",
+        };
+
+        // Adicionar info de parcelas se existir
+        if (t.parcela && t.totalParcelas) {
+          transaction.parcela = t.parcela;
+          transaction.totalParcelas = t.totalParcelas;
+        }
+
+        return transaction;
+      });
 
     if (cleanedTransactions.length === 0) {
       return NextResponse.json(
@@ -372,11 +384,13 @@ Retorne APENAS um JSON válido no formato:
   "type": "fatura",
   "transactions": [
     {
-      "descricao": "nome do estabelecimento ou descrição da compra (limpo e legível)",
+      "descricao": "nome do estabelecimento (limpo, sem info de parcela)",
       "valor": 0.00,
       "data": "YYYY-MM-DD",
       "tipo": "SAIDA",
-      "categoria": "Alimentação|Transporte|Compras|Assinaturas|Lazer|Saúde|Educação|Outros"
+      "categoria": "Alimentação|Transporte|Compras|Assinaturas|Lazer|Saúde|Educação|Outros",
+      "parcela": 2,
+      "totalParcelas": 12
     }
   ]
 }
@@ -388,21 +402,29 @@ REGRAS CRÍTICAS - LEIA COM ATENÇÃO:
    - "Pagamentos e créditos devolvidos"
    - "Crédito" ou "Estorno"
    - Linhas de resumo como "Total da fatura", "Consumos de X a Y"
-   - Informações de parcelamento de fatura
+   - Informações de parcelamento de fatura (opções de parcelar a fatura)
    - Juros, multas, tarifas, encargos (a menos que sejam cobranças reais)
 
 2. INCLUIR APENAS:
    - Compras em estabelecimentos (ex: MERCADOLIVRE, APPLE.COM/BILL, HOTEIS.COM)
    - Assinaturas e serviços (ex: NETFLIX, SPOTIFY, AF INTERNET)
-   - Parcelas de compras (ex: "Parcela 2 de 12")
+   - Parcelas de compras parceladas
 
-3. FORMATAÇÃO:
+3. PARCELAS - MUITO IMPORTANTE:
+   - Se a transação mostra "Parcela X de Y", extraia:
+     * parcela: X (número da parcela atual)
+     * totalParcelas: Y (total de parcelas)
+   - NÃO inclua "Parcela X de Y" na descrição, coloque nos campos separados
+   - Se não for parcelada, omita os campos parcela e totalParcelas
+   - Exemplo: "MERCADOLIVRE Parcela 2 de 12" → descricao: "MERCADOLIVRE", parcela: 2, totalParcelas: 12
+
+4. FORMATAÇÃO:
    - Limpe os nomes (ex: "MERCADOLIVRE*3PRODUTOS" → "MERCADOLIVRE 3PRODUTOS")
+   - Remova informações de parcela da descrição
    - Use o ano correto baseado no contexto da fatura
    - tipo: sempre "SAIDA" para compras
-   - Categorize: Compras (lojas), Assinaturas (serviços recorrentes), Lazer (hotéis, entretenimento), etc.
 
-4. DATAS:
+5. DATAS:
    - Use a data da transação mostrada na fatura
    - Se a fatura mostra apenas mês/dia (ex: 03/07), adicione o ano correto baseado no período da fatura`,
 

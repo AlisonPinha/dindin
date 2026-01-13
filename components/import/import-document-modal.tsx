@@ -46,6 +46,8 @@ interface ExtractedTransaction {
   data: string
   tipo: "SAIDA" | "ENTRADA"
   categoria?: string
+  parcela?: number       // Número da parcela atual
+  totalParcelas?: number // Total de parcelas
   selected?: boolean
   isDuplicate?: boolean
 }
@@ -82,6 +84,20 @@ export function ImportDocumentModal({
     setDuplicateIndices(new Set())
   }
 
+  // Função para normalizar descrição (remover acentos, lowercase, etc)
+  const normalizeDescription = (desc: string): string => {
+    return desc
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .replace(/\s+/g, " ")
+      // Remover informações de parcela da descrição para comparação
+      .replace(/parcela\s*\d+\s*(de|\/)\s*\d+/gi, "")
+      .replace(/\d+\s*\/\s*\d+\s*$/, "")
+      .trim()
+  }
+
   // Função para verificar se uma transação é duplicada
   const checkDuplicate = (
     newTransaction: ExtractedTransaction,
@@ -91,12 +107,7 @@ export function ImportDocumentModal({
 
     const newDate = new Date(newTransaction.data)
     const newValue = Math.abs(newTransaction.valor)
-    const newDesc = newTransaction.descricao
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .trim()
-      .replace(/\s+/g, " ")
+    const newDesc = normalizeDescription(newTransaction.descricao)
 
     // Comparar com transações existentes
     return existing.some((existingTx) => {
@@ -116,16 +127,36 @@ export function ImportDocumentModal({
       if (daysDiff > 3) return false
 
       // Descrição similar (normalizada, case-insensitive, sem acentos)
-      const existingDesc = existingTx.description
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .trim()
-        .replace(/\s+/g, " ")
+      const existingDesc = normalizeDescription(existingTx.description)
 
       // Verificar se as descrições são muito similares (80% de similaridade)
       const similarity = calculateSimilarity(newDesc, existingDesc)
       if (similarity < 0.8) return false
+
+      // Se chegou aqui, é potencialmente duplicata
+      // Mas para parcelas, precisamos verificar se é a MESMA parcela
+      // Se a nova transação tem info de parcela, verificar se já existe essa parcela específica
+      if (newTransaction.parcela && newTransaction.totalParcelas) {
+        // Verificar se a descrição existente contém info da mesma parcela
+        const existingDescFull = existingTx.description.toLowerCase()
+        const parcelaPattern = new RegExp(
+          `parcela\\s*${newTransaction.parcela}\\s*(de|\\/)\\s*${newTransaction.totalParcelas}|` +
+          `${newTransaction.parcela}\\s*\\/\\s*${newTransaction.totalParcelas}`,
+          "i"
+        )
+
+        // Se a descrição existente não menciona essa parcela específica,
+        // pode ser outra parcela do mesmo produto - não é duplicata
+        if (!parcelaPattern.test(existingDescFull)) {
+          // Verificar se é uma parcela diferente do mesmo produto
+          const anyParcelaPattern = /parcela\s*(\d+)\s*(de|\/)\s*(\d+)|(\d+)\s*\/\s*(\d+)/i
+          const match = existingDescFull.match(anyParcelaPattern)
+          if (match) {
+            // Tem info de parcela diferente - não é duplicata
+            return false
+          }
+        }
+      }
 
       return true
     })
@@ -366,8 +397,14 @@ export function ImportDocumentModal({
         // Encontrar categoria
         const categoryId = findCategoryId(t.categoria)
 
+        // Montar descrição com info de parcela se existir
+        let descricao = t.descricao.trim()
+        if (t.parcela && t.totalParcelas) {
+          descricao = `${descricao} (${t.parcela}/${t.totalParcelas})`
+        }
+
         return {
-          descricao: t.descricao.trim(),
+          descricao,
           valor,
           tipo,
           data: finalDate.toISOString().split("T")[0], // Formato YYYY-MM-DD
@@ -706,6 +743,11 @@ export function ImportDocumentModal({
                         <span className="text-xs text-muted-foreground">
                           {transaction.data}
                         </span>
+                        {transaction.parcela && transaction.totalParcelas && (
+                          <span className="text-xs px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium">
+                            {transaction.parcela}/{transaction.totalParcelas}
+                          </span>
+                        )}
                         {transaction.categoria && (
                           <span className="text-xs px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">
                             {transaction.categoria}
