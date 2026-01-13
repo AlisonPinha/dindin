@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser, getSupabaseClient } from "@/lib/supabase/auth-helper";
 import type { DbAccountType } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
+import { ErrorResponses, SuccessResponses } from "@/lib/api";
 
 // GET - Listar contas do usuário logado (OTIMIZADO: 2 queries em vez de N+1)
 export async function GET(request: NextRequest) {
@@ -106,11 +108,8 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Erro ao buscar contas:", error);
-    return NextResponse.json(
-      { error: "Erro ao buscar contas" },
-      { status: 500 }
-    );
+    logger.error("Failed to fetch accounts", error, { action: "fetch", resource: "contas" });
+    return ErrorResponses.serverError("Erro ao buscar contas");
   }
 }
 
@@ -127,17 +126,11 @@ export async function POST(request: NextRequest) {
 
     // Validação
     if (!nome?.trim()) {
-      return NextResponse.json(
-        { error: "Nome é obrigatório" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("Nome é obrigatório");
     }
 
     if (!tipo) {
-      return NextResponse.json(
-        { error: "Tipo é obrigatório" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("Tipo é obrigatório");
     }
 
     const { data: account, error } = await supabase
@@ -157,13 +150,10 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json(account, { status: 201 });
+    return SuccessResponses.created(account);
   } catch (error) {
-    console.error("Erro ao criar conta:", error);
-    return NextResponse.json(
-      { error: "Erro ao criar conta" },
-      { status: 500 }
-    );
+    logger.error("Failed to create account", error, { action: "create", resource: "contas" });
+    return ErrorResponses.serverError("Erro ao criar conta");
   }
 }
 
@@ -179,10 +169,7 @@ export async function PUT(request: NextRequest) {
     const { id, nome, tipo, banco, saldoInicial, cor, icone, ativo } = body;
 
     if (!id) {
-      return NextResponse.json(
-        { error: "ID da conta é obrigatório" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("ID da conta é obrigatório");
     }
 
     // Verificar se a conta pertence ao usuário
@@ -194,10 +181,7 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (!existingAccount) {
-      return NextResponse.json(
-        { error: "Conta não encontrada" },
-        { status: 404 }
-      );
+      return ErrorResponses.notFound("Conta", true);
     }
 
     const updateData: Record<string, unknown> = {};
@@ -219,13 +203,10 @@ export async function PUT(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json(account);
+    return SuccessResponses.ok(account);
   } catch (error) {
-    console.error("Erro ao atualizar conta:", error);
-    return NextResponse.json(
-      { error: "Erro ao atualizar conta" },
-      { status: 500 }
-    );
+    logger.error("Failed to update account", error, { action: "update", resource: "contas" });
+    return ErrorResponses.serverError("Erro ao atualizar conta");
   }
 }
 
@@ -240,10 +221,7 @@ export async function DELETE(request: NextRequest) {
     const force = searchParams.get("force") === "true";
 
     if (!id) {
-      return NextResponse.json(
-        { error: "ID da conta é obrigatório" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("ID da conta é obrigatório");
     }
 
     const supabase = await getSupabaseClient();
@@ -257,10 +235,7 @@ export async function DELETE(request: NextRequest) {
       .single();
 
     if (!existingAccount) {
-      return NextResponse.json(
-        { error: "Conta não encontrada" },
-        { status: 404 }
-      );
+      return ErrorResponses.notFound("Conta", true);
     }
 
     // Check if account has transactions
@@ -279,8 +254,7 @@ export async function DELETE(request: NextRequest) {
 
       if (error) throw error;
 
-      return NextResponse.json({
-        success: true,
+      return SuccessResponses.deleted({
         action: "deactivated",
         transactionCount: count,
       });
@@ -295,12 +269,9 @@ export async function DELETE(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json({ success: true, action: "deleted" });
+    return SuccessResponses.deleted({ action: "deleted" });
   } catch (error) {
-    console.error("Erro ao deletar conta:", error);
-    return NextResponse.json(
-      { error: "Erro ao deletar conta" },
-      { status: 500 }
-    );
+    logger.error("Failed to delete account", error, { action: "delete", resource: "contas" });
+    return ErrorResponses.serverError("Erro ao deletar conta");
   }
 }

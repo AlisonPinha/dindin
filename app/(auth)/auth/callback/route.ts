@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 import { createSupabaseServerClient } from "@/lib/supabase"
+import { logger } from "@/lib/logger"
 
 // Lista de rotas permitidas para redirecionamento (previne Open Redirect)
 const ALLOWED_REDIRECTS = [
@@ -65,7 +66,7 @@ export async function GET(request: Request) {
 
         // Se erro não é "not found", logar mas continuar
         if (checkError && checkError.code !== "PGRST116") {
-          console.error("Error checking user:", checkError)
+          logger.warn("Error checking user during auth callback", { errorCode: checkError.code, errorMessage: checkError.message })
         }
 
         if (!existingUser) {
@@ -84,12 +85,12 @@ export async function GET(request: Request) {
             })
 
           if (insertError) {
-            console.error("Error creating user in database:", insertError)
+            logger.warn("Error creating user in database during auth callback", { errorCode: insertError.code, errorMessage: insertError.message })
             // Não bloquear o login se falhar - o onboarding pode criar depois
           }
         }
-      } catch (dbError) {
-        console.error("Error checking/creating user:", dbError)
+      } catch {
+        logger.warn("Error during auth callback user check/creation", { action: "auth_callback", resource: "usuarios" })
         // Não bloquear o login se falhar - o onboarding pode criar depois
       }
 

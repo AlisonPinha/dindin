@@ -236,7 +236,7 @@ export function useDataLoader() {
 
       setIsDataLoaded(true)
     } catch (err) {
-      console.error("Erro ao carregar dados:", err)
+      // Erro capturado no estado - não logar no console
       setError(err instanceof Error ? err.message : "Erro desconhecido")
     } finally {
       setIsLoading(false)

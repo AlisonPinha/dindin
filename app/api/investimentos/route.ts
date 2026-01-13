@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser, getSupabaseClient } from "@/lib/supabase/auth-helper";
 import type { DbInvestmentType } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
 
 // GET - Listar investimentos do usuário logado
 export async function GET(request: NextRequest) {
@@ -74,7 +75,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Erro ao buscar investimentos:", error);
+    logger.error("Failed to fetch investments", error, { action: "fetch", resource: "investimentos" });
     return NextResponse.json(
       { error: "Erro ao buscar investimentos" },
       { status: 500 }
@@ -155,7 +156,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(investment, { status: 201 });
   } catch (error) {
-    console.error("Erro ao criar investimento:", error);
+    logger.error("Failed to create investment", error, { action: "create", resource: "investimentos" });
     return NextResponse.json(
       { error: "Erro ao criar investimento" },
       { status: 500 }
@@ -227,7 +228,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json(investment);
   } catch (error) {
-    console.error("Erro ao atualizar investimento:", error);
+    logger.error("Failed to update investment", error, { action: "update", resource: "investimentos" });
     return NextResponse.json(
       { error: "Erro ao atualizar investimento" },
       { status: 500 }
@@ -278,7 +279,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Erro ao deletar investimento:", error);
+    logger.error("Failed to delete investment", error, { action: "delete", resource: "investimentos" });
     return NextResponse.json(
       { error: "Erro ao deletar investimento" },
       { status: 500 }

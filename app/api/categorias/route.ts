@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser, getSupabaseClient } from "@/lib/supabase/auth-helper";
 import type { DbCategoryType, DbCategoryGroup } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
+import { ErrorResponses, SuccessResponses } from "@/lib/api";
 
 // GET - Listar categorias (do sistema + do usuário)
 export async function GET(request: NextRequest) {
@@ -28,13 +30,10 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json(categories);
+    return SuccessResponses.ok(categories);
   } catch (error) {
-    console.error("Erro ao buscar categorias:", error);
-    return NextResponse.json(
-      { error: "Erro ao buscar categorias" },
-      { status: 500 }
-    );
+    logger.error("Failed to fetch categories", error, { action: "fetch", resource: "categorias" });
+    return ErrorResponses.serverError("Erro ao buscar categorias");
   }
 }
 
@@ -51,31 +50,19 @@ export async function POST(request: NextRequest) {
 
     // Validações
     if (!nome?.trim()) {
-      return NextResponse.json(
-        { error: "Nome é obrigatório" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("Nome é obrigatório");
     }
 
     if (!tipo) {
-      return NextResponse.json(
-        { error: "Tipo é obrigatório" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("Tipo é obrigatório");
     }
 
     if (!cor) {
-      return NextResponse.json(
-        { error: "Cor é obrigatória" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("Cor é obrigatória");
     }
 
     if (!grupo) {
-      return NextResponse.json(
-        { error: "Grupo é obrigatório" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("Grupo é obrigatório");
     }
 
     const { data: category, error } = await supabase
@@ -94,13 +81,10 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json(category, { status: 201 });
+    return SuccessResponses.created(category);
   } catch (error) {
-    console.error("Erro ao criar categoria:", error);
-    return NextResponse.json(
-      { error: "Erro ao criar categoria" },
-      { status: 500 }
-    );
+    logger.error("Failed to create category", error, { action: "create", resource: "categorias" });
+    return ErrorResponses.serverError("Erro ao criar categoria");
   }
 }
 
@@ -116,10 +100,7 @@ export async function PUT(request: NextRequest) {
     const { id, nome, tipo, cor, icone, grupo, orcamentoMensal } = body;
 
     if (!id) {
-      return NextResponse.json(
-        { error: "ID da categoria é obrigatório" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("ID da categoria é obrigatório");
     }
 
     // Verificar se categoria existe e pertence ao usuário
@@ -130,10 +111,7 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (!existing) {
-      return NextResponse.json(
-        { error: "Categoria não encontrada" },
-        { status: 404 }
-      );
+      return ErrorResponses.notFound("Categoria", true);
     }
 
     // Não permite editar categorias do sistema (user_id = null)
@@ -170,13 +148,10 @@ export async function PUT(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json(category);
+    return SuccessResponses.ok(category);
   } catch (error) {
-    console.error("Erro ao atualizar categoria:", error);
-    return NextResponse.json(
-      { error: "Erro ao atualizar categoria" },
-      { status: 500 }
-    );
+    logger.error("Failed to update category", error, { action: "update", resource: "categorias" });
+    return ErrorResponses.serverError("Erro ao atualizar categoria");
   }
 }
 
@@ -190,10 +165,7 @@ export async function DELETE(request: NextRequest) {
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json(
-        { error: "ID da categoria é obrigatório" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("ID da categoria é obrigatório");
     }
 
     const supabase = await getSupabaseClient();
@@ -206,10 +178,7 @@ export async function DELETE(request: NextRequest) {
       .single();
 
     if (!existing) {
-      return NextResponse.json(
-        { error: "Categoria não encontrada" },
-        { status: 404 }
-      );
+      return ErrorResponses.notFound("Categoria", true);
     }
 
     // Não permite deletar categorias do sistema
@@ -252,12 +221,9 @@ export async function DELETE(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json({ success: true });
+    return SuccessResponses.deleted();
   } catch (error) {
-    console.error("Erro ao deletar categoria:", error);
-    return NextResponse.json(
-      { error: "Erro ao deletar categoria" },
-      { status: 500 }
-    );
+    logger.error("Failed to delete category", error, { action: "delete", resource: "categorias" });
+    return ErrorResponses.serverError("Erro ao deletar categoria");
   }
 }

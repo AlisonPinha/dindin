@@ -380,12 +380,8 @@ export function ImportDocumentModal({
       let errorCount = 0
       const errors: string[] = []
 
-      console.log("📥 Iniciando importação de", transactionsToImport.length, "transações")
-
       for (const transaction of transactionsToImport) {
         try {
-          console.log("📤 Importando:", transaction.descricao, transaction.valor, transaction.data)
-          
           const response = await fetch("/api/transacoes", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -399,32 +395,24 @@ export function ImportDocumentModal({
           })
 
           if (response.ok) {
-            const created = await response.json()
-            console.log("✅ Transação importada:", created.id)
+            await response.json()
             successCount++
           } else {
             const error = await response.json()
             const errorMsg = error.error || "Erro desconhecido"
-            console.error("❌ Erro ao importar transação:", errorMsg, transaction)
             errors.push(`${transaction.descricao}: ${errorMsg}`)
             errorCount++
           }
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : "Erro de conexão"
-          console.error("❌ Erro ao importar transação:", errorMsg, transaction)
           errors.push(`${transaction.descricao}: ${errorMsg}`)
           errorCount++
         }
       }
 
-      console.log("📊 Resultado da importação:", { successCount, errorCount })
-
       if (successCount > 0) {
         // Atualizar dados do SWR para refletir as novas transações
-        console.log("🔄 Atualizando dados do SWR...")
         await mutators.transactions()
-        console.log("✅ Dados atualizados")
-        
         setStep("success")
         toast({
           title: "Importação concluída",

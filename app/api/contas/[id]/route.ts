@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser, getSupabaseClient } from "@/lib/supabase/auth-helper";
+import { logger } from "@/lib/logger";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -46,7 +47,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
       saldoAtual: account.saldo + saldoTransacoes,
     });
   } catch (error) {
-    console.error("Erro ao buscar conta:", error);
+    logger.error("Failed to fetch account", error, { action: "fetch", resource: "contas" });
     return NextResponse.json(
       { error: "Erro interno" },
       { status: 500 }
@@ -100,7 +101,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
     return NextResponse.json(account);
   } catch (error) {
-    console.error("Erro ao atualizar conta:", error);
+    logger.error("Failed to update account", error, { action: "update", resource: "contas" });
     return NextResponse.json(
       { error: "Erro interno" },
       { status: 500 }
@@ -166,7 +167,7 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
 
     return NextResponse.json({ success: true, action: "deleted" });
   } catch (error) {
-    console.error("Erro ao deletar conta:", error);
+    logger.error("Failed to delete account", error, { action: "delete", resource: "contas" });
     return NextResponse.json(
       { error: "Erro interno" },
       { status: 500 }

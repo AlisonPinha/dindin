@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser, getSupabaseClient } from "@/lib/supabase/auth-helper";
 import type { DbTransactionType, DbOwnershipType } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
+import { ErrorResponses, SuccessResponses } from "@/lib/api";
 
 // GET - Listar transações com filtros
 export async function GET(request: NextRequest) {
@@ -87,11 +89,8 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Erro ao buscar transações:", error);
-    return NextResponse.json(
-      { error: "Erro ao buscar transações" },
-      { status: 500 }
-    );
+    logger.error("Failed to fetch transactions", error, { action: "fetch", resource: "transacoes" });
+    return ErrorResponses.serverError("Erro ao buscar transações");
   }
 }
 
@@ -120,31 +119,19 @@ export async function POST(request: NextRequest) {
 
     // Validações
     if (!descricao?.trim()) {
-      return NextResponse.json(
-        { error: "Descrição é obrigatória" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("Descrição é obrigatória");
     }
 
     if (!valor || valor <= 0) {
-      return NextResponse.json(
-        { error: "Valor deve ser maior que zero" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("Valor deve ser maior que zero");
     }
 
     if (!tipo) {
-      return NextResponse.json(
-        { error: "Tipo é obrigatório" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("Tipo é obrigatório");
     }
 
     if (!data) {
-      return NextResponse.json(
-        { error: "Data é obrigatória" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("Data é obrigatória");
     }
 
     // Verificar se a conta pertence ao usuário (se fornecida)
@@ -157,10 +144,7 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (!account) {
-        return NextResponse.json(
-          { error: "Conta não encontrada" },
-          { status: 404 }
-        );
+        return ErrorResponses.notFound("Conta", true);
       }
     }
 
@@ -168,10 +152,7 @@ export async function POST(request: NextRequest) {
     if (parcelas && parcelas > 1) {
       // Validar limite de parcelas
       if (parcelas > 48) {
-        return NextResponse.json(
-          { error: "Número máximo de parcelas é 48" },
-          { status: 400 }
-        );
+        return ErrorResponses.badRequest("Número máximo de parcelas é 48");
       }
 
       const transactions = [];
@@ -206,20 +187,14 @@ export async function POST(request: NextRequest) {
         .select();
 
       if (error) {
-        console.error("Erro ao criar parcelas:", error);
-        return NextResponse.json(
-          { error: "Erro ao criar parcelas. Nenhuma foi criada." },
-          { status: 500 }
-        );
+        logger.error("Failed to create installments", error, { action: "create_installments", resource: "transacoes" });
+        return ErrorResponses.serverError("Erro ao criar parcelas. Nenhuma foi criada.");
       }
 
-      return NextResponse.json(
-        {
-          count: createdTransactions?.length || 0,
-          transactions: createdTransactions,
-        },
-        { status: 201 }
-      );
+      return SuccessResponses.created({
+        count: createdTransactions?.length || 0,
+        transactions: createdTransactions,
+      });
     }
 
     // Single transaction
@@ -243,20 +218,14 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json(
-      {
-        ...transaction,
-        category: transaction.categorias,
-        account: transaction.contas,
-      },
-      { status: 201 }
-    );
+    return SuccessResponses.created({
+      ...transaction,
+      category: transaction.categorias,
+      account: transaction.contas,
+    });
   } catch (error) {
-    console.error("Erro ao criar transação:", error);
-    return NextResponse.json(
-      { error: "Erro ao criar transação" },
-      { status: 500 }
-    );
+    logger.error("Failed to create transaction", error, { action: "create", resource: "transacoes" });
+    return ErrorResponses.serverError("Erro ao criar transação");
   }
 }
 
@@ -272,10 +241,7 @@ export async function PUT(request: NextRequest) {
     const { id, descricao, valor, tipo, data, recorrente, categoryId, accountId, tags, notas, ownership } = body;
 
     if (!id) {
-      return NextResponse.json(
-        { error: "ID da transação é obrigatório" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("ID da transação é obrigatório");
     }
 
     // Verificar se transação pertence ao usuário
@@ -287,10 +253,7 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (!existing) {
-      return NextResponse.json(
-        { error: "Transação não encontrada" },
-        { status: 404 }
-      );
+      return ErrorResponses.notFound("Transação", true);
     }
 
     // Verificar se a conta pertence ao usuário (se fornecida)
@@ -303,10 +266,7 @@ export async function PUT(request: NextRequest) {
         .single();
 
       if (!account) {
-        return NextResponse.json(
-          { error: "Conta não encontrada" },
-          { status: 404 }
-        );
+        return ErrorResponses.notFound("Conta", true);
       }
     }
 
@@ -332,17 +292,14 @@ export async function PUT(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json({
+    return SuccessResponses.ok({
       ...transaction,
       category: transaction.categorias,
       account: transaction.contas,
     });
   } catch (error) {
-    console.error("Erro ao atualizar transação:", error);
-    return NextResponse.json(
-      { error: "Erro ao atualizar transação" },
-      { status: 500 }
-    );
+    logger.error("Failed to update transaction", error, { action: "update", resource: "transacoes" });
+    return ErrorResponses.serverError("Erro ao atualizar transação");
   }
 }
 
@@ -356,10 +313,7 @@ export async function DELETE(request: NextRequest) {
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json(
-        { error: "ID da transação é obrigatório" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("ID da transação é obrigatório");
     }
 
     const supabase = await getSupabaseClient();
@@ -373,10 +327,7 @@ export async function DELETE(request: NextRequest) {
       .single();
 
     if (!existing) {
-      return NextResponse.json(
-        { error: "Transação não encontrada" },
-        { status: 404 }
-      );
+      return ErrorResponses.notFound("Transação", true);
     }
 
     const { error } = await supabase
@@ -387,12 +338,9 @@ export async function DELETE(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json({ success: true });
+    return SuccessResponses.deleted();
   } catch (error) {
-    console.error("Erro ao deletar transação:", error);
-    return NextResponse.json(
-      { error: "Erro ao deletar transação" },
-      { status: 500 }
-    );
+    logger.error("Failed to delete transaction", error, { action: "delete", resource: "transacoes" });
+    return ErrorResponses.serverError("Erro ao deletar transação");
   }
 }

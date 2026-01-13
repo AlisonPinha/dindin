@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser, getSupabaseClient } from "@/lib/supabase/auth-helper";
 import type { DbAccountType } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
 
 interface OnboardingAccount {
   nome: string;
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (createUserError) {
-        console.error("Erro ao criar usuário:", createUserError);
+        logger.error("Failed to create user during onboarding", createUserError, { action: "create", resource: "onboarding" });
         return NextResponse.json(
           { error: "Erro ao criar usuário" },
           { status: 500 }
@@ -210,7 +211,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Erro no onboarding:", error);
+    logger.error("Onboarding process failed", error, { action: "onboarding", resource: "onboarding" });
     return NextResponse.json(
       { error: "Erro ao processar onboarding" },
       { status: 500 }

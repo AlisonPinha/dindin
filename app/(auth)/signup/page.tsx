@@ -119,14 +119,11 @@ export default function SignupPage() {
           })
 
           if (!createUserResponse.ok) {
-            const errorData = await createUserResponse.json()
             // Se usuário já existe, tudo bem - pode ser login social anterior
-            if (!errorData.error?.includes("já cadastrado")) {
-              console.error("Erro ao criar usuário no banco:", errorData)
-            }
+            // Erros são silenciados pois não bloqueiam o fluxo de signup
           }
-        } catch (dbError) {
-          console.error("Erro ao criar usuário no banco:", dbError)
+        } catch {
+          // Erro ao criar usuário no banco é silenciado pois não bloqueia o fluxo
         }
 
         // Check if confirmation email was sent

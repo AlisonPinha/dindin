@@ -249,8 +249,8 @@ export default function ConfiguracoesPage() {
             }
             addAccount(newAccount)
           }
-        } catch (error) {
-          console.error("Error creating account:", error)
+        } catch {
+          // Erro silenciado - a UI mostrará estado inconsistente se falhar
         }
       }
     }
@@ -281,8 +281,8 @@ export default function ConfiguracoesPage() {
             bank: acc.bank,
             updatedAt: new Date(),
           })
-        } catch (error) {
-          console.error("Error updating account:", error)
+        } catch {
+          // Erro silenciado - a UI mostrará estado inconsistente se falhar
         }
       }
     }
@@ -295,8 +295,8 @@ export default function ConfiguracoesPage() {
             method: "DELETE",
           })
           deleteAccount(id)
-        } catch (error) {
-          console.error("Error deleting account:", error)
+        } catch {
+          // Erro silenciado - a UI mostrará estado inconsistente se falhar
         }
       }
     }

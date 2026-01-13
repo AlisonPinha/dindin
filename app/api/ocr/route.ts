@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/supabase/auth-helper";
 import Anthropic from "@anthropic-ai/sdk";
+import { logger } from "@/lib/logger";
 
 // Configurar runtime para suportar uploads maiores
 export const runtime = 'nodejs';
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
     const documentType = formData.get("type") as string | null; // "boleto" ou "fatura"
 
     // Log para debug
-    console.log("📄 Recebendo arquivo:", {
+    logger.debug("OCR: Receiving file", {
       fileName: file?.name,
       fileSize: file?.size,
       fileType: file?.type,
@@ -99,24 +100,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log("✅ Arquivo validado:", {
-      name: file.name,
-      size: file.size,
-      sizeMB: (file.size / 1024 / 1024).toFixed(2),
-      type: file.type,
+    logger.debug("OCR: File validated", {
+      fileName: file.name,
+      fileSize: file.size,
+      fileSizeMB: (file.size / 1024 / 1024).toFixed(2),
+      fileType: file.type,
     });
 
     // Converter arquivo para base64
     let bytes: ArrayBuffer;
     try {
       bytes = await file.arrayBuffer();
-      console.log("✅ Arquivo convertido para ArrayBuffer:", {
+      logger.debug("OCR: File converted to ArrayBuffer", {
         bytesLength: bytes.byteLength,
         expectedLength: file.size,
         match: bytes.byteLength === file.size,
       });
     } catch (error) {
-      console.error("❌ Erro ao ler arquivo:", error);
+      logger.error("OCR: Failed to read file", error, { action: "file_read", resource: "ocr" });
       return NextResponse.json(
         { error: "Erro ao ler o arquivo. Pode estar corrompido." },
         { status: 400 }
@@ -125,7 +126,9 @@ export async function POST(request: NextRequest) {
 
     // Verificar se o tamanho do buffer corresponde ao tamanho do arquivo
     if (bytes.byteLength !== file.size) {
-      console.error("⚠️ Tamanho do buffer não corresponde:", {
+      logger.error("OCR: Buffer size mismatch", undefined, {
+        action: "buffer_validation",
+        resource: "ocr",
         fileSize: file.size,
         bufferSize: bytes.byteLength,
         difference: file.size - bytes.byteLength,
@@ -143,8 +146,8 @@ export async function POST(request: NextRequest) {
     // Determinar se é PDF ou imagem
     const isPDF = file.type === "application/pdf";
     
-    console.log("✅ Arquivo convertido para base64:", {
-      fileType: isPDF ? "PDF" : "Imagem",
+    logger.debug("OCR: File converted to base64", {
+      fileType: isPDF ? "PDF" : "Image",
       base64Length: base64.length,
       estimatedSizeMB: (base64.length * 3 / 4 / 1024 / 1024).toFixed(2),
     });
@@ -153,7 +156,7 @@ export async function POST(request: NextRequest) {
     let content: Anthropic.MessageParam['content'];
 
     if (isPDF) {
-      console.log("📄 Processando PDF com Claude...");
+      logger.debug("OCR: Processing PDF with Claude");
       content = [
         {
           type: "document",
@@ -169,7 +172,7 @@ export async function POST(request: NextRequest) {
         },
       ];
     } else {
-      console.log("🖼️ Processando imagem com Claude...");
+      logger.debug("OCR: Processing image with Claude");
       // Mapear MIME type para o formato aceito pelo Claude
       const mimeTypeMap: Record<string, "image/jpeg" | "image/png" | "image/gif" | "image/webp"> = {
         "image/jpeg": "image/jpeg",
@@ -211,7 +214,7 @@ export async function POST(request: NextRequest) {
         ],
       });
     } catch (claudeError: unknown) {
-      console.error("Erro na API Claude:", claudeError);
+      logger.error("OCR: Claude API error", claudeError, { action: "claude_api_call", resource: "ocr" });
       
       // Tratar erros específicos da Claude
       const error = claudeError as { status?: number; error?: { message?: string }; message?: string };
@@ -247,19 +250,23 @@ export async function POST(request: NextRequest) {
       : null;
 
     if (!responseText) {
-      console.error("Resposta da Claude sem conteúdo:", response);
+      logger.error("OCR: Empty Claude response", undefined, { action: "claude_response", resource: "ocr" });
       return NextResponse.json(
         { error: "A API não retornou conteúdo. Tente novamente ou use outro arquivo." },
         { status: 500 }
       );
     }
 
-    console.log("✅ Resposta do Claude recebida");
+    logger.debug("OCR: Claude response received");
 
     // Tentar parsear JSON da resposta (usar regex para extrair JSON mesmo se houver markdown)
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error("Não foi possível extrair JSON da resposta:", responseText.substring(0, 500));
+      logger.error("OCR: Failed to extract JSON from response", undefined, {
+        action: "json_extraction",
+        resource: "ocr",
+        responsePreview: responseText.substring(0, 200)
+      });
       return NextResponse.json(
         { error: "Não foi possível extrair dados do documento. O Claude pode não ter conseguido ler o documento corretamente." },
         { status: 422 }
@@ -270,8 +277,11 @@ export async function POST(request: NextRequest) {
     try {
       resultado = JSON.parse(jsonMatch[0]);
     } catch (parseError) {
-      console.error("Erro ao parsear JSON:", parseError);
-      console.error("JSON extraído:", jsonMatch[0].substring(0, 500));
+      logger.error("OCR: JSON parse error", parseError, {
+        action: "json_parse",
+        resource: "ocr",
+        jsonPreview: jsonMatch[0].substring(0, 200)
+      });
       return NextResponse.json(
         { error: "Erro ao interpretar os dados extraídos. O Claude pode não ter conseguido ler o documento corretamente." },
         { status: 500 }
@@ -280,7 +290,12 @@ export async function POST(request: NextRequest) {
 
     // Validar estrutura básica
     if (!resultado.transactions || !Array.isArray(resultado.transactions)) {
-      console.error("Resposta inválida: transactions não é um array", resultado);
+      logger.error("OCR: Invalid response structure", undefined, {
+        action: "response_validation",
+        resource: "ocr",
+        hasTransactions: !!resultado.transactions,
+        isArray: Array.isArray(resultado.transactions)
+      });
       return NextResponse.json(
         { error: "Formato de resposta inválido da API. O documento pode não conter transações reconhecíveis." },
         { status: 500 }
@@ -312,7 +327,7 @@ export async function POST(request: NextRequest) {
       count: cleanedTransactions.length,
     });
   } catch (error: unknown) {
-    console.error("Erro no OCR:", error);
+    logger.error("OCR: General error", error, { action: "ocr_process", resource: "ocr" });
     
     // Tratar erros específicos
     if (error instanceof TypeError && error.message.includes("fetch")) {
@@ -333,11 +348,12 @@ export async function POST(request: NextRequest) {
     
     // Erro genérico com mais detalhes no log
     const errorMessage = err?.message || err?.error?.message || "Erro desconhecido";
-    console.error("Detalhes do erro:", {
-      message: errorMessage,
-      stack: err?.stack,
-      name: err?.name,
-      status: err?.status,
+    logger.error("OCR: Error details", error, {
+      action: "ocr_error_details",
+      resource: "ocr",
+      errorMessage,
+      errorName: err?.name,
+      errorStatus: err?.status,
     });
     
     return NextResponse.json(

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser, getSupabaseClient } from "@/lib/supabase/auth-helper";
+import { logger } from "@/lib/logger";
 
 // GET - Obter dados do usuário logado (retorna array para compatibilidade com SWR)
 export async function GET() {
@@ -41,7 +42,7 @@ export async function GET() {
       },
     }]);
   } catch (error) {
-    console.error("Erro ao buscar usuário:", error);
+    logger.error("Failed to fetch user", error, { action: "fetch", resource: "usuarios" });
     return NextResponse.json(
       { error: "Erro ao buscar usuário" },
       { status: 500 }
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(user, { status: 201 });
   } catch (error) {
-    console.error("Erro ao criar usuário:", error);
+    logger.error("Failed to create user", error, { action: "create", resource: "usuarios" });
     return NextResponse.json(
       { error: "Erro ao criar usuário" },
       { status: 500 }
@@ -141,7 +142,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json(user);
   } catch (error) {
-    console.error("Erro ao atualizar usuário:", error);
+    logger.error("Failed to update user", error, { action: "update", resource: "usuarios" });
     return NextResponse.json(
       { error: "Erro ao atualizar usuário" },
       { status: 500 }
@@ -183,7 +184,7 @@ export async function DELETE() {
       },
     });
   } catch (error) {
-    console.error("Erro ao deletar usuário:", error);
+    logger.error("Failed to delete user", error, { action: "delete", resource: "usuarios" });
     return NextResponse.json(
       { error: "Erro ao deletar usuário" },
       { status: 500 }

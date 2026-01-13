@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser, getSupabaseClient } from "@/lib/supabase/auth-helper";
 import type { DbGoalType } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
 
 // GET - Listar metas do usuário logado
 export async function GET(request: NextRequest) {
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(goalsWithProgress);
   } catch (error) {
-    console.error("Erro ao buscar metas:", error);
+    logger.error("Failed to fetch goals", error, { action: "fetch", resource: "metas" });
     return NextResponse.json(
       { error: "Erro ao buscar metas" },
       { status: 500 }
@@ -122,7 +123,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("Erro ao criar meta:", error);
+    logger.error("Failed to create goal", error, { action: "create", resource: "metas" });
     return NextResponse.json(
       { error: "Erro ao criar meta" },
       { status: 500 }
@@ -203,7 +204,7 @@ export async function PUT(request: NextRequest) {
       category: goal.categorias,
     });
   } catch (error) {
-    console.error("Erro ao atualizar meta:", error);
+    logger.error("Failed to update goal", error, { action: "update", resource: "metas" });
     return NextResponse.json(
       { error: "Erro ao atualizar meta" },
       { status: 500 }
@@ -268,7 +269,7 @@ export async function PATCH(request: NextRequest) {
       atingida: goal.valor_atual >= goal.valor_alvo,
     });
   } catch (error) {
-    console.error("Erro ao atualizar progresso da meta:", error);
+    logger.error("Failed to update goal progress", error, { action: "update_progress", resource: "metas" });
     return NextResponse.json(
       { error: "Erro ao atualizar progresso da meta" },
       { status: 500 }
@@ -319,7 +320,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Erro ao deletar meta:", error);
+    logger.error("Failed to delete goal", error, { action: "delete", resource: "metas" });
     return NextResponse.json(
       { error: "Erro ao deletar meta" },
       { status: 500 }

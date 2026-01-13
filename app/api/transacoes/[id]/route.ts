@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser, getSupabaseClient } from "@/lib/supabase/auth-helper";
 import type { DbTransactionType, DbOwnershipType } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -33,7 +34,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
       account: transaction.contas,
     });
   } catch (error) {
-    console.error("Erro ao buscar transação:", error);
+    logger.error("Failed to fetch transaction", error, { action: "fetch", resource: "transacoes" });
     return NextResponse.json(
       { error: "Erro interno" },
       { status: 500 }
@@ -113,7 +114,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
       account: transaction.contas,
     });
   } catch (error) {
-    console.error("Erro ao atualizar transação:", error);
+    logger.error("Failed to update transaction", error, { action: "update", resource: "transacoes" });
     return NextResponse.json(
       { error: "Erro interno" },
       { status: 500 }
@@ -155,7 +156,7 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Erro ao deletar transação:", error);
+    logger.error("Failed to delete transaction", error, { action: "delete", resource: "transacoes" });
     return NextResponse.json(
       { error: "Erro interno" },
       { status: 500 }
