@@ -29,13 +29,15 @@ export interface DbAccount {
   nome: string
   tipo: DbAccountType
   banco: string | null
-  saldo_inicial: number
+  saldo: number
   cor: string | null
   icone: string | null
   ativo: boolean
   user_id: string
   created_at: string
   updated_at: string
+  // Campo calculado retornado pela API
+  saldoAtual?: number
 }
 
 export interface DbCategory {
@@ -76,10 +78,10 @@ export interface DbInvestment {
   nome: string
   tipo: DbInvestmentType
   instituicao: string | null
-  valor_aplicado: number
-  valor_atual: number
+  preco_compra: number
+  preco_atual: number
   rentabilidade: number
-  data_aplicacao: string
+  data_compra: string
   data_vencimento: string | null
   user_id: string
   created_at: string
@@ -90,7 +92,7 @@ export interface DbGoal {
   id: string
   nome: string
   tipo: DbGoalType
-  valor_meta: number
+  valor_alvo: number
   valor_atual: number
   prazo: string | null
   ativo: boolean
