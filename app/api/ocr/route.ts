@@ -365,7 +365,7 @@ export async function POST(request: NextRequest) {
 
 function getPromptForDocumentType(type: string | null): string {
   const prompts = {
-    fatura: `Extraia TODAS as transações desta fatura de cartão de crédito do Bradesco ou outro banco brasileiro.
+    fatura: `Extraia APENAS as COMPRAS/DESPESAS desta fatura de cartão de crédito brasileiro.
 
 Retorne APENAS um JSON válido no formato:
 {
@@ -381,13 +381,30 @@ Retorne APENAS um JSON válido no formato:
   ]
 }
 
-IMPORTANTE:
-- Extraia TODAS as transações listadas na fatura
-- Limpe os nomes dos estabelecimentos (remova códigos estranhos)
-- Use o ano correto nas datas
-- Se não conseguir identificar a data exata, use a data de vencimento da fatura
-- NÃO inclua o valor total da fatura, apenas as transações individuais
-- Para despesas de cartão, tipo sempre "SAIDA"`,
+REGRAS CRÍTICAS - LEIA COM ATENÇÃO:
+
+1. IGNORAR COMPLETAMENTE (NÃO incluir no JSON):
+   - "Pagamento da fatura" ou "Pagamento de fatura" (são pagamentos feitos pelo cliente)
+   - "Pagamentos e créditos devolvidos"
+   - "Crédito" ou "Estorno"
+   - Linhas de resumo como "Total da fatura", "Consumos de X a Y"
+   - Informações de parcelamento de fatura
+   - Juros, multas, tarifas, encargos (a menos que sejam cobranças reais)
+
+2. INCLUIR APENAS:
+   - Compras em estabelecimentos (ex: MERCADOLIVRE, APPLE.COM/BILL, HOTEIS.COM)
+   - Assinaturas e serviços (ex: NETFLIX, SPOTIFY, AF INTERNET)
+   - Parcelas de compras (ex: "Parcela 2 de 12")
+
+3. FORMATAÇÃO:
+   - Limpe os nomes (ex: "MERCADOLIVRE*3PRODUTOS" → "MERCADOLIVRE 3PRODUTOS")
+   - Use o ano correto baseado no contexto da fatura
+   - tipo: sempre "SAIDA" para compras
+   - Categorize: Compras (lojas), Assinaturas (serviços recorrentes), Lazer (hotéis, entretenimento), etc.
+
+4. DATAS:
+   - Use a data da transação mostrada na fatura
+   - Se a fatura mostra apenas mês/dia (ex: 03/07), adicione o ano correto baseado no período da fatura`,
 
     boleto: `Analise este boleto bancário brasileiro.
 
