@@ -395,9 +395,9 @@ Retorne APENAS um JSON válido no formato:
   };
 
   const documentType = type || "fatura";
-  if (documentType === "fatura" || documentType === "boleto") {
-    return prompts[documentType];
+  if (documentType === "boleto") {
+    return prompts.boleto;
   }
-  // Fallback sempre retorna fatura
+  // Default sempre retorna fatura
   return prompts.fatura;
 }
