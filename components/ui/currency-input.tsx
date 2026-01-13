@@ -25,13 +25,14 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
     const [isFocused, setIsFocused] = React.useState(false)
     const previousValueRef = React.useRef<number>(value)
 
-    // Format number to currency display
+    // Format number to currency display with thousand separators
     const formatCurrency = React.useCallback((num: number): string => {
-      return new Intl.NumberFormat(locale, {
+      // Format with Brazilian locale: thousands separator (.) and decimal separator (,)
+      return new Intl.NumberFormat("pt-BR", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }).format(num)
-    }, [locale])
+    }, [])
 
     // Initialize display value - only update if value changed externally (not while typing)
     React.useEffect(() => {
@@ -46,33 +47,28 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const input = e.target.value
 
-      // Allow only numbers and comma
-      const cleaned = input.replace(/[^\d,]/g, "")
+      // Remove everything except numbers
+      const numbersOnly = input.replace(/\D/g, "")
 
-      // Handle the input
-      if (cleaned === "") {
+      // Handle empty input
+      if (numbersOnly === "") {
         setDisplayValue("")
         onChange(0)
         previousValueRef.current = 0
         return
       }
 
-      // Split by comma (decimal separator in pt-BR)
-      const parts = cleaned.split(",")
-      let formatted = parts[0] ?? ""
+      // Convert to number (treat as cents)
+      const valueInCents = parseInt(numbersOnly, 10)
+      const value = valueInCents / 100
 
-      // Add decimal part if exists (max 2 digits)
-      const decimalPart = parts[1]
-      if (parts.length > 1 && decimalPart) {
-        formatted += "," + decimalPart.slice(0, 2)
-      }
-
+      // Format with thousand separators
+      const formatted = formatCurrency(value)
       setDisplayValue(formatted)
 
-      // Convert to number (replace comma with dot)
-      const numValue = parseFloat(formatted.replace(",", ".")) || 0
-      previousValueRef.current = numValue
-      onChange(numValue)
+      // Update parent component
+      previousValueRef.current = value
+      onChange(value)
     }
 
     const handleBlur = () => {
