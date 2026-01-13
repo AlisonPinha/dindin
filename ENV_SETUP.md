@@ -16,13 +16,22 @@ Este projeto requer as seguintes variáveis de ambiente para funcionar corretame
 
 ### No Vercel (Produção)
 
-1. Acesse seu projeto no Vercel
+1. Acesse seu projeto no Vercel (https://vercel.com)
 2. Vá em **Settings** → **Environment Variables**
-3. Adicione cada variável:
-   - Nome: `NOME_DA_VARIAVEL`
-   - Valor: `valor_da_variavel`
-   - Ambiente: Selecione Production, Preview e/ou Development conforme necessário
-4. Salve e faça um novo deploy
+3. Clique em **Add New** ou **+ Add**
+4. Adicione cada variável:
+   - **Name**: `NOME_DA_VARIAVEL` (ex: `ANTHROPIC_API_KEY`)
+   - **Value**: `valor_da_variavel` (ex: `sk-ant-...`)
+   - **Environment**: Selecione:
+     - ✅ **Production** (obrigatório)
+     - ✅ **Preview** (recomendado)
+     - ☐ **Development** (opcional)
+5. Clique em **Save**
+6. **IMPORTANTE**: Faça um novo deploy após adicionar/atualizar variáveis
+   - Vá em **Deployments** → Clique nos três pontos (⋯) → **Redeploy**
+   - Ou faça um commit/push para trigger automático
+
+📖 **Guia detalhado**: Veja `VERCEL_ENV_SETUP.md` para instruções passo a passo com imagens
 
 ### Localmente (Desenvolvimento)
 
