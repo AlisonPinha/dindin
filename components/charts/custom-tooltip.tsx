@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { cn } from "@/lib/utils"
+import { cn, formatCurrency } from "@/lib/utils"
 
 interface TooltipPayload {
   name: string
@@ -38,10 +38,7 @@ export function CustomTooltip({
     if (formatter) {
       return formatter(value, name)
     }
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value)
+    return formatCurrency(value)
   }
 
   const formatLabel = (lbl: string): string => {

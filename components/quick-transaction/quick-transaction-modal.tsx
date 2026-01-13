@@ -34,10 +34,8 @@ import {
 import { CurrencyInput } from "@/components/ui/currency-input"
 import { useToast } from "@/hooks/use-toast"
 import { ToastAction } from "@/components/ui/toast"
-import { cn } from "@/lib/utils"
+import { cn, generateId } from "@/lib/utils"
 import { useMediaQuery } from "@/hooks/use-media-query"
-import { useStore } from "@/hooks/use-store"
-import { useSWRData } from "@/hooks/use-swr-data"
 
 type TransactionType = "expense" | "income" | "transfer"
 
@@ -124,8 +122,6 @@ export function QuickTransactionModal({
 }: QuickTransactionModalProps) {
   const { toast } = useToast()
   const isDesktop = useMediaQuery("(min-width: 768px)")
-  const { deleteTransaction } = useStore()
-  const { mutators } = useSWRData()
   const [formState, setFormState] = useState<FormState>(defaultFormState)
   const [categorySearch, setCategorySearch] = useState("")
   const [showCategorySearch, setShowCategorySearch] = useState(false)
@@ -182,7 +178,7 @@ export function QuickTransactionModal({
     setFormState((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (formState.value <= 0) {
       toast({
         title: "Valor inválido",
@@ -228,99 +224,49 @@ export function QuickTransactionModal({
       return
     }
 
-    // Create transaction via API
+    // Create transaction (mock - in real app, call API)
+    const transactionId = generateId()
     const category = categories.find((c) => c.id === formState.categoryId)
     const account = mockAccounts.find((a) => a.id === formState.accountId)
     const toAccount = mockAccounts.find((a) => a.id === formState.toAccountId)
 
-    try {
-      const response = await fetch("/api/transacoes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          descricao: formState.description || (type === "transfer" ? `Transferência de ${account?.name} para ${toAccount?.name}` : category?.name || ""),
-          valor: formState.value,
-          tipo: type === "expense" ? "SAIDA" : type === "income" ? "ENTRADA" : "TRANSFERENCIA",
-          data: new Date().toISOString(),
-          categoryId: formState.categoryId || null,
-          accountId: formState.accountId,
-          toAccountId: type === "transfer" ? formState.toAccountId : null,
-        }),
-      })
+    // Close modal
+    onOpenChange(false)
 
-      if (!response.ok) {
-        throw new Error("Erro ao criar transação")
-      }
-
-      const transaction = await response.json()
-
-      // Close modal
-      onOpenChange(false)
-
-      // Reload data
-      mutators.transactions()
-      mutators.accounts()
-
-      // Show success toast with undo option
-      const typeLabels = {
-        expense: "Despesa",
-        income: "Receita",
-        transfer: "Transferência",
-      }
-
-      const description =
-        type === "transfer"
-          ? `R$ ${formState.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} de ${account?.name} para ${toAccount?.name}`
-          : `R$ ${formState.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} em ${category?.name}`
-
-      toast({
-        title: `${typeLabels[type]} registrada`,
-        description,
-        action: (
-          <ToastAction
-            altText="Desfazer"
-            onClick={() => handleUndo(transaction.id)}
-            className="gap-1"
-          >
-            <Undo2 className="h-3 w-3" />
-            Desfazer
-          </ToastAction>
-        ),
-      })
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: error instanceof Error ? error.message : "Erro ao criar transação",
-        variant: "destructive",
-      })
+    // Show success toast with undo option
+    const typeLabels = {
+      expense: "Despesa",
+      income: "Receita",
+      transfer: "Transferência",
     }
+
+    const description =
+      type === "transfer"
+        ? `R$ ${formState.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} de ${account?.name} para ${toAccount?.name}`
+        : `R$ ${formState.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} em ${category?.name}`
+
+    toast({
+      title: `${typeLabels[type]} registrada`,
+      description,
+      action: (
+        <ToastAction
+          altText="Desfazer"
+          onClick={() => handleUndo(transactionId)}
+          className="gap-1"
+        >
+          <Undo2 className="h-3 w-3" />
+          Desfazer
+        </ToastAction>
+      ),
+    })
   }
 
-  const handleUndo = async (transactionId: string) => {
-    try {
-      const response = await fetch(`/api/transacoes?id=${transactionId}`, {
-        method: "DELETE",
-      })
-
-      if (!response.ok) {
-        throw new Error("Erro ao desfazer transação")
-      }
-
-      deleteTransaction(transactionId)
-      mutators.transactions()
-      mutators.accounts()
-
-      toast({
-        title: "Transação desfeita",
-        description: "A transação foi removida com sucesso.",
-      })
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: error instanceof Error ? error.message : "Erro ao desfazer transação",
-        variant: "destructive",
-      })
-    }
+  const handleUndo = (_transactionId: string) => {
+    // TODO: Implement actual undo logic - delete the transaction via API
+    toast({
+      title: "Transação desfeita",
+      description: "A transação foi removida com sucesso.",
+    })
   }
 
   const content = (

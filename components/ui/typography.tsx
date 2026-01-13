@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
-import { cn } from "@/lib/utils"
+import { cn, formatCurrency } from "@/lib/utils"
 
 // Heading component with consistent styling
 const headingVariants = cva("font-heading tracking-tight", {
@@ -243,10 +243,7 @@ export function CurrencyText({
   className,
   ...props
 }: CurrencyTextProps) {
-  const formatted = new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(Math.abs(value))
+  const formatted = formatCurrency(Math.abs(value))
 
   const sign = showSign ? (value >= 0 ? "+" : "-") : value < 0 ? "-" : ""
 

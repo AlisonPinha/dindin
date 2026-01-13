@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { Input } from "@/components/ui/input"
-import { cn } from "@/lib/utils"
+import { cn, formatCurrency } from "@/lib/utils"
 
 interface MoneyInputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange"> {
@@ -125,10 +125,7 @@ export function MoneyDisplay({
   showSign = false,
   colored = false,
 }: MoneyDisplayProps) {
-  const formatted = new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(Math.abs(value))
+  const formatted = formatCurrency(Math.abs(value))
 
   const sign = value >= 0 ? "+" : "-"
   const display = showSign ? `${sign} ${formatted}` : formatted
