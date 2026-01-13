@@ -135,6 +135,14 @@ const nextConfig = {
 
   // Trailing slash consistente
   trailingSlash: false,
+
+  // Configuração de API routes
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb', // Limite de 10MB para uploads
+    },
+    responseLimit: false, // Sem limite de resposta
+  },
 }
 
 export default nextConfig

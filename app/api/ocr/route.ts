@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/supabase/auth-helper";
 import OpenAI from "openai";
 
+// Configurar runtime para suportar uploads maiores
+export const runtime = 'nodejs';
+export const maxDuration = 60; // 60 segundos para processar (Vercel Pro)
+
 // Lazy initialization - only create client when API is called
 let openaiClient: OpenAI | null = null;
 
@@ -50,6 +54,14 @@ export async function POST(request: NextRequest) {
     const file = formData.get("file") as File | null;
     const documentType = formData.get("type") as string | null; // "boleto" ou "fatura"
 
+    // Log para debug
+    console.log("📄 Recebendo arquivo:", {
+      fileName: file?.name,
+      fileSize: file?.size,
+      fileType: file?.type,
+      documentType,
+    });
+
     if (!file) {
       return NextResponse.json(
         { error: "Arquivo não enviado" },
@@ -75,10 +87,58 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Verificar se o arquivo está vazio
+    if (file.size === 0) {
+      return NextResponse.json(
+        { error: "Arquivo está vazio ou corrompido" },
+        { status: 400 }
+      );
+    }
+
+    console.log("✅ Arquivo validado:", {
+      name: file.name,
+      size: file.size,
+      sizeMB: (file.size / 1024 / 1024).toFixed(2),
+      type: file.type,
+    });
+
     // Convert file to base64
-    const bytes = await file.arrayBuffer();
+    let bytes: ArrayBuffer;
+    try {
+      bytes = await file.arrayBuffer();
+      console.log("✅ Arquivo convertido para ArrayBuffer:", {
+        bytesLength: bytes.byteLength,
+        expectedLength: file.size,
+        match: bytes.byteLength === file.size,
+      });
+    } catch (error) {
+      console.error("❌ Erro ao ler arquivo:", error);
+      return NextResponse.json(
+        { error: "Erro ao ler o arquivo. Pode estar corrompido." },
+        { status: 400 }
+      );
+    }
+
+    // Verificar se o tamanho do buffer corresponde ao tamanho do arquivo
+    if (bytes.byteLength !== file.size) {
+      console.error("⚠️ Tamanho do buffer não corresponde:", {
+        fileSize: file.size,
+        bufferSize: bytes.byteLength,
+        difference: file.size - bytes.byteLength,
+      });
+      return NextResponse.json(
+        { error: `Arquivo não foi enviado completamente. Recebido: ${bytes.byteLength} bytes, esperado: ${file.size} bytes` },
+        { status: 400 }
+      );
+    }
+
     const buffer = Buffer.from(bytes);
     const base64 = buffer.toString("base64");
+    
+    console.log("✅ Arquivo convertido para base64:", {
+      base64Length: base64.length,
+      estimatedSizeMB: (base64.length * 3 / 4 / 1024 / 1024).toFixed(2),
+    });
 
     // Determine media type
     const mimeType = file.type || "image/jpeg";
