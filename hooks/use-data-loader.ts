@@ -45,7 +45,7 @@ function mapDbCategoryToCategory(dbCat: DbCategory): Category {
   }
 }
 
-function mapDbAccountToAccount(dbAcc: DbAccount): Account {
+function mapDbAccountToAccount(dbAcc: DbAccount | any): Account {
   const typeMap: Record<string, "checking" | "savings" | "credit" | "investment"> = {
     CORRENTE: "checking",
     POUPANCA: "savings",
@@ -53,12 +53,16 @@ function mapDbAccountToAccount(dbAcc: DbAccount): Account {
     INVESTIMENTO: "investment",
   }
   // API retorna saldoAtual calculado, mas se não existir, usar saldo
+  // Tratar tanto saldoAtual (calculado) quanto saldo (do banco)
   const balance = (dbAcc as any).saldoAtual ?? dbAcc.saldo ?? 0
+  const numBalance = typeof balance === "string" ? parseFloat(balance) : Number(balance)
+  const finalBalance = Number.isFinite(numBalance) ? numBalance : 0
+  
   return {
     id: dbAcc.id,
     name: dbAcc.nome,
     type: typeMap[dbAcc.tipo] || "checking",
-    balance: Number(balance) || 0,
+    balance: finalBalance,
     color: dbAcc.cor || "#6366f1",
     bank: dbAcc.banco || undefined,
     userId: dbAcc.user_id,
