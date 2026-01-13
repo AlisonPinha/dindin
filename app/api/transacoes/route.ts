@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
         const dataParcela = new Date(dataBase);
         dataParcela.setMonth(dataParcela.getMonth() + i);
 
-        transactions.push({
+        const transactionData: Record<string, unknown> = {
           descricao: `${descricao} (${i + 1}/${parcelas})`,
           valor: valorParcela,
           tipo: tipo as DbTransactionType,
@@ -176,8 +176,14 @@ export async function POST(request: NextRequest) {
           user_id: auth.user.id,
           tags: tags || [],
           notas: notas || null,
-          ownership: (ownership || "CASA") as DbOwnershipType,
-        });
+        };
+
+        // Só adicionar ownership se foi explicitamente fornecido
+        if (ownership) {
+          transactionData.ownership = ownership as DbOwnershipType;
+        }
+
+        transactions.push(transactionData);
       }
 
       // Insert ALL installments atomically (se uma falhar, nenhuma é criada)
@@ -198,7 +204,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Single transaction
-    const insertData = {
+    const insertData: Record<string, unknown> = {
       descricao: descricao.trim(),
       valor,
       tipo: tipo as DbTransactionType,
@@ -209,8 +215,12 @@ export async function POST(request: NextRequest) {
       user_id: auth.user.id,
       tags: tags || [],
       notas: notas || null,
-      ownership: (ownership || "CASA") as DbOwnershipType,
     };
+
+    // Só adicionar ownership se foi explicitamente fornecido
+    if (ownership) {
+      insertData.ownership = ownership as DbOwnershipType;
+    }
 
     logger.info("Creating transaction", { insertData: JSON.stringify(insertData) });
 
