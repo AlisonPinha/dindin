@@ -296,8 +296,7 @@ export function ImportDocumentModal({
           })
 
           if (response.ok) {
-            const created = await response.json()
-            // Adicionar ao store local (se necessário)
+            await response.json() // SWR vai atualizar o store automaticamente
             successCount++
           } else {
             const error = await response.json()
