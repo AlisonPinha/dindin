@@ -29,7 +29,11 @@ function calculateVariation(current: number, previous: number): number {
 }
 
 function SummaryCard({ data }: { data: SummaryCardData }) {
-  const variation = calculateVariation(data.value, data.previousValue)
+  // Garantir que os valores sejam números válidos
+  const value = Number.isFinite(data.value) ? data.value : 0
+  const previousValue = Number.isFinite(data.previousValue) ? data.previousValue : 0
+  
+  const variation = calculateVariation(value, previousValue)
   const isPositive = variation >= 0
 
   const getColorClasses = () => {
@@ -73,7 +77,7 @@ function SummaryCard({ data }: { data: SummaryCardData }) {
           <div className="space-y-2">
             <p className="text-sm font-medium text-muted-foreground">{data.title}</p>
             <p className={cn("text-2xl font-bold", colors.valueColor)}>
-              {formatCurrency(data.value)}
+              {formatCurrency(value)}
             </p>
             <div className="flex items-center gap-1">
               {isVariationGood ? (
@@ -112,32 +116,33 @@ export function SummaryCards({
   totalInvested,
   previousInvested,
 }: SummaryCardsProps) {
+  // Garantir que todos os valores sejam números válidos
   const cards: SummaryCardData[] = [
     {
       title: "Saldo Total",
-      value: totalBalance,
-      previousValue: previousBalance,
+      value: Number.isFinite(totalBalance) ? totalBalance : 0,
+      previousValue: Number.isFinite(previousBalance) ? previousBalance : 0,
       icon: Wallet,
       type: "balance",
     },
     {
       title: "Receitas do Mês",
-      value: totalIncome,
-      previousValue: previousIncome,
+      value: Number.isFinite(totalIncome) ? totalIncome : 0,
+      previousValue: Number.isFinite(previousIncome) ? previousIncome : 0,
       icon: TrendingUp,
       type: "income",
     },
     {
       title: "Despesas do Mês",
-      value: totalExpenses,
-      previousValue: previousExpenses,
+      value: Number.isFinite(totalExpenses) ? totalExpenses : 0,
+      previousValue: Number.isFinite(previousExpenses) ? previousExpenses : 0,
       icon: TrendingDown,
       type: "expense",
     },
     {
       title: "Investido no Mês",
-      value: totalInvested,
-      previousValue: previousInvested,
+      value: Number.isFinite(totalInvested) ? totalInvested : 0,
+      previousValue: Number.isFinite(previousInvested) ? previousInvested : 0,
       icon: PiggyBank,
       type: "investment",
     },

@@ -4,13 +4,15 @@
 
 // Currency formatting
 export function formatCurrency(value: number, options?: Intl.NumberFormatOptions): string {
+  // Garantir que o valor seja um número válido
+  const numValue = Number.isFinite(value) ? value : 0
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
     ...options,
-  }).format(value)
+  }).format(numValue)
 }
 
 export function formatCurrencyCompact(value: number): string {

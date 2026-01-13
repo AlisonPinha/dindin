@@ -308,10 +308,11 @@ export function AccountsSummary({ accounts }: AccountsSummaryProps) {
   }
 
   const totalBalance = accounts.reduce((sum, acc) => {
+    const balance = Number(acc.balance) || 0
     if (acc.type === "credit") {
-      return sum - acc.balance
+      return sum - balance
     }
-    return sum + acc.balance
+    return sum + balance
   }, 0)
 
   return (
