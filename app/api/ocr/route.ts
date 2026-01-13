@@ -155,8 +155,6 @@ export async function POST(request: NextRequest) {
       estimatedSizeMB: (imageBase64.length * 3 / 4 / 1024 / 1024).toFixed(2),
     });
 
-    const dataUrl = `data:${finalMimeType};base64,${imageBase64}`;
-
     // Different prompts for boleto vs fatura
     const prompt = documentType === "fatura"
       ? `Analise esta fatura de cartão de crédito do Bradesco ou outro banco brasileiro.

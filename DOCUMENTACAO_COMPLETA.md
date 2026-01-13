@@ -23,7 +23,7 @@
 
 - **Multi-usuário**: Suporte para múltiplos membros da família
 - **Visão Consolidada**: Visualização unificada das finanças de todos os membros
-- **Inteligência Artificial**: Processamento automático de faturas e boletos via OCR
+- **Inteligência Artificial**: Processamento automático de faturas e boletos via OCR (Claude AI)
 - **Progressive Web App (PWA)**: Funciona como aplicativo nativo em dispositivos móveis
 - **Tempo Real**: Atualizações instantâneas com sincronização automática
 - **Responsivo**: Interface adaptada para desktop, tablet e mobile
@@ -227,14 +227,14 @@
 
 #### Funcionalidades
 - **Upload de Arquivo**: PDF ou imagem (JPG, PNG, GIF, WebP)
-- **Processamento Automático**: Extração automática via OpenAI GPT-4o Vision
+- **Processamento Automático**: Extração automática via Claude 3.5 Sonnet Vision
 - **Revisão**: Visualizar e editar transações extraídas antes de importar
 - **Seleção Múltipla**: Escolher quais transações importar
 - **Categorização Automática**: IA sugere categorias baseadas na descrição
 - **Validação**: Verificação automática de valores e datas
 
 #### Tecnologia
-- **OpenAI GPT-4o**: Modelo de visão para análise de documentos
+- **Anthropic Claude 3.5 Sonnet**: Modelo de visão para análise de documentos
 - **Base64 Encoding**: Conversão de PDFs/imagens para processamento
 - **JSON Parsing**: Extração estruturada de dados
 
@@ -268,7 +268,7 @@
   - PostgreSQL: Banco de dados
   - Auth: Autenticação
   - Row Level Security: Segurança de dados
-- **OpenAI API**: Processamento de OCR
+- **Anthropic Claude API**: Processamento de OCR
 
 #### Infraestrutura
 - **Vercel**: Hospedagem e deploy
@@ -662,7 +662,7 @@ dindin/
   - PostgreSQL: Banco de dados
   - Auth: Autenticação
   - Row Level Security: Segurança
-- **OpenAI 6.15**: API de IA para OCR
+- **Anthropic Claude SDK**: API de IA para OCR
 
 ### DevOps
 - **Vercel**: Hospedagem e CI/CD
@@ -686,7 +686,7 @@ dindin/
 - `SUPABASE_SERVICE_ROLE_KEY`: Chave de serviço do Supabase
 
 #### Opcionais
-- `OPENAI_API_KEY`: Chave da OpenAI (para OCR)
+- `ANTHROPIC_API_KEY`: Chave da Anthropic Claude (para OCR)
 
 ### Deploy
 
