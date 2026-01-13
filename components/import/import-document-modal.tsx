@@ -233,7 +233,7 @@ export function ImportDocumentModal({
 
       // Encontrar índices das duplicatas
       const duplicates = new Set<number>()
-      transactionsWithDuplicates.forEach((t, idx) => {
+      transactionsWithDuplicates.forEach((t: ExtractedTransaction & { isDuplicate?: boolean }, idx: number) => {
         if (t.isDuplicate) {
           duplicates.add(idx)
         }
