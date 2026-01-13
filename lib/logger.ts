@@ -113,7 +113,13 @@ export const logger = {
    */
   error(message: string, error?: Error | unknown, context?: LogContext): void {
     const err = error instanceof Error ? error : undefined
-    output(formatLogEntry("error", message, context, err))
+    // Para erros que não são instâncias de Error (como erros do Supabase),
+    // incluir o objeto completo no contexto
+    const enrichedContext = err ? context : {
+      ...context,
+      errorDetails: error ? JSON.stringify(error) : undefined,
+    }
+    output(formatLogEntry("error", message, enrichedContext, err))
   },
 
   /**

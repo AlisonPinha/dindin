@@ -224,11 +224,22 @@ export async function POST(request: NextRequest) {
       account: transaction.contas,
     });
   } catch (error) {
-    logger.error("Failed to create transaction", error, { action: "create", resource: "transacoes" });
-    // Retornar mensagem de erro mais detalhada para debugging
-    const errorMessage = error instanceof Error ? error.message :
-      (error as { message?: string })?.message || "Erro ao criar transação";
-    return ErrorResponses.serverError(errorMessage);
+    // Capturar erro do Supabase que tem formato específico
+    const supabaseError = error as { message?: string; code?: string; details?: string; hint?: string };
+    const errorMessage = supabaseError?.message ||
+      (error instanceof Error ? error.message : "Erro ao criar transação");
+    const errorDetails = supabaseError?.details || supabaseError?.hint || supabaseError?.code;
+
+    logger.error("Failed to create transaction", error, {
+      action: "create",
+      resource: "transacoes",
+      errorCode: supabaseError?.code,
+      errorHint: supabaseError?.hint,
+    });
+
+    return ErrorResponses.serverError(
+      errorDetails ? `${errorMessage} (${errorDetails})` : errorMessage
+    );
   }
 }
 
