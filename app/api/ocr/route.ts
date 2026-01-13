@@ -123,34 +123,66 @@ export async function POST(request: NextRequest) {
            ]
          }`;
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: prompt,
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: dataUrl,
-                detail: "high",
+    let response;
+    try {
+      response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: prompt,
               },
-            },
-          ],
-        },
-      ],
-      max_tokens: 4096,
-    });
+              {
+                type: "image_url",
+                image_url: {
+                  url: dataUrl,
+                  detail: "high",
+                },
+              },
+            ],
+          },
+        ],
+        max_tokens: 4096,
+      });
+    } catch (openaiError: any) {
+      console.error("Erro na API OpenAI:", openaiError);
+      
+      // Tratar erros específicos da OpenAI
+      if (openaiError?.status === 401) {
+        return NextResponse.json(
+          { error: "Chave da API OpenAI inválida. Verifique a configuração." },
+          { status: 503 }
+        );
+      }
+      if (openaiError?.status === 429) {
+        return NextResponse.json(
+          { error: "Limite de requisições excedido. Tente novamente em alguns minutos." },
+          { status: 429 }
+        );
+      }
+      if (openaiError?.status === 400 && openaiError?.message?.includes("image")) {
+        return NextResponse.json(
+          { error: "Erro ao processar a imagem. Verifique se o arquivo está corrompido ou em formato inválido." },
+          { status: 400 }
+        );
+      }
+      
+      // Erro genérico da OpenAI
+      return NextResponse.json(
+        { error: `Erro na API OpenAI: ${openaiError?.message || "Erro desconhecido"}` },
+        { status: 500 }
+      );
+    }
 
     const content = response.choices[0]?.message?.content;
 
     if (!content) {
+      console.error("Resposta da OpenAI sem conteúdo:", response);
       return NextResponse.json(
-        { error: "Não foi possível processar o documento" },
+        { error: "A API não retornou conteúdo. Tente novamente ou use outro arquivo." },
         { status: 500 }
       );
     }
@@ -166,14 +198,32 @@ export async function POST(request: NextRequest) {
     try {
       const result: ExtractionResult = JSON.parse(jsonContent.trim());
 
+      // Validar estrutura básica
+      if (!result.transactions || !Array.isArray(result.transactions)) {
+        console.error("Resposta inválida: transactions não é um array", result);
+        return NextResponse.json(
+          { error: "Formato de resposta inválido da API. O documento pode não conter transações reconhecíveis." },
+          { status: 500 }
+        );
+      }
+
       // Validate and clean the data
-      const cleanedTransactions = result.transactions.map((t) => ({
-        descricao: t.descricao || "Transação importada",
-        valor: typeof t.valor === "number" ? t.valor : parseFloat(String(t.valor).replace(",", ".")),
-        data: t.data || new Date().toISOString().split("T")[0],
-        tipo: t.tipo || "SAIDA",
-        categoria: t.categoria || "Outros",
-      }));
+      const cleanedTransactions = result.transactions
+        .filter((t) => t && (t.descricao || t.valor)) // Filtrar transações inválidas
+        .map((t) => ({
+          descricao: t.descricao || "Transação importada",
+          valor: typeof t.valor === "number" ? t.valor : parseFloat(String(t.valor).replace(",", ".")),
+          data: t.data || new Date().toISOString().split("T")[0],
+          tipo: t.tipo || "SAIDA",
+          categoria: t.categoria || "Outros",
+        }));
+
+      if (cleanedTransactions.length === 0) {
+        return NextResponse.json(
+          { error: "Nenhuma transação foi encontrada no documento. Verifique se o arquivo contém uma fatura ou boleto válido." },
+          { status: 400 }
+        );
+      }
 
       return NextResponse.json({
         success: true,
@@ -181,17 +231,42 @@ export async function POST(request: NextRequest) {
         transactions: cleanedTransactions,
         count: cleanedTransactions.length,
       });
-    } catch {
-      console.error("Erro ao interpretar resposta OCR:", content);
+    } catch (parseError) {
+      console.error("Erro ao interpretar resposta OCR:", parseError);
+      console.error("Conteúdo recebido:", content.substring(0, 500)); // Log parcial para debug
       return NextResponse.json(
-        { error: "Erro ao interpretar os dados do documento" },
+        { error: "Erro ao interpretar os dados extraídos. A IA pode não ter conseguido ler o documento corretamente. Tente uma imagem mais clara ou outro formato." },
         { status: 500 }
       );
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Erro no OCR:", error);
+    
+    // Tratar erros específicos
+    if (error instanceof TypeError && error.message.includes("fetch")) {
+      return NextResponse.json(
+        { error: "Erro de conexão. Verifique sua internet e tente novamente." },
+        { status: 503 }
+      );
+    }
+    
+    if (error?.message?.includes("timeout")) {
+      return NextResponse.json(
+        { error: "Tempo de processamento excedido. O arquivo pode ser muito grande. Tente uma imagem menor." },
+        { status: 408 }
+      );
+    }
+    
+    // Erro genérico com mais detalhes no log
+    const errorMessage = error?.message || "Erro desconhecido";
+    console.error("Detalhes do erro:", {
+      message: errorMessage,
+      stack: error?.stack,
+      name: error?.name,
+    });
+    
     return NextResponse.json(
-      { error: "Erro ao processar documento" },
+      { error: `Erro ao processar documento: ${errorMessage}` },
       { status: 500 }
     );
   }
