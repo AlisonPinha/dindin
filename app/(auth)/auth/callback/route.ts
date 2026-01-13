@@ -58,7 +58,7 @@ export async function GET(request: Request) {
 
         // Check if user already exists
         const { data: existingUser } = await dbSupabase
-          .from("users")
+          .from("usuarios")
           .select("id")
           .eq("id", data.user.id)
           .single()
@@ -66,7 +66,7 @@ export async function GET(request: Request) {
         if (!existingUser) {
           // Create user in our database
           const { error: insertError } = await dbSupabase
-            .from("users")
+            .from("usuarios")
             .insert({
               id: data.user.id,
               nome: data.user.user_metadata?.full_name ||
@@ -76,8 +76,6 @@ export async function GET(request: Request) {
               email: data.user.email || "",
               avatar: data.user.user_metadata?.avatar_url || null,
               is_onboarded: false,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
             })
 
           if (insertError) {
