@@ -221,7 +221,7 @@ export function ImportDocumentModal({
 
       // Detectar duplicatas antes de marcar como selecionadas
       const transactionsWithDuplicates = data.transactions.map(
-        (t: ExtractedTransaction, index: number) => {
+        (t: ExtractedTransaction) => {
           const isDuplicate = checkDuplicate(t, existingTransactions)
           return {
             ...t,
