@@ -394,5 +394,6 @@ Retorne APENAS um JSON válido no formato:
 }`,
   };
 
-  return prompts[type || "fatura"] || prompts.fatura;
+  const documentType = type || "fatura";
+  return prompts[documentType] || prompts.fatura;
 }
