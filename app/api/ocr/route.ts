@@ -210,23 +210,24 @@ export async function POST(request: NextRequest) {
           },
         ],
       });
-    } catch (claudeError: any) {
+    } catch (claudeError: unknown) {
       console.error("Erro na API Claude:", claudeError);
       
       // Tratar erros específicos da Claude
-      if (claudeError?.status === 401) {
+      const error = claudeError as { status?: number; error?: { message?: string }; message?: string };
+      if (error?.status === 401) {
         return NextResponse.json(
           { error: "Chave da API Claude inválida. Verifique a configuração de ANTHROPIC_API_KEY." },
           { status: 503 }
         );
       }
-      if (claudeError?.status === 429) {
+      if (error?.status === 429) {
         return NextResponse.json(
           { error: "Limite de requisições excedido. Tente novamente em alguns minutos." },
           { status: 429 }
         );
       }
-      if (claudeError?.status === 400 && claudeError?.error?.message?.includes("image")) {
+      if (error?.status === 400 && error?.error?.message?.includes("image")) {
         return NextResponse.json(
           { error: "Erro ao processar a imagem. Verifique se o arquivo está corrompido ou em formato inválido." },
           { status: 400 }
@@ -235,7 +236,7 @@ export async function POST(request: NextRequest) {
       
       // Erro genérico da Claude
       return NextResponse.json(
-        { error: `Erro na API Claude: ${claudeError?.error?.message || claudeError?.message || "Erro desconhecido"}` },
+        { error: `Erro na API Claude: ${error?.error?.message || error?.message || "Erro desconhecido"}` },
         { status: 500 }
       );
     }
@@ -310,7 +311,7 @@ export async function POST(request: NextRequest) {
       transactions: cleanedTransactions,
       count: cleanedTransactions.length,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro no OCR:", error);
     
     // Tratar erros específicos
@@ -321,7 +322,9 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    if (error?.message?.includes("timeout")) {
+    const err = error as { message?: string; error?: { message?: string }; stack?: string; name?: string; status?: number };
+    
+    if (err?.message?.includes("timeout")) {
       return NextResponse.json(
         { error: "Tempo de processamento excedido. O arquivo pode ser muito grande. Tente uma imagem menor." },
         { status: 408 }
@@ -329,12 +332,12 @@ export async function POST(request: NextRequest) {
     }
     
     // Erro genérico com mais detalhes no log
-    const errorMessage = error?.message || error?.error?.message || "Erro desconhecido";
+    const errorMessage = err?.message || err?.error?.message || "Erro desconhecido";
     console.error("Detalhes do erro:", {
       message: errorMessage,
-      stack: error?.stack,
-      name: error?.name,
-      status: error?.status,
+      stack: err?.stack,
+      name: err?.name,
+      status: err?.status,
     });
     
     return NextResponse.json(

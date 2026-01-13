@@ -1,7 +1,7 @@
 {
   "extends": ["next/core-web-vitals", "next/typescript"],
   "rules": {
-    "no-console": ["warn", { "allow": ["warn", "error", "log", "info", "debug"] }],
+    "no-console": "off",
     "no-unused-vars": "off",
     "@typescript-eslint/no-unused-vars": ["warn", {
       "argsIgnorePattern": "^_",
