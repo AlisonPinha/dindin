@@ -176,13 +176,6 @@ export function ComparisonTooltip({
   const diff = current - previous
   const percentChange = previous !== 0 ? ((diff / previous) * 100).toFixed(1) : "0"
 
-  const formatCurrency = (value: number): string => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value)
-  }
-
   return (
     <div className="rounded-lg border bg-popover px-3 py-2 shadow-lg animate-in fade-in-0 zoom-in-95">
       {label && (
