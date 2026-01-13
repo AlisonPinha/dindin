@@ -52,16 +52,21 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error && data.user) {
-      // Create user in database if not exists (for OAuth logins)
+      // Create user in database if not exists (for all login types)
       try {
         const dbSupabase = createSupabaseServerClient()
 
         // Check if user already exists
-        const { data: existingUser } = await dbSupabase
+        const { data: existingUser, error: checkError } = await dbSupabase
           .from("usuarios")
           .select("id")
           .eq("id", data.user.id)
           .single()
+
+        // Se erro não é "not found", logar mas continuar
+        if (checkError && checkError.code !== "PGRST116") {
+          console.error("Error checking user:", checkError)
+        }
 
         if (!existingUser) {
           // Create user in our database
@@ -80,10 +85,12 @@ export async function GET(request: Request) {
 
           if (insertError) {
             console.error("Error creating user in database:", insertError)
+            // Não bloquear o login se falhar - o onboarding pode criar depois
           }
         }
       } catch (dbError) {
         console.error("Error checking/creating user:", dbError)
+        // Não bloquear o login se falhar - o onboarding pode criar depois
       }
 
       return NextResponse.redirect(`${origin}${next}`)
