@@ -29,6 +29,7 @@ import { useToast } from "@/hooks/use-toast"
 import { cn, formatCurrency } from "@/lib/utils"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { Checkbox } from "@/components/ui/checkbox"
+import { useStore } from "@/hooks/use-store"
 
 type DocumentType = "boleto" | "fatura"
 
@@ -55,6 +56,7 @@ export function ImportDocumentModal({
   const { toast } = useToast()
   const isDesktop = useMediaQuery("(min-width: 768px)")
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { categories, addTransaction } = useStore()
 
   const [step, setStep] = useState<Step>("select")
   const [documentType, setDocumentType] = useState<DocumentType | null>(null)
@@ -175,7 +177,7 @@ export function ImportDocumentModal({
     setTransactions((prev) => prev.map((t) => ({ ...t, selected })))
   }
 
-  const handleImport = () => {
+  const handleImport = async () => {
     const selectedTransactions = transactions.filter((t) => t.selected)
 
     if (selectedTransactions.length === 0) {
@@ -187,21 +189,159 @@ export function ImportDocumentModal({
       return
     }
 
-    // TODO: Actually import transactions to the store/API
-    // For now, just show success
+    setIsLoading(true)
 
-    setStep("success")
+    try {
+      // Mapear nome de categoria para ID de categoria
+      const findCategoryId = (categoryName: string | undefined): string | null => {
+        if (!categoryName) return null
+        
+        // Normalizar nome da categoria (case-insensitive, remover acentos)
+        const normalized = categoryName
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .trim()
 
-    toast({
-      title: "Transações importadas",
-      description: `${selectedTransactions.length} transação(ões) importada(s) com sucesso.`,
-    })
+        // Mapear categorias comuns do OCR para categorias do sistema
+        const categoryMap: Record<string, string[]> = {
+          alimentação: ["alimentação", "comida", "restaurante", "supermercado"],
+          transporte: ["transporte", "uber", "taxi", "combustível", "gasolina"],
+          compras: ["compras", "shopping", "mercado", "mercado livre"],
+          assinaturas: ["assinaturas", "streaming", "netflix", "spotify"],
+          lazer: ["lazer", "entretenimento", "cinema", "show"],
+          saúde: ["saúde", "farmacia", "médico", "hospital"],
+          educação: ["educação", "escola", "curso", "livro"],
+          moradia: ["moradia", "aluguel", "condomínio", "luz", "água", "internet"],
+          outros: ["outros", "outras"],
+        }
+
+        // Procurar categoria exata primeiro
+        const exactMatch = categories.find(
+          (cat) => cat.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === normalized
+        )
+        if (exactMatch) return exactMatch.id
+
+        // Procurar por mapeamento
+        for (const [key, aliases] of Object.entries(categoryMap)) {
+          if (aliases.some(alias => normalized.includes(alias))) {
+            const matched = categories.find(
+              (cat) => cat.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === key
+            )
+            if (matched) return matched.id
+          }
+        }
+
+        // Se não encontrar, procurar por substring
+        const partialMatch = categories.find(
+          (cat) => cat.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(normalized) ||
+                   normalized.includes(cat.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
+        )
+        if (partialMatch) return partialMatch.id
+
+        return null
+      }
+
+      // Validar e preparar transações para importação
+      const transactionsToImport = selectedTransactions.map((t) => {
+        // Validar data (não pode ser muito no futuro ou muito no passado)
+        const transactionDate = new Date(t.data)
+        const today = new Date()
+        const maxDate = new Date(today)
+        maxDate.setFullYear(today.getFullYear() + 1) // Máximo 1 ano no futuro
+        const minDate = new Date(today)
+        minDate.setFullYear(today.getFullYear() - 10) // Máximo 10 anos no passado
+
+        let finalDate = transactionDate
+        if (transactionDate > maxDate) {
+          finalDate = today // Se data no futuro, usar hoje
+        } else if (transactionDate < minDate) {
+          finalDate = today // Se data muito antiga, usar hoje
+        }
+
+        // Validar valor (deve ser positivo)
+        const valor = Math.abs(t.valor)
+
+        // Mapear tipo
+        const tipo = t.tipo === "ENTRADA" ? "income" : "expense"
+
+        // Encontrar categoria
+        const categoryId = findCategoryId(t.categoria)
+
+        return {
+          descricao: t.descricao.trim(),
+          valor,
+          tipo,
+          data: finalDate.toISOString().split("T")[0], // Formato YYYY-MM-DD
+          categoryId,
+        }
+      })
+
+      // Importar transações em lote
+      let successCount = 0
+      let errorCount = 0
+
+      for (const transaction of transactionsToImport) {
+        try {
+          const response = await fetch("/api/transacoes", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              descricao: transaction.descricao,
+              valor: transaction.valor,
+              tipo: transaction.tipo === "income" ? "ENTRADA" : "SAIDA",
+              data: transaction.data,
+              categoryId: transaction.categoryId,
+            }),
+          })
+
+          if (response.ok) {
+            const created = await response.json()
+            // Adicionar ao store local (se necessário)
+            successCount++
+          } else {
+            const error = await response.json()
+            console.error("Erro ao importar transação:", error)
+            errorCount++
+          }
+        } catch (err) {
+          console.error("Erro ao importar transação:", err)
+          errorCount++
+        }
+      }
+
+      if (successCount > 0) {
+        setStep("success")
+        toast({
+          title: "Importação concluída",
+          description: `${successCount} transação(ões) importada(s) com sucesso.${errorCount > 0 ? ` ${errorCount} falharam.` : ""}`,
+        })
+      } else {
+        throw new Error("Nenhuma transação foi importada. Verifique os dados e tente novamente.")
+      }
+    } catch (err) {
+      toast({
+        title: "Erro na importação",
+        description: err instanceof Error ? err.message : "Erro ao importar transações",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const selectedCount = transactions.filter((t) => t.selected).length
+  
+  // Calcular total considerando tipo (SAIDA subtrai, ENTRADA soma)
   const totalValue = transactions
     .filter((t) => t.selected)
-    .reduce((sum, t) => sum + t.valor, 0)
+    .reduce((sum, t) => {
+      if (t.tipo === "ENTRADA") {
+        return sum + t.valor
+      } else {
+        return sum - t.valor
+      }
+    }, 0)
 
   const content = (
     <div className="space-y-4 py-2">
@@ -462,8 +602,11 @@ export function ImportDocumentModal({
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Total</span>
-              <span className="font-bold text-lg text-rose-500">
-                {formatCurrency(totalValue)}
+              <span className={cn(
+                "font-bold text-lg",
+                totalValue >= 0 ? "text-emerald-500" : "text-rose-500"
+              )}>
+                {totalValue >= 0 ? "+" : ""}{formatCurrency(Math.abs(totalValue))}
               </span>
             </div>
           </div>
@@ -471,11 +614,20 @@ export function ImportDocumentModal({
           {/* Import button */}
           <Button
             onClick={handleImport}
-            disabled={selectedCount === 0}
+            disabled={selectedCount === 0 || isLoading}
             className="w-full h-12 bg-emerald-500 hover:bg-emerald-600"
           >
-            <Check className="h-4 w-4 mr-2" />
-            Importar {selectedCount} transação(ões)
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Importando...
+              </>
+            ) : (
+              <>
+                <Check className="h-4 w-4 mr-2" />
+                Importar {selectedCount} transação(ões)
+              </>
+            )}
           </Button>
         </div>
       )}
