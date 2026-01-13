@@ -3,8 +3,9 @@ import { getAuthenticatedUser } from "@/lib/supabase/auth-helper";
 import OpenAI from "openai";
 
 // Configurar runtime para suportar uploads maiores
+// No Vercel, o limite padrão é 10s (Hobby) ou 60s (Pro)
 export const runtime = 'nodejs';
-export const maxDuration = 60; // 60 segundos para processar (Vercel Pro)
+export const maxDuration = 60; // 60 segundos para processar (requer Vercel Pro)
 
 // Lazy initialization - only create client when API is called
 let openaiClient: OpenAI | null = null;
