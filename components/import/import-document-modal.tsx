@@ -11,6 +11,7 @@ import {
   Check,
   Loader2,
   AlertCircle,
+  AlertTriangle,
 } from "lucide-react"
 import {
   Dialog,
@@ -46,6 +47,7 @@ interface ExtractedTransaction {
   tipo: "SAIDA" | "ENTRADA"
   categoria?: string
   selected?: boolean
+  isDuplicate?: boolean
 }
 
 type Step = "select" | "upload" | "preview" | "success"
@@ -57,7 +59,7 @@ export function ImportDocumentModal({
   const { toast } = useToast()
   const isDesktop = useMediaQuery("(min-width: 768px)")
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const { categories } = useStore()
+  const { categories, transactions: existingTransactions } = useStore()
   const { mutators } = useSWRData()
 
   const [step, setStep] = useState<Step>("select")
@@ -67,6 +69,7 @@ export function ImportDocumentModal({
   const [isLoading, setIsLoading] = useState(false)
   const [transactions, setTransactions] = useState<ExtractedTransaction[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [duplicateIndices, setDuplicateIndices] = useState<Set<number>>(new Set())
 
   const resetModal = () => {
     setStep("select")
@@ -76,6 +79,77 @@ export function ImportDocumentModal({
     setIsLoading(false)
     setTransactions([])
     setError(null)
+    setDuplicateIndices(new Set())
+  }
+
+  // Função para verificar se uma transação é duplicada
+  const checkDuplicate = (
+    newTransaction: ExtractedTransaction,
+    existing: typeof existingTransactions
+  ): boolean => {
+    if (existing.length === 0) return false
+
+    const newDate = new Date(newTransaction.data)
+    const newValue = Math.abs(newTransaction.valor)
+    const newDesc = newTransaction.descricao
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .replace(/\s+/g, " ")
+
+    // Comparar com transações existentes
+    return existing.some((existingTx) => {
+      // Mesmo tipo
+      const existingType = existingTx.type === "income" ? "ENTRADA" : "SAIDA"
+      if (existingType !== newTransaction.tipo) return false
+
+      // Mesmo valor (com tolerância de 0.01 para arredondamentos)
+      const existingValue = Math.abs(existingTx.amount)
+      if (Math.abs(existingValue - newValue) > 0.01) return false
+
+      // Mesma data (com tolerância de ±3 dias para diferenças de processamento)
+      const existingDate = new Date(existingTx.date)
+      const daysDiff = Math.abs(
+        (newDate.getTime() - existingDate.getTime()) / (1000 * 60 * 60 * 24)
+      )
+      if (daysDiff > 3) return false
+
+      // Descrição similar (normalizada, case-insensitive, sem acentos)
+      const existingDesc = existingTx.description
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim()
+        .replace(/\s+/g, " ")
+
+      // Verificar se as descrições são muito similares (80% de similaridade)
+      const similarity = calculateSimilarity(newDesc, existingDesc)
+      if (similarity < 0.8) return false
+
+      return true
+    })
+  }
+
+  // Função para calcular similaridade entre strings (Jaccard similarity simplificado)
+  const calculateSimilarity = (str1: string, str2: string): number => {
+    if (str1 === str2) return 1.0
+
+    // Se uma string contém a outra, alta similaridade
+    if (str1.includes(str2) || str2.includes(str1)) return 0.9
+
+    // Calcular palavras em comum
+    const words1 = new Set(str1.split(/\s+/).filter((w) => w.length > 2))
+    const words2 = new Set(str2.split(/\s+/).filter((w) => w.length > 2))
+
+    if (words1.size === 0 || words2.size === 0) return 0
+
+    const words1Array = Array.from(words1)
+    const words2Array = Array.from(words2)
+    const intersection = new Set(words1Array.filter((w) => words2.has(w)))
+    const union = new Set([...words1Array, ...words2Array])
+
+    return intersection.size / union.size
   }
 
   const handleClose = () => {
@@ -145,16 +219,38 @@ export function ImportDocumentModal({
         throw new Error(data.error || "Erro ao processar documento")
       }
 
-      // Mark all transactions as selected by default
-      const transactionsWithSelection = data.transactions.map(
-        (t: ExtractedTransaction) => ({
-          ...t,
-          selected: true,
-        })
+      // Detectar duplicatas antes de marcar como selecionadas
+      const transactionsWithDuplicates = data.transactions.map(
+        (t: ExtractedTransaction, index: number) => {
+          const isDuplicate = checkDuplicate(t, existingTransactions)
+          return {
+            ...t,
+            selected: !isDuplicate, // Não selecionar duplicatas por padrão
+            isDuplicate,
+          }
+        }
       )
 
-      setTransactions(transactionsWithSelection)
+      // Encontrar índices das duplicatas
+      const duplicates = new Set<number>()
+      transactionsWithDuplicates.forEach((t, index) => {
+        if (t.isDuplicate) {
+          duplicates.add(index)
+        }
+      })
+
+      setDuplicateIndices(duplicates)
+      setTransactions(transactionsWithDuplicates)
       setStep("preview")
+
+      // Mostrar aviso se houver duplicatas
+      if (duplicates.size > 0) {
+        toast({
+          title: "Transações duplicadas detectadas",
+          description: `${duplicates.size} transação(ões) já existem no sistema e foram desmarcadas automaticamente.`,
+          variant: "default",
+        })
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao processar documento")
       toast({
@@ -563,54 +659,88 @@ export function ImportDocumentModal({
           <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
             <div className="flex items-center gap-2">
               <Checkbox
-                checked={selectedCount === transactions.length}
-                onCheckedChange={(checked) => toggleAll(!!checked)}
+                checked={selectedCount === transactions.length && duplicateIndices.size === 0}
+                onCheckedChange={(checked) => {
+                  // Ao selecionar todas, não selecionar duplicatas
+                  if (checked) {
+                    setTransactions((prev) =>
+                      prev.map((t, i) => ({
+                        ...t,
+                        selected: !duplicateIndices.has(i),
+                      }))
+                    )
+                  } else {
+                    toggleAll(false)
+                  }
+                }}
               />
               <span className="text-sm font-medium">Selecionar todas</span>
             </div>
-            <span className="text-sm text-muted-foreground">
-              {selectedCount} selecionada(s)
-            </span>
+            <div className="flex items-center gap-3">
+              {duplicateIndices.size > 0 && (
+                <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  {duplicateIndices.size} duplicada(s)
+                </span>
+              )}
+              <span className="text-sm text-muted-foreground">
+                {selectedCount} selecionada(s)
+              </span>
+            </div>
           </div>
 
           {/* Transaction list */}
           <div className="space-y-2 max-h-[300px] overflow-y-auto">
-            {transactions.map((transaction, index) => (
-              <div
-                key={index}
-                onClick={() => toggleTransaction(index)}
-                className={cn(
-                  "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all",
-                  transaction.selected
-                    ? "border-primary bg-primary/5"
-                    : "border-transparent bg-muted/30 hover:bg-muted/50"
-                )}
-              >
-                <Checkbox
-                  checked={transaction.selected}
-                  onCheckedChange={() => toggleTransaction(index)}
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{transaction.descricao}</p>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>{transaction.data}</span>
-                    {transaction.categoria && (
-                      <>
-                        <span>•</span>
-                        <span>{transaction.categoria}</span>
-                      </>
-                    )}
+            {transactions.map((transaction, index) => {
+              const isDuplicate = duplicateIndices.has(index)
+              return (
+                <div
+                  key={index}
+                  onClick={() => !isDuplicate && toggleTransaction(index)}
+                  className={cn(
+                    "flex items-center gap-3 p-3 rounded-lg border transition-all",
+                    isDuplicate
+                      ? "border-amber-500/50 bg-amber-500/5 cursor-not-allowed opacity-60"
+                      : transaction.selected
+                      ? "border-primary bg-primary/5 cursor-pointer"
+                      : "border-transparent bg-muted/30 hover:bg-muted/50 cursor-pointer"
+                  )}
+                >
+                  <Checkbox
+                    checked={transaction.selected}
+                    disabled={isDuplicate}
+                    onCheckedChange={() => !isDuplicate && toggleTransaction(index)}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium truncate">{transaction.descricao}</p>
+                      {isDuplicate && (
+                        <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10">
+                          <AlertTriangle className="h-3 w-3" />
+                          Duplicada
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{transaction.data}</span>
+                      {transaction.categoria && (
+                        <>
+                          <span>•</span>
+                          <span>{transaction.categoria}</span>
+                        </>
+                      )}
+                    </div>
                   </div>
+                  <span className={cn(
+                    "font-semibold",
+                    transaction.tipo === "SAIDA" ? "text-rose-500" : "text-emerald-500"
+                  )}>
+                    {transaction.tipo === "SAIDA" ? "-" : "+"}
+                    {formatCurrency(transaction.valor)}
+                  </span>
                 </div>
-                <span className={cn(
-                  "font-semibold",
-                  transaction.tipo === "SAIDA" ? "text-rose-500" : "text-emerald-500"
-                )}>
-                  {transaction.tipo === "SAIDA" ? "-" : "+"}
-                  {formatCurrency(transaction.valor)}
-                </span>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           {/* Summary */}
