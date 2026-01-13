@@ -65,7 +65,14 @@ export default function DashboardPage() {
       .filter(t => t.type === "expense")
       .reduce((sum, t) => sum + t.amount, 0)
 
-    const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0)
+    const totalBalance = accounts.reduce((sum, a) => {
+      const balance = Number(a.balance) || 0
+      // Cartões de crédito são subtraídos (débito)
+      if (a.type === "credit") {
+        return sum - balance
+      }
+      return sum + balance
+    }, 0)
 
     // Calculate previous period (last month)
     const prevMonth = selectedPeriod.month === 0 ? 11 : selectedPeriod.month - 1
