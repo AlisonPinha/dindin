@@ -78,12 +78,19 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    
+    // Validar se PDF não está criptografado ou protegido por senha
+    // (Claude não suporta PDFs protegidos)
 
-    // Validar tamanho (máx 10MB)
-    const maxSize = 10 * 1024 * 1024;
+    // Validar tamanho (máx 10MB para imagens, 32MB para PDFs - limite do Claude)
+    const maxSize = file.type === "application/pdf" 
+      ? 32 * 1024 * 1024  // Claude suporta até 32MB para PDFs
+      : 10 * 1024 * 1024; // 10MB para imagens
+    
     if (file.size > maxSize) {
+      const maxSizeMB = file.type === "application/pdf" ? "32MB" : "10MB";
       return NextResponse.json(
-        { error: "Arquivo muito grande. Tamanho máximo: 10MB" },
+        { error: `Arquivo muito grande. Tamanho máximo: ${maxSizeMB}` },
         { status: 400 }
       );
     }
@@ -133,36 +140,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Claude também aceita apenas imagens, não PDFs diretamente
-    // Mas podemos tentar converter ou informar o usuário
-    if (file.type === "application/pdf") {
-      console.log("❌ PDF detectado - Claude API também requer imagens");
-      return NextResponse.json(
-        { 
-          error: "PDFs não são suportados diretamente. Por favor, converta o PDF para uma imagem (JPG ou PNG) antes de importar. Você pode usar ferramentas online como ilovepdf.com ou simplesmente tirar uma captura de tela do PDF." 
-        },
-        { status: 400 }
-      );
-    }
-
-    // Se for imagem, usar diretamente
+    // Converter arquivo para base64
     const buffer = Buffer.from(bytes);
-    const imageBase64 = buffer.toString("base64");
+    const fileBase64 = buffer.toString("base64");
+    
+    // Determinar se é PDF ou imagem e configurar tipo de conteúdo
+    const isPDF = file.type === "application/pdf";
     
     // Mapear MIME type para o formato aceito pelo Claude
-    const mimeTypeMap: Record<string, "image/jpeg" | "image/png" | "image/gif" | "image/webp"> = {
+    const mimeTypeMap: Record<string, "image/jpeg" | "image/png" | "image/gif" | "image/webp" | "application/pdf"> = {
       "image/jpeg": "image/jpeg",
       "image/jpg": "image/jpeg",
       "image/png": "image/png",
       "image/gif": "image/gif",
       "image/webp": "image/webp",
+      "application/pdf": "application/pdf",
     };
     
-    const finalMimeType = mimeTypeMap[file.type] || "image/jpeg";
+    const finalMimeType = mimeTypeMap[file.type] || (isPDF ? "application/pdf" : "image/jpeg");
     
     console.log("✅ Arquivo convertido para base64:", {
-      base64Length: imageBase64.length,
-      estimatedSizeMB: (imageBase64.length * 3 / 4 / 1024 / 1024).toFixed(2),
+      fileType: isPDF ? "PDF" : "Imagem",
+      base64Length: fileBase64.length,
+      estimatedSizeMB: (fileBase64.length * 3 / 4 / 1024 / 1024).toFixed(2),
       mimeType: finalMimeType,
     });
 
@@ -207,22 +207,33 @@ export async function POST(request: NextRequest) {
 
     let response;
     try {
-      // Claude API usa estrutura diferente
+      // Claude API suporta PDFs diretamente usando tipo "document" e imagens usando tipo "image"
+      const contentBlock = isPDF
+        ? {
+            type: "document" as const,
+            source: {
+              type: "base64" as const,
+              media_type: "application/pdf" as const,
+              data: fileBase64,
+            },
+          }
+        : {
+            type: "image" as const,
+            source: {
+              type: "base64" as const,
+              media_type: finalMimeType as "image/jpeg" | "image/png" | "image/gif" | "image/webp",
+              data: fileBase64,
+            },
+          };
+
       response = await claude.messages.create({
-        model: "claude-3-5-sonnet-20241022", // ou "claude-3-opus-20240229" para melhor qualidade
+        model: "claude-3-5-sonnet-20241022", // Suporta PDFs nativamente
         max_tokens: 4096,
         messages: [
           {
             role: "user",
             content: [
-              {
-                type: "image",
-                source: {
-                  type: "base64",
-                  media_type: finalMimeType,
-                  data: imageBase64,
-                },
-              },
+              contentBlock,
               {
                 type: "text",
                 text: prompt,
