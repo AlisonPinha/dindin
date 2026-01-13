@@ -227,7 +227,7 @@ export async function POST(request: NextRequest) {
           };
 
       response = await claude.messages.create({
-        model: "claude-3-5-sonnet-20241022", // Suporta PDFs nativamente
+        model: "claude-sonnet-4-20250514", // Suporta PDFs nativamente (modelo mais recente)
         max_tokens: 4096,
         messages: [
           {
