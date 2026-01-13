@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useMemo } from "react"
 import Image from "next/image"
 import {
   FileText,
@@ -12,6 +12,11 @@ import {
   Loader2,
   AlertCircle,
   AlertTriangle,
+  Search,
+  ChevronDown,
+  ChevronUp,
+  Pencil,
+  Filter,
 } from "lucide-react"
 import {
   Dialog,
@@ -26,12 +31,165 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { cn, formatCurrency } from "@/lib/utils"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useStore } from "@/hooks/use-store"
 import { useSWRData } from "@/hooks/use-swr-data"
+
+type FilterType = "all" | "installments" | "single" | "duplicates"
+
+// Componente de item de transação com suporte a edição
+interface TransactionItemProps {
+  transaction: {
+    descricao: string
+    valor: number
+    data: string
+    tipo: "SAIDA" | "ENTRADA"
+    categoria?: string
+    parcela?: number
+    totalParcelas?: number
+    selected?: boolean
+  }
+  index: number
+  isDuplicate: boolean
+  isEditing: boolean
+  editForm: { descricao: string; categoria: string } | null
+  onToggle: () => void
+  onEdit: (e: React.MouseEvent) => void
+  onEditChange: (form: { descricao: string; categoria: string } | null) => void
+  onEditSave: () => void
+  onEditCancel: () => void
+  categories: string[]
+  compact?: boolean
+}
+
+function TransactionItem({
+  transaction,
+  isDuplicate,
+  isEditing,
+  editForm,
+  onToggle,
+  onEdit,
+  onEditChange,
+  onEditSave,
+  onEditCancel,
+  categories,
+  compact,
+}: TransactionItemProps) {
+  if (isEditing && editForm) {
+    return (
+      <div className={cn("p-3 space-y-2", compact ? "bg-muted/20" : "rounded-xl border-2 border-primary/50 bg-primary/5")}>
+        <Input
+          value={editForm.descricao}
+          onChange={(e) => onEditChange({ ...editForm, descricao: e.target.value })}
+          placeholder="Descrição"
+          className="h-8 text-sm"
+          autoFocus
+        />
+        <Select
+          value={editForm.categoria || "none"}
+          onValueChange={(v) => onEditChange({ ...editForm, categoria: v === "none" ? "" : v })}
+        >
+          <SelectTrigger className="h-8 text-xs">
+            <SelectValue placeholder="Categoria" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Sem categoria</SelectItem>
+            {categories.map((cat) => (
+              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={onEditCancel} className="flex-1 h-7 text-xs">
+            Cancelar
+          </Button>
+          <Button size="sm" onClick={onEditSave} className="flex-1 h-7 text-xs">
+            Salvar
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div
+      onClick={onToggle}
+      className={cn(
+        "flex items-start gap-3 p-3 transition-all",
+        compact ? "" : "rounded-xl border-2",
+        isDuplicate
+          ? compact ? "bg-amber-500/5 opacity-70" : "border-amber-500/30 bg-amber-500/5 cursor-not-allowed opacity-70"
+          : transaction.selected
+          ? compact ? "bg-primary/5" : "border-primary/50 bg-primary/5 cursor-pointer"
+          : compact ? "hover:bg-muted/30" : "border-transparent bg-muted/40 hover:bg-muted/60 cursor-pointer"
+      )}
+    >
+      <Checkbox
+        checked={transaction.selected}
+        disabled={isDuplicate}
+        onCheckedChange={onToggle}
+        onClick={(e) => e.stopPropagation()}
+        className="mt-0.5 shrink-0"
+      />
+      <div className="flex-1 min-w-0 space-y-1">
+        <div className="flex items-start justify-between gap-2">
+          <p className="font-medium text-sm leading-tight line-clamp-2">
+            {transaction.descricao}
+          </p>
+          <div className="flex items-center gap-1 shrink-0">
+            {!isDuplicate && (
+              <button
+                onClick={onEdit}
+                className="p-1 rounded hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Pencil className="h-3 w-3 text-muted-foreground" />
+              </button>
+            )}
+            <span className={cn(
+              "font-semibold text-sm whitespace-nowrap",
+              transaction.tipo === "SAIDA" ? "text-rose-500" : "text-emerald-500"
+            )}>
+              {transaction.tipo === "SAIDA" ? "-" : "+"}
+              {formatCurrency(transaction.valor)}
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-xs text-muted-foreground">
+            {transaction.data}
+          </span>
+          {transaction.parcela && transaction.totalParcelas && (
+            <span className="text-xs px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium">
+              {transaction.parcela}/{transaction.totalParcelas}
+            </span>
+          )}
+          {transaction.categoria && (
+            <span className="text-xs px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">
+              {transaction.categoria}
+            </span>
+          )}
+          {isDuplicate && (
+            <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/10">
+              <AlertTriangle className="h-3 w-3" />
+              Duplicada
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 type DocumentType = "boleto" | "fatura"
 
@@ -73,6 +231,14 @@ export function ImportDocumentModal({
   const [error, setError] = useState<string | null>(null)
   const [duplicateIndices, setDuplicateIndices] = useState<Set<number>>(new Set())
 
+  // Novos estados para filtros, busca e edição
+  const [searchQuery, setSearchQuery] = useState("")
+  const [filterType, setFilterType] = useState<FilterType>("all")
+  const [filterCategory, setFilterCategory] = useState<string>("all")
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+  const [editingIndex, setEditingIndex] = useState<number | null>(null)
+  const [editForm, setEditForm] = useState<{ descricao: string; categoria: string } | null>(null)
+
   const resetModal = () => {
     setStep("select")
     setDocumentType(null)
@@ -82,6 +248,12 @@ export function ImportDocumentModal({
     setTransactions([])
     setError(null)
     setDuplicateIndices(new Set())
+    setSearchQuery("")
+    setFilterType("all")
+    setFilterCategory("all")
+    setExpandedGroups(new Set())
+    setEditingIndex(null)
+    setEditForm(null)
   }
 
   // Função para normalizar descrição (remover acentos, lowercase, etc)
@@ -471,7 +643,7 @@ export function ImportDocumentModal({
   }
 
   const selectedCount = transactions.filter((t) => t.selected).length
-  
+
   // Calcular total considerando tipo (SAIDA subtrai, ENTRADA soma)
   const totalValue = transactions
     .filter((t) => t.selected)
@@ -482,6 +654,145 @@ export function ImportDocumentModal({
         return sum - t.valor
       }
     }, 0)
+
+  // Obter categorias únicas das transações
+  const uniqueCategories = useMemo(() => {
+    const cats = new Set<string>()
+    transactions.forEach((t) => {
+      if (t.categoria) cats.add(t.categoria)
+    })
+    return Array.from(cats).sort()
+  }, [transactions])
+
+  // Agrupar transações por estabelecimento (para parcelas)
+  interface TransactionGroup {
+    key: string
+    descricao: string
+    transactions: Array<ExtractedTransaction & { originalIndex: number }>
+    totalValor: number
+    isInstallment: boolean
+  }
+
+  const groupedTransactions = useMemo(() => {
+    // Primeiro, aplicar filtros
+    let filtered = transactions.map((t, i) => ({ ...t, originalIndex: i }))
+
+    // Filtro de busca
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim()
+      filtered = filtered.filter((t) =>
+        t.descricao.toLowerCase().includes(query) ||
+        t.categoria?.toLowerCase().includes(query)
+      )
+    }
+
+    // Filtro de tipo
+    if (filterType === "installments") {
+      filtered = filtered.filter((t) => t.parcela && t.totalParcelas)
+    } else if (filterType === "single") {
+      filtered = filtered.filter((t) => !t.parcela || !t.totalParcelas)
+    } else if (filterType === "duplicates") {
+      filtered = filtered.filter((t) => duplicateIndices.has(t.originalIndex))
+    }
+
+    // Filtro de categoria
+    if (filterCategory !== "all") {
+      filtered = filtered.filter((t) => t.categoria === filterCategory)
+    }
+
+    // Agrupar por descrição (para parcelas do mesmo estabelecimento)
+    const groups = new Map<string, TransactionGroup>()
+
+    filtered.forEach((t) => {
+      // Criar chave de agrupamento baseada na descrição normalizada
+      const normalizedDesc = t.descricao
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+        .trim()
+
+      // Se for parcela, agrupar. Senão, cada transação é seu próprio grupo
+      const isInstallment = !!(t.parcela && t.totalParcelas)
+      const key = isInstallment ? `installment_${normalizedDesc}` : `single_${t.originalIndex}`
+
+      if (!groups.has(key)) {
+        groups.set(key, {
+          key,
+          descricao: t.descricao,
+          transactions: [],
+          totalValor: 0,
+          isInstallment,
+        })
+      }
+
+      const group = groups.get(key)!
+      group.transactions.push(t)
+      group.totalValor += t.valor
+    })
+
+    // Ordenar transações dentro de cada grupo por número da parcela
+    groups.forEach((group) => {
+      group.transactions.sort((a, b) => (a.parcela || 0) - (b.parcela || 0))
+    })
+
+    return Array.from(groups.values())
+  }, [transactions, searchQuery, filterType, filterCategory, duplicateIndices])
+
+  // Toggle expansão de grupo
+  const toggleGroup = (key: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) {
+        next.delete(key)
+      } else {
+        next.add(key)
+      }
+      return next
+    })
+  }
+
+  // Selecionar/deselecionar grupo inteiro
+  const toggleGroupSelection = (group: TransactionGroup) => {
+    const allSelected = group.transactions.every((t) => t.selected)
+    const newSelected = !allSelected
+
+    setTransactions((prev) =>
+      prev.map((t, i) => {
+        const inGroup = group.transactions.some((gt) => gt.originalIndex === i)
+        if (inGroup && !duplicateIndices.has(i)) {
+          return { ...t, selected: newSelected }
+        }
+        return t
+      })
+    )
+  }
+
+  // Editar transação
+  const startEditing = (index: number, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const t = transactions[index]
+    if (!t) return
+    setEditingIndex(index)
+    setEditForm({ descricao: t.descricao, categoria: t.categoria || "" })
+  }
+
+  const saveEditing = () => {
+    if (editingIndex === null || !editForm) return
+
+    setTransactions((prev) =>
+      prev.map((t, i) =>
+        i === editingIndex
+          ? { ...t, descricao: editForm.descricao, categoria: editForm.categoria || undefined }
+          : t
+      )
+    )
+    setEditingIndex(null)
+    setEditForm(null)
+  }
+
+  const cancelEditing = () => {
+    setEditingIndex(null)
+    setEditForm(null)
+  }
 
   const content = (
     <div className="space-y-4 py-2">
@@ -666,110 +977,211 @@ export function ImportDocumentModal({
       {/* Step 3: Preview transactions */}
       {step === "preview" && (
         <div className="flex flex-col h-full -my-2">
-          {/* Header com seleção */}
-          <div className="flex items-center justify-between py-3 border-b">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="select-all"
-                checked={selectedCount === transactions.length && duplicateIndices.size === 0}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    setTransactions((prev) =>
-                      prev.map((t, i) => ({
-                        ...t,
-                        selected: !duplicateIndices.has(i),
-                      }))
-                    )
-                  } else {
-                    toggleAll(false)
-                  }
-                }}
+          {/* Barra de busca e filtros */}
+          <div className="space-y-2 py-3 border-b">
+            {/* Busca */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar transações..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-9"
               />
-              <label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
-                Selecionar todas
-              </label>
-            </div>
-            <div className="flex items-center gap-2">
-              {duplicateIndices.size > 0 && (
-                <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/10">
-                  <AlertTriangle className="h-3 w-3" />
-                  {duplicateIndices.size}
-                </span>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                >
+                  <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                </button>
               )}
-              <span className="text-sm text-muted-foreground">
-                {selectedCount}/{transactions.length}
-              </span>
+            </div>
+
+            {/* Filtros */}
+            <div className="flex gap-2">
+              <Select value={filterType} onValueChange={(v) => setFilterType(v as FilterType)}>
+                <SelectTrigger className="h-8 text-xs flex-1">
+                  <Filter className="h-3 w-3 mr-1" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  <SelectItem value="installments">Parcelas</SelectItem>
+                  <SelectItem value="single">À vista</SelectItem>
+                  {duplicateIndices.size > 0 && (
+                    <SelectItem value="duplicates">Duplicadas ({duplicateIndices.size})</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+
+              {uniqueCategories.length > 0 && (
+                <Select value={filterCategory} onValueChange={setFilterCategory}>
+                  <SelectTrigger className="h-8 text-xs flex-1">
+                    <SelectValue placeholder="Categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas categorias</SelectItem>
+                    {uniqueCategories.map((cat) => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            {/* Seleção e contador */}
+            <div className="flex items-center justify-between pt-1">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="select-all"
+                  checked={selectedCount === transactions.length && duplicateIndices.size === 0}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setTransactions((prev) =>
+                        prev.map((t, i) => ({
+                          ...t,
+                          selected: !duplicateIndices.has(i),
+                        }))
+                      )
+                    } else {
+                      toggleAll(false)
+                    }
+                  }}
+                />
+                <label htmlFor="select-all" className="text-xs font-medium cursor-pointer">
+                  Selecionar todas
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                {duplicateIndices.size > 0 && filterType !== "duplicates" && (
+                  <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    {duplicateIndices.size}
+                  </span>
+                )}
+                <span className="text-xs text-muted-foreground">
+                  {selectedCount}/{transactions.length}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Transaction list */}
-          <div className="flex-1 overflow-y-auto py-2 -mx-1 px-1 min-h-0 max-h-[40vh] md:max-h-[50vh]">
-            <div className="space-y-1.5">
-              {transactions.map((transaction, index) => {
-                const isDuplicate = duplicateIndices.has(index)
-                return (
-                  <div
-                    key={index}
-                    onClick={() => !isDuplicate && toggleTransaction(index)}
-                    className={cn(
-                      "flex items-start gap-3 p-3 rounded-xl border-2 transition-all",
-                      isDuplicate
-                        ? "border-amber-500/30 bg-amber-500/5 cursor-not-allowed opacity-70"
-                        : transaction.selected
-                        ? "border-primary/50 bg-primary/5 cursor-pointer"
-                        : "border-transparent bg-muted/40 hover:bg-muted/60 cursor-pointer"
-                    )}
-                  >
-                    <Checkbox
-                      checked={transaction.selected}
-                      disabled={isDuplicate}
-                      onCheckedChange={() => !isDuplicate && toggleTransaction(index)}
-                      className="mt-0.5 shrink-0"
+          {/* Lista de transações agrupadas */}
+          <div className="flex-1 overflow-y-auto py-2 -mx-1 px-1 min-h-0 max-h-[35vh] md:max-h-[45vh]">
+            {groupedTransactions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                <Search className="h-8 w-8 mb-2 opacity-50" />
+                <p className="text-sm">Nenhuma transação encontrada</p>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {groupedTransactions.map((group) => {
+                  const isExpanded = expandedGroups.has(group.key)
+                  const groupSelectedCount = group.transactions.filter((t) => t.selected).length
+                  const allSelected = groupSelectedCount === group.transactions.length
+                  const someSelected = groupSelectedCount > 0 && !allSelected
+
+                  // Se for grupo de parcelas com mais de 1 transação
+                  if (group.isInstallment && group.transactions.length > 1) {
+                    return (
+                      <div key={group.key} className="rounded-xl border-2 border-muted overflow-hidden">
+                        {/* Cabeçalho do grupo */}
+                        <div
+                          className={cn(
+                            "flex items-center gap-3 p-3 cursor-pointer transition-colors",
+                            allSelected ? "bg-primary/5" : "bg-muted/30 hover:bg-muted/50"
+                          )}
+                          onClick={() => toggleGroup(group.key)}
+                        >
+                          <Checkbox
+                            checked={allSelected}
+                            ref={(el) => {
+                              if (el && someSelected) {
+                                (el as HTMLButtonElement).dataset.state = "indeterminate"
+                              }
+                            }}
+                            onCheckedChange={() => toggleGroupSelection(group)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-sm truncate">{group.descricao}</p>
+                              <span className="text-xs px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium shrink-0">
+                                {group.transactions.length} parcelas
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {groupSelectedCount}/{group.transactions.length} selecionadas
+                            </p>
+                          </div>
+                          <span className="font-semibold text-sm text-rose-500 shrink-0">
+                            -{formatCurrency(group.totalValor)}
+                          </span>
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                          )}
+                        </div>
+
+                        {/* Transações expandidas */}
+                        {isExpanded && (
+                          <div className="border-t divide-y">
+                            {group.transactions.map((t) => {
+                              const isDuplicate = duplicateIndices.has(t.originalIndex)
+                              return (
+                                <TransactionItem
+                                  key={t.originalIndex}
+                                  transaction={t}
+                                  index={t.originalIndex}
+                                  isDuplicate={isDuplicate}
+                                  isEditing={editingIndex === t.originalIndex}
+                                  editForm={editForm}
+                                  onToggle={() => !isDuplicate && toggleTransaction(t.originalIndex)}
+                                  onEdit={(e) => startEditing(t.originalIndex, e)}
+                                  onEditChange={setEditForm}
+                                  onEditSave={saveEditing}
+                                  onEditCancel={cancelEditing}
+                                  categories={uniqueCategories}
+                                  compact
+                                />
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  }
+
+                  // Transação individual (não agrupada)
+                  const t = group.transactions[0]
+                  if (!t) return null
+                  const isDuplicate = duplicateIndices.has(t.originalIndex)
+                  return (
+                    <TransactionItem
+                      key={t.originalIndex}
+                      transaction={t}
+                      index={t.originalIndex}
+                      isDuplicate={isDuplicate}
+                      isEditing={editingIndex === t.originalIndex}
+                      editForm={editForm}
+                      onToggle={() => !isDuplicate && toggleTransaction(t.originalIndex)}
+                      onEdit={(e) => startEditing(t.originalIndex, e)}
+                      onEditChange={setEditForm}
+                      onEditSave={saveEditing}
+                      onEditCancel={cancelEditing}
+                      categories={uniqueCategories}
                     />
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="font-medium text-sm leading-tight line-clamp-2">
-                          {transaction.descricao}
-                        </p>
-                        <span className={cn(
-                          "font-semibold text-sm whitespace-nowrap shrink-0",
-                          transaction.tipo === "SAIDA" ? "text-rose-500" : "text-emerald-500"
-                        )}>
-                          {transaction.tipo === "SAIDA" ? "-" : "+"}
-                          {formatCurrency(transaction.valor)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-xs text-muted-foreground">
-                          {transaction.data}
-                        </span>
-                        {transaction.parcela && transaction.totalParcelas && (
-                          <span className="text-xs px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium">
-                            {transaction.parcela}/{transaction.totalParcelas}
-                          </span>
-                        )}
-                        {transaction.categoria && (
-                          <span className="text-xs px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">
-                            {transaction.categoria}
-                          </span>
-                        )}
-                        {isDuplicate && (
-                          <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/10">
-                            <AlertTriangle className="h-3 w-3" />
-                            Duplicada
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
           {/* Footer com resumo e botão */}
           <div className="pt-3 border-t mt-2 space-y-3">
-            {/* Resumo compacto */}
             <div className="flex items-center justify-between">
               <div className="text-sm text-muted-foreground">
                 <span className="font-medium text-foreground">{selectedCount}</span> selecionada{selectedCount !== 1 ? 's' : ''}
@@ -785,7 +1197,6 @@ export function ImportDocumentModal({
               </div>
             </div>
 
-            {/* Botões */}
             <div className="flex gap-2">
               <Button
                 variant="outline"
