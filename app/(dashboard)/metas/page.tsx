@@ -28,6 +28,7 @@ export default function MetasPage() {
     goals: storeGoals,
     categories,
     transactions,
+    user,
     addGoal,
     updateGoal,
     deleteGoal: deleteGoalStore,
@@ -74,9 +75,15 @@ export default function MetasPage() {
       return date.getMonth() === currentMonth && date.getFullYear() === currentYear
     })
 
-    const totalIncome = monthTransactions
+    // Usar renda mensal do usuário como base, ou calcular a partir de transações
+    const incomeFromTransactions = monthTransactions
       .filter(t => t.type === "income")
       .reduce((sum, t) => sum + t.amount, 0)
+    
+    // Se não houver transações de receita, usar a renda mensal do usuário
+    const totalIncome = incomeFromTransactions > 0 
+      ? incomeFromTransactions 
+      : (user?.monthlyIncome || 0)
 
     // Categorize expenses based on category group
     let essentialsSpent = 0
@@ -115,7 +122,7 @@ export default function MetasPage() {
       lifestyleSpent,
       investmentsSpent,
     }
-  }, [transactions, categories])
+  }, [transactions, categories, user])
 
   // Generate achievements based on actual data
   const achievements: Achievement[] = useMemo(() => {
