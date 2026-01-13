@@ -56,7 +56,7 @@ export function ImportDocumentModal({
   const { toast } = useToast()
   const isDesktop = useMediaQuery("(min-width: 768px)")
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const { categories, addTransaction } = useStore()
+  const { categories } = useStore()
 
   const [step, setStep] = useState<Step>("select")
   const [documentType, setDocumentType] = useState<DocumentType | null>(null)
