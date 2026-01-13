@@ -628,28 +628,14 @@ export function ImportDocumentModal({
 
       {/* Step 3: Preview transactions */}
       {step === "preview" && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setStep("upload")}
-            >
-              <X className="h-4 w-4 mr-1" />
-              Voltar
-            </Button>
-            <span className="text-sm font-medium">
-              {transactions.length} transação(ões) encontrada(s)
-            </span>
-          </div>
-
-          {/* Select all */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+        <div className="flex flex-col h-full -my-2">
+          {/* Header com seleção */}
+          <div className="flex items-center justify-between py-3 border-b">
             <div className="flex items-center gap-2">
               <Checkbox
+                id="select-all"
                 checked={selectedCount === transactions.length && duplicateIndices.size === 0}
                 onCheckedChange={(checked) => {
-                  // Ao selecionar todas, não selecionar duplicatas
                   if (checked) {
                     setTransactions((prev) =>
                       prev.map((t, i) => ({
@@ -662,110 +648,129 @@ export function ImportDocumentModal({
                   }
                 }}
               />
-              <span className="text-sm font-medium">Selecionar todas</span>
+              <label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
+                Selecionar todas
+              </label>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {duplicateIndices.size > 0 && (
-                <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/10">
                   <AlertTriangle className="h-3 w-3" />
-                  {duplicateIndices.size} duplicada(s)
+                  {duplicateIndices.size}
                 </span>
               )}
               <span className="text-sm text-muted-foreground">
-                {selectedCount} selecionada(s)
+                {selectedCount}/{transactions.length}
               </span>
             </div>
           </div>
 
           {/* Transaction list */}
-          <div className="space-y-2 max-h-[300px] overflow-y-auto">
-            {transactions.map((transaction, index) => {
-              const isDuplicate = duplicateIndices.has(index)
-              return (
-                <div
-                  key={index}
-                  onClick={() => !isDuplicate && toggleTransaction(index)}
-                  className={cn(
-                    "flex items-center gap-3 p-3 rounded-lg border transition-all",
-                    isDuplicate
-                      ? "border-amber-500/50 bg-amber-500/5 cursor-not-allowed opacity-60"
-                      : transaction.selected
-                      ? "border-primary bg-primary/5 cursor-pointer"
-                      : "border-transparent bg-muted/30 hover:bg-muted/50 cursor-pointer"
-                  )}
-                >
-                  <Checkbox
-                    checked={transaction.selected}
-                    disabled={isDuplicate}
-                    onCheckedChange={() => !isDuplicate && toggleTransaction(index)}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium truncate">{transaction.descricao}</p>
-                      {isDuplicate && (
-                        <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10">
-                          <AlertTriangle className="h-3 w-3" />
-                          Duplicada
+          <div className="flex-1 overflow-y-auto py-2 -mx-1 px-1 min-h-0 max-h-[40vh] md:max-h-[50vh]">
+            <div className="space-y-1.5">
+              {transactions.map((transaction, index) => {
+                const isDuplicate = duplicateIndices.has(index)
+                return (
+                  <div
+                    key={index}
+                    onClick={() => !isDuplicate && toggleTransaction(index)}
+                    className={cn(
+                      "flex items-start gap-3 p-3 rounded-xl border-2 transition-all",
+                      isDuplicate
+                        ? "border-amber-500/30 bg-amber-500/5 cursor-not-allowed opacity-70"
+                        : transaction.selected
+                        ? "border-primary/50 bg-primary/5 cursor-pointer"
+                        : "border-transparent bg-muted/40 hover:bg-muted/60 cursor-pointer"
+                    )}
+                  >
+                    <Checkbox
+                      checked={transaction.selected}
+                      disabled={isDuplicate}
+                      onCheckedChange={() => !isDuplicate && toggleTransaction(index)}
+                      className="mt-0.5 shrink-0"
+                    />
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-medium text-sm leading-tight line-clamp-2">
+                          {transaction.descricao}
+                        </p>
+                        <span className={cn(
+                          "font-semibold text-sm whitespace-nowrap shrink-0",
+                          transaction.tipo === "SAIDA" ? "text-rose-500" : "text-emerald-500"
+                        )}>
+                          {transaction.tipo === "SAIDA" ? "-" : "+"}
+                          {formatCurrency(transaction.valor)}
                         </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{transaction.data}</span>
-                      {transaction.categoria && (
-                        <>
-                          <span>•</span>
-                          <span>{transaction.categoria}</span>
-                        </>
-                      )}
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs text-muted-foreground">
+                          {transaction.data}
+                        </span>
+                        {transaction.categoria && (
+                          <span className="text-xs px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">
+                            {transaction.categoria}
+                          </span>
+                        )}
+                        {isDuplicate && (
+                          <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/10">
+                            <AlertTriangle className="h-3 w-3" />
+                            Duplicada
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <span className={cn(
-                    "font-semibold",
-                    transaction.tipo === "SAIDA" ? "text-rose-500" : "text-emerald-500"
-                  )}>
-                    {transaction.tipo === "SAIDA" ? "-" : "+"}
-                    {formatCurrency(transaction.valor)}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Summary */}
-          <div className="p-4 rounded-lg bg-muted/50 space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Transações selecionadas</span>
-              <span className="font-medium">{selectedCount}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Total</span>
-              <span className={cn(
-                "font-bold text-lg",
-                totalValue >= 0 ? "text-emerald-500" : "text-rose-500"
-              )}>
-                {totalValue >= 0 ? "+" : ""}{formatCurrency(Math.abs(totalValue))}
-              </span>
+                )
+              })}
             </div>
           </div>
 
-          {/* Import button */}
-          <Button
-            onClick={handleImport}
-            disabled={selectedCount === 0 || isLoading}
-            className="w-full h-12 bg-emerald-500 hover:bg-emerald-600"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Importando...
-              </>
-            ) : (
-              <>
-                <Check className="h-4 w-4 mr-2" />
-                Importar {selectedCount} transação(ões)
-              </>
-            )}
-          </Button>
+          {/* Footer com resumo e botão */}
+          <div className="pt-3 border-t mt-2 space-y-3">
+            {/* Resumo compacto */}
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                <span className="font-medium text-foreground">{selectedCount}</span> selecionada{selectedCount !== 1 ? 's' : ''}
+              </div>
+              <div className="text-right">
+                <span className="text-xs text-muted-foreground block">Total</span>
+                <span className={cn(
+                  "font-bold text-lg",
+                  totalValue >= 0 ? "text-emerald-500" : "text-rose-500"
+                )}>
+                  {formatCurrency(Math.abs(totalValue))}
+                </span>
+              </div>
+            </div>
+
+            {/* Botões */}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setStep("upload")}
+                className="shrink-0"
+              >
+                Voltar
+              </Button>
+              <Button
+                onClick={handleImport}
+                disabled={selectedCount === 0 || isLoading}
+                className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Importando...
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Importar {selectedCount}
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -802,7 +807,10 @@ export function ImportDocumentModal({
   if (isDesktop) {
     return (
       <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="max-w-md">
+        <DialogContent className={cn(
+          "max-w-md",
+          step === "preview" && "max-w-lg"
+        )}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {step === "select" && <Upload className="h-5 w-5 text-primary" />}
