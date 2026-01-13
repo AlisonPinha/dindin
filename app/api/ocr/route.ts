@@ -394,10 +394,10 @@ Retorne APENAS um JSON válido no formato:
 }`,
   };
 
-  const documentType = (type || "fatura") as keyof typeof prompts;
-  const prompt = prompts[documentType];
-  if (prompt) {
-    return prompt;
+  const documentType = type || "fatura";
+  if (documentType in prompts) {
+    return prompts[documentType as keyof typeof prompts];
   }
-  return prompts.fatura;
+  // Fallback sempre retorna fatura (que sempre existe)
+  return prompts.fatura!;
 }
