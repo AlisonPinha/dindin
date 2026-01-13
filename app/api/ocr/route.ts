@@ -345,7 +345,7 @@ export async function POST(request: NextRequest) {
 }
 
 function getPromptForDocumentType(type: string | null): string {
-  const prompts: Record<string, string> = {
+  const prompts = {
     fatura: `Extraia TODAS as transações desta fatura de cartão de crédito do Bradesco ou outro banco brasileiro.
 
 Retorne APENAS um JSON válido no formato:
