@@ -3,7 +3,6 @@ import { getAuthenticatedUser } from "@/lib/supabase/auth-helper";
 import Anthropic from "@anthropic-ai/sdk";
 
 // Configurar runtime para suportar uploads maiores
-// No Vercel, o limite padrão é 10s (Hobby) ou 60s (Pro)
 export const runtime = 'nodejs';
 export const maxDuration = 60; // 60 segundos para processar (requer Vercel Pro)
 
@@ -42,7 +41,7 @@ export async function POST(request: NextRequest) {
     const auth = await getAuthenticatedUser();
     if (auth.error) return auth.error;
 
-    // Verificar se API key está configurada (lazy initialization)
+    // Verificar se API key está configurada
     const claude = getClaudeClient();
     if (!claude) {
       return NextResponse.json(
@@ -78,9 +77,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
-    // Validar se PDF não está criptografado ou protegido por senha
-    // (Claude não suporta PDFs protegidos)
 
     // Validar tamanho (máx 10MB para imagens, 32MB para PDFs - limite do Claude)
     const maxSize = file.type === "application/pdf" 
@@ -110,7 +106,7 @@ export async function POST(request: NextRequest) {
       type: file.type,
     });
 
-    // Convert file to base64
+    // Converter arquivo para base64
     let bytes: ArrayBuffer;
     try {
       bytes = await file.arrayBuffer();
@@ -140,105 +136,77 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Converter arquivo para base64
+    // Converter para base64
     const buffer = Buffer.from(bytes);
-    const fileBase64 = buffer.toString("base64");
+    const base64 = buffer.toString("base64");
     
-    // Determinar se é PDF ou imagem e configurar tipo de conteúdo
+    // Determinar se é PDF ou imagem
     const isPDF = file.type === "application/pdf";
-    
-    // Mapear MIME type para o formato aceito pelo Claude
-    const mimeTypeMap: Record<string, "image/jpeg" | "image/png" | "image/gif" | "image/webp" | "application/pdf"> = {
-      "image/jpeg": "image/jpeg",
-      "image/jpg": "image/jpeg",
-      "image/png": "image/png",
-      "image/gif": "image/gif",
-      "image/webp": "image/webp",
-      "application/pdf": "application/pdf",
-    };
-    
-    const finalMimeType = mimeTypeMap[file.type] || (isPDF ? "application/pdf" : "image/jpeg");
     
     console.log("✅ Arquivo convertido para base64:", {
       fileType: isPDF ? "PDF" : "Imagem",
-      base64Length: fileBase64.length,
-      estimatedSizeMB: (fileBase64.length * 3 / 4 / 1024 / 1024).toFixed(2),
-      mimeType: finalMimeType,
+      base64Length: base64.length,
+      estimatedSizeMB: (base64.length * 3 / 4 / 1024 / 1024).toFixed(2),
     });
 
-    // Different prompts for boleto vs fatura
-    const prompt = documentType === "fatura"
-      ? `Analise esta fatura de cartão de crédito do Bradesco ou outro banco brasileiro.
+    // Preparar conteúdo para Claude
+    let content: Anthropic.MessageParam['content'];
 
-         Extraia TODAS as transações listadas na fatura. Para cada transação, extraia:
-         - descricao: nome do estabelecimento ou descrição da compra
-         - valor: valor em reais (apenas número, sem R$)
-         - data: data da transação no formato YYYY-MM-DD
-         - tipo: sempre "SAIDA" para despesas de cartão
-         - categoria: tente identificar a categoria (Alimentação, Transporte, Compras, Assinaturas, Lazer, Saúde, Educação, Outros)
+    if (isPDF) {
+      console.log("📄 Processando PDF com Claude...");
+      content = [
+        {
+          type: "document",
+          source: {
+            type: "base64",
+            media_type: "application/pdf",
+            data: base64,
+          },
+        },
+        {
+          type: "text",
+          text: getPromptForDocumentType(documentType || "fatura"),
+        },
+      ];
+    } else {
+      console.log("🖼️ Processando imagem com Claude...");
+      // Mapear MIME type para o formato aceito pelo Claude
+      const mimeTypeMap: Record<string, "image/jpeg" | "image/png" | "image/gif" | "image/webp"> = {
+        "image/jpeg": "image/jpeg",
+        "image/jpg": "image/jpeg",
+        "image/png": "image/png",
+        "image/gif": "image/gif",
+        "image/webp": "image/webp",
+      };
+      
+      const mediaType = mimeTypeMap[file.type] || "image/jpeg";
 
-         Retorne APENAS um JSON válido no formato:
-         {
-           "type": "fatura",
-           "transactions": [
-             { "descricao": "...", "valor": 99.90, "data": "2024-01-15", "tipo": "SAIDA", "categoria": "..." },
-             ...
-           ]
-         }
+      content = [
+        {
+          type: "image",
+          source: {
+            type: "base64",
+            media_type: mediaType,
+            data: base64,
+          },
+        },
+        {
+          type: "text",
+          text: getPromptForDocumentType(documentType || "fatura"),
+        },
+      ];
+    }
 
-         Se não conseguir identificar a data exata, use a data de vencimento da fatura.
-         NÃO inclua o valor total da fatura, apenas as transações individuais.`
-      : `Analise este boleto bancário brasileiro.
-
-         Extraia as seguintes informações:
-         - descricao: nome do beneficiário/cedente (empresa que vai receber o pagamento)
-         - valor: valor do boleto em reais (apenas número, sem R$)
-         - data: data de vencimento no formato YYYY-MM-DD
-         - tipo: sempre "SAIDA"
-         - categoria: tente identificar a categoria baseado no beneficiário (Moradia, Saúde, Educação, Assinaturas, Outros)
-
-         Retorne APENAS um JSON válido no formato:
-         {
-           "type": "boleto",
-           "transactions": [
-             { "descricao": "...", "valor": 99.90, "data": "2024-01-15", "tipo": "SAIDA", "categoria": "..." }
-           ]
-         }`;
-
+    // Chamar Claude
     let response;
     try {
-      // Claude API suporta PDFs diretamente usando tipo "document" e imagens usando tipo "image"
-      const contentBlock = isPDF
-        ? {
-            type: "document" as const,
-            source: {
-              type: "base64" as const,
-              media_type: "application/pdf" as const,
-              data: fileBase64,
-            },
-          }
-        : {
-            type: "image" as const,
-            source: {
-              type: "base64" as const,
-              media_type: finalMimeType as "image/jpeg" | "image/png" | "image/gif" | "image/webp",
-              data: fileBase64,
-            },
-          };
-
       response = await claude.messages.create({
-        model: "claude-sonnet-4-20250514", // Suporta PDFs nativamente (modelo mais recente)
+        model: "claude-sonnet-4-20250514",
         max_tokens: 4096,
         messages: [
           {
             role: "user",
-            content: [
-              contentBlock,
-              {
-                type: "text",
-                text: prompt,
-              },
-            ],
+            content,
           },
         ],
       });
@@ -272,9 +240,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const content = response.content[0]?.type === "text" ? response.content[0].text : null;
+    // Extrair texto da resposta
+    const responseText = response.content[0]?.type === "text" 
+      ? response.content[0].text 
+      : null;
 
-    if (!content) {
+    if (!responseText) {
       console.error("Resposta da Claude sem conteúdo:", response);
       return NextResponse.json(
         { error: "A API não retornou conteúdo. Tente novamente ou use outro arquivo." },
@@ -282,58 +253,63 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse JSON from response (handle markdown code blocks)
-    let jsonContent = content;
-    if (content.includes("```json")) {
-      jsonContent = content.replace(/```json\n?/g, "").replace(/```\n?/g, "");
-    } else if (content.includes("```")) {
-      jsonContent = content.replace(/```\n?/g, "");
+    console.log("✅ Resposta do Claude recebida");
+
+    // Tentar parsear JSON da resposta (usar regex para extrair JSON mesmo se houver markdown)
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error("Não foi possível extrair JSON da resposta:", responseText.substring(0, 500));
+      return NextResponse.json(
+        { error: "Não foi possível extrair dados do documento. O Claude pode não ter conseguido ler o documento corretamente." },
+        { status: 422 }
+      );
     }
 
+    let resultado: ExtractionResult;
     try {
-      const result: ExtractionResult = JSON.parse(jsonContent.trim());
-
-      // Validar estrutura básica
-      if (!result.transactions || !Array.isArray(result.transactions)) {
-        console.error("Resposta inválida: transactions não é um array", result);
-        return NextResponse.json(
-          { error: "Formato de resposta inválido da API. O documento pode não conter transações reconhecíveis." },
-          { status: 500 }
-        );
-      }
-
-      // Validate and clean the data
-      const cleanedTransactions = result.transactions
-        .filter((t) => t && (t.descricao || t.valor)) // Filtrar transações inválidas
-        .map((t) => ({
-          descricao: t.descricao || "Transação importada",
-          valor: typeof t.valor === "number" ? t.valor : parseFloat(String(t.valor).replace(",", ".")),
-          data: t.data || new Date().toISOString().split("T")[0],
-          tipo: t.tipo || "SAIDA",
-          categoria: t.categoria || "Outros",
-        }));
-
-      if (cleanedTransactions.length === 0) {
-        return NextResponse.json(
-          { error: "Nenhuma transação foi encontrada no documento. Verifique se o arquivo contém uma fatura ou boleto válido." },
-          { status: 400 }
-        );
-      }
-
-      return NextResponse.json({
-        success: true,
-        type: result.type,
-        transactions: cleanedTransactions,
-        count: cleanedTransactions.length,
-      });
+      resultado = JSON.parse(jsonMatch[0]);
     } catch (parseError) {
-      console.error("Erro ao interpretar resposta OCR:", parseError);
-      console.error("Conteúdo recebido:", content.substring(0, 500)); // Log parcial para debug
+      console.error("Erro ao parsear JSON:", parseError);
+      console.error("JSON extraído:", jsonMatch[0].substring(0, 500));
       return NextResponse.json(
-        { error: "Erro ao interpretar os dados extraídos. O Claude pode não ter conseguido ler o documento corretamente. Tente uma imagem mais clara ou outro formato." },
+        { error: "Erro ao interpretar os dados extraídos. O Claude pode não ter conseguido ler o documento corretamente." },
         { status: 500 }
       );
     }
+
+    // Validar estrutura básica
+    if (!resultado.transactions || !Array.isArray(resultado.transactions)) {
+      console.error("Resposta inválida: transactions não é um array", resultado);
+      return NextResponse.json(
+        { error: "Formato de resposta inválido da API. O documento pode não conter transações reconhecíveis." },
+        { status: 500 }
+      );
+    }
+
+    // Validar e limpar os dados
+    const cleanedTransactions = resultado.transactions
+      .filter((t) => t && (t.descricao || t.valor)) // Filtrar transações inválidas
+      .map((t) => ({
+        descricao: t.descricao || "Transação importada",
+        valor: typeof t.valor === "number" ? t.valor : parseFloat(String(t.valor).replace(",", ".")),
+        data: t.data || new Date().toISOString().split("T")[0],
+        tipo: t.tipo || "SAIDA",
+        categoria: t.categoria || "Outros",
+      }));
+
+    if (cleanedTransactions.length === 0) {
+      return NextResponse.json(
+        { error: "Nenhuma transação foi encontrada no documento. Verifique se o arquivo contém uma fatura ou boleto válido." },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      type: resultado.type || (documentType as "boleto" | "fatura"),
+      transactions: cleanedTransactions,
+      count: cleanedTransactions.length,
+    });
   } catch (error: any) {
     console.error("Erro no OCR:", error);
     
@@ -366,4 +342,57 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+function getPromptForDocumentType(type: string | null): string {
+  const prompts: Record<string, string> = {
+    fatura: `Extraia TODAS as transações desta fatura de cartão de crédito do Bradesco ou outro banco brasileiro.
+
+Retorne APENAS um JSON válido no formato:
+{
+  "type": "fatura",
+  "transactions": [
+    {
+      "descricao": "nome do estabelecimento ou descrição da compra (limpo e legível)",
+      "valor": 0.00,
+      "data": "YYYY-MM-DD",
+      "tipo": "SAIDA",
+      "categoria": "Alimentação|Transporte|Compras|Assinaturas|Lazer|Saúde|Educação|Outros"
+    }
+  ]
+}
+
+IMPORTANTE:
+- Extraia TODAS as transações listadas na fatura
+- Limpe os nomes dos estabelecimentos (remova códigos estranhos)
+- Use o ano correto nas datas
+- Se não conseguir identificar a data exata, use a data de vencimento da fatura
+- NÃO inclua o valor total da fatura, apenas as transações individuais
+- Para despesas de cartão, tipo sempre "SAIDA"`,
+
+    boleto: `Analise este boleto bancário brasileiro.
+
+Extraia as seguintes informações:
+- descricao: nome do beneficiário/cedente (empresa que vai receber o pagamento)
+- valor: valor do boleto em reais (apenas número, sem R$)
+- data: data de vencimento no formato YYYY-MM-DD
+- tipo: sempre "SAIDA"
+- categoria: tente identificar a categoria baseado no beneficiário (Moradia, Saúde, Educação, Assinaturas, Outros)
+
+Retorne APENAS um JSON válido no formato:
+{
+  "type": "boleto",
+  "transactions": [
+    {
+      "descricao": "...",
+      "valor": 99.90,
+      "data": "YYYY-MM-DD",
+      "tipo": "SAIDA",
+      "categoria": "..."
+    }
+  ]
+}`,
+  };
+
+  return prompts[type || "fatura"] || prompts.fatura;
 }
