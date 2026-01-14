@@ -313,21 +313,28 @@ export async function POST(request: NextRequest) {
       }
 
       if (txToImport.length > 0) {
-        const transactionsToInsert = txToImport.map((tx) => ({
-          user_id: auth.user.id,
-          descricao: tx.descricao.trim(),
-          valor: tx.valor,
-          tipo: tx.tipo,
-          data: new Date(tx.data).toISOString(),
-          recorrente: tx.recorrente || false,
-          parcelas: tx.parcelas || null,
-          parcela_atual: tx.parcela_atual || null,
-          tags: tx.tags || [],
-          notas: tx.notas || null,
-          ownership: tx.ownership || "CASA",
-          category_id: tx.category_id || null,
-          account_id: tx.account_id || null,
-        }));
+        const transactionsToInsert = txToImport.map((tx) => {
+          // Calcular mes_fatura: primeiro dia do mês da transação
+          const txDate = new Date(tx.data);
+          const mesFatura = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, "0")}-01`;
+
+          return {
+            user_id: auth.user.id,
+            descricao: tx.descricao.trim(),
+            valor: tx.valor,
+            tipo: tx.tipo,
+            data: new Date(tx.data).toISOString(),
+            mes_fatura: mesFatura,
+            recorrente: tx.recorrente || false,
+            parcelas: tx.parcelas || null,
+            parcela_atual: tx.parcela_atual || null,
+            tags: tx.tags || [],
+            notas: tx.notas || null,
+            ownership: tx.ownership || "CASA",
+            category_id: tx.category_id || null,
+            account_id: tx.account_id || null,
+          };
+        });
 
         const { data: insertedTx, error } = await supabase
           .from("transacoes")
