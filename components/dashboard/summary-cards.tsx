@@ -1,6 +1,6 @@
 "use client"
 
-import { TrendingUp, TrendingDown, Wallet, PiggyBank, ArrowUpRight, ArrowDownRight, Scale } from "lucide-react"
+import { TrendingUp, TrendingDown, Wallet, PiggyBank, ArrowUpRight, ArrowDownRight, Scale, Minus } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { formatCurrency, cn } from "@/lib/utils"
 
@@ -23,14 +23,37 @@ interface SummaryCardsProps {
   previousInvested: number
 }
 
-function calculateVariation(current: number, previous: number): number {
+interface VariationResult {
+  value: number | null // null significa "sem comparação"
+  label: string
+  isNew: boolean // true quando é novo (anterior era 0)
+}
+
+function calculateVariation(current: number, previous: number): VariationResult {
   // Handle invalid inputs
-  if (!Number.isFinite(current) || !Number.isFinite(previous)) return 0
-  // Handle division by zero
-  if (previous === 0) return current === 0 ? 0 : (current > 0 ? 100 : -100)
+  if (!Number.isFinite(current) || !Number.isFinite(previous)) {
+    return { value: null, label: "—", isNew: false }
+  }
+
+  // Ambos são zero - sem variação
+  if (current === 0 && previous === 0) {
+    return { value: 0, label: "0%", isNew: false }
+  }
+
+  // Anterior era zero - é um valor novo
+  if (previous === 0) {
+    return { value: null, label: "Novo", isNew: true }
+  }
+
   const result = ((current - previous) / previous) * 100
+
   // Handle potential NaN/Infinity results
-  return Number.isFinite(result) ? result : 0
+  if (!Number.isFinite(result)) {
+    return { value: null, label: "—", isNew: false }
+  }
+
+  const prefix = result >= 0 ? "+" : ""
+  return { value: result, label: `${prefix}${result.toFixed(1)}%`, isNew: false }
 }
 
 function SummaryCard({ data }: { data: SummaryCardData }) {
@@ -39,7 +62,7 @@ function SummaryCard({ data }: { data: SummaryCardData }) {
   const previousValue = Number.isFinite(data.previousValue) ? data.previousValue : 0
 
   const variation = calculateVariation(Math.abs(value), Math.abs(previousValue))
-  const isPositive = variation >= 0
+  const isPositive = variation.value !== null && variation.value >= 0
 
   const getColorClasses = () => {
     switch (data.type) {
@@ -89,41 +112,80 @@ function SummaryCard({ data }: { data: SummaryCardData }) {
 
   // For expenses, positive variation means spending more (bad)
   // For monthly_balance, positive value is good, negative is bad
-  const isVariationGood = data.type === "expense" ? !isPositive : isPositive
+  // Se não tem variação numérica (null), consideramos neutro
+  const isVariationGood = variation.value === null
+    ? null
+    : data.type === "expense"
+      ? !isPositive
+      : isPositive
 
   // Formatar valor
   const displayValue = formatCurrency(Math.abs(value))
   // Prefixo para balanço do mês
   const valuePrefix = data.type === "monthly_balance" ? (value >= 0 ? "+" : "-") : ""
 
+  // Determinar ícone e cor da variação
+  const getVariationIcon = () => {
+    if (variation.value === null) {
+      return <Minus className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+    }
+    if (isVariationGood) {
+      return <ArrowUpRight className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-500" />
+    }
+    return <ArrowDownRight className="h-3 w-3 sm:h-4 sm:w-4 text-rose-500" />
+  }
+
+  const getVariationColor = () => {
+    if (variation.value === null) return "text-muted-foreground"
+    return isVariationGood ? "text-emerald-500" : "text-rose-500"
+  }
+
   return (
     <Card className="relative overflow-hidden">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">{data.title}</p>
-            <p className={cn("text-2xl font-bold", colors.valueColor)}>
+      <CardContent className="p-4 sm:p-6">
+        {/* Mobile: layout horizontal | Desktop: layout vertical */}
+        <div className="flex items-center justify-between sm:items-start">
+          {/* Mobile: ícone à esquerda | Desktop: ícone à direita */}
+          <div className={cn("rounded-xl p-2 sm:p-3 sm:hidden", colors.iconBg)}>
+            <data.icon className={cn("h-5 w-5", colors.iconColor)} />
+          </div>
+
+          {/* Conteúdo principal */}
+          <div className="flex-1 min-w-0 ml-3 sm:ml-0 sm:space-y-2">
+            {/* Mobile: título e variação na mesma linha */}
+            <div className="flex items-center justify-between sm:block">
+              <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">
+                {data.title}
+              </p>
+              {/* Variação - visível apenas no mobile inline */}
+              <div className="flex items-center gap-1 sm:hidden">
+                {getVariationIcon()}
+                <span className={cn("text-xs font-medium", getVariationColor())}>
+                  {variation.label}
+                </span>
+              </div>
+            </div>
+
+            {/* Valor */}
+            <p className={cn(
+              "text-lg sm:text-2xl font-bold truncate",
+              colors.valueColor
+            )}>
               {valuePrefix}{displayValue}
             </p>
-            <div className="flex items-center gap-1">
-              {isVariationGood ? (
-                <ArrowUpRight className="h-4 w-4 text-emerald-500" />
-              ) : (
-                <ArrowDownRight className="h-4 w-4 text-rose-500" />
-              )}
-              <span
-                className={cn(
-                  "text-xs font-medium",
-                  isVariationGood ? "text-emerald-500" : "text-rose-500"
-                )}
-              >
-                {isPositive ? "+" : ""}
-                {variation.toFixed(1)}%
+
+            {/* Desktop: linha de variação completa */}
+            <div className="hidden sm:flex items-center gap-1">
+              {getVariationIcon()}
+              <span className={cn("text-xs font-medium", getVariationColor())}>
+                {variation.label}
               </span>
               <span className="text-xs text-muted-foreground">vs mês anterior</span>
             </div>
           </div>
-          <div className={cn("rounded-xl p-3", colors.iconBg)}>
+
+          {/* Desktop: ícone à direita */}
+          <div className={cn("rounded-xl p-3 hidden sm:block", colors.iconBg)}>
             <data.icon className={cn("h-6 w-6", colors.iconColor)} />
           </div>
         </div>
