@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
         user_id: auth.user.id,
         ativo: true,
       })
-      .select("*, categories(*)")
+      .select("*, categorias(*)")
       .single();
 
     if (error) throw error;
@@ -194,7 +194,7 @@ export async function PUT(request: NextRequest) {
       .update(updateData)
       .eq("id", id)
       .eq("user_id", auth.user.id)
-      .select("*, categories(*)")
+      .select("*, categorias(*)")
       .single();
 
     if (error) throw error;
@@ -257,7 +257,7 @@ export async function PATCH(request: NextRequest) {
       .update({ valor_atual: newValorAtual })
       .eq("id", id)
       .eq("user_id", auth.user.id)
-      .select("*, categories(*)")
+      .select("*, categorias(*)")
       .single();
 
     if (error) throw error;

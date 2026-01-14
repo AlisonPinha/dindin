@@ -313,10 +313,34 @@ export async function POST(request: NextRequest) {
       }
 
       if (txToImport.length > 0) {
+        // Buscar tipos das contas para calcular mes_fatura corretamente
+        const accountIds = Array.from(new Set(txToImport.map((tx) => tx.account_id).filter((id): id is string => Boolean(id))));
+        const { data: accountsData } = await supabase
+          .from("contas")
+          .select("id, tipo")
+          .in("id", accountIds.length > 0 ? accountIds : ["__none__"]);
+
+        const accountTypeMap = new Map<string, string>();
+        (accountsData || []).forEach((acc) => {
+          accountTypeMap.set(acc.id, acc.tipo);
+        });
+
         const transactionsToInsert = txToImport.map((tx) => {
-          // Calcular mes_fatura: primeiro dia do mês da transação
+          // Calcular mes_fatura baseado no tipo de conta
           const txDate = new Date(tx.data);
-          const mesFatura = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, "0")}-01`;
+          const accountType = tx.account_id ? accountTypeMap.get(tx.account_id) : null;
+
+          // Para cartão de crédito: se mesFatura não foi fornecido, usa mês seguinte
+          // Para outras contas: usa o mês da transação
+          let mesFatura: string;
+          if (accountType === "CARTAO_CREDITO") {
+            // Para cartão, se não tem mesFatura, assume que vai para fatura do mês seguinte
+            const faturaDate = new Date(txDate.getFullYear(), txDate.getMonth() + 1, 1);
+            mesFatura = `${faturaDate.getFullYear()}-${String(faturaDate.getMonth() + 1).padStart(2, "0")}-01`;
+          } else {
+            // Para outras contas, usa o mês da transação
+            mesFatura = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, "0")}-01`;
+          }
 
           return {
             user_id: auth.user.id,

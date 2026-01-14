@@ -233,6 +233,16 @@ describe("POST /api/import", () => {
     // Mock para buscar transações existentes (detecção de duplicatas)
     const existingTxBuilder = createResolvedQueryBuilder([])
 
+    // Mock para buscar tipos de contas
+    const accountTypesBuilder = {
+      select: vi.fn().mockReturnValue({
+        in: vi.fn().mockResolvedValue({
+          data: [],
+          error: null,
+        }),
+      }),
+    }
+
     // Mock para insert de transações
     const insertBuilder = {
       insert: vi.fn().mockReturnValue({
@@ -247,6 +257,7 @@ describe("POST /api/import", () => {
     mockSupabase.from.mockImplementation(() => {
       callCount++
       if (callCount === 1) return existingTxBuilder
+      if (callCount === 2) return accountTypesBuilder
       return insertBuilder
     })
 

@@ -39,12 +39,19 @@ const mapDbCategoryToCategory = (dbCat: DbCategory): Category => {
     DESPESA: "expense",
     INVESTIMENTO: "expense",
   }
+  const budgetGroupMap: Record<string, "essentials" | "lifestyle" | "investments"> = {
+    ESSENCIAL: "essentials",
+    LIVRE: "lifestyle",
+    INVESTIMENTO: "investments",
+  }
   return {
     id: dbCat.id,
     name: dbCat.nome,
     type: typeMap[dbCat.tipo] || "expense",
     color: dbCat.cor,
     icon: dbCat.icone || undefined,
+    budgetGroup: budgetGroupMap[dbCat.grupo] || undefined,
+    monthlyBudget: dbCat.orcamento_mensal || undefined,
     userId: "",
     createdAt: new Date(dbCat.created_at),
     updatedAt: new Date(dbCat.updated_at),
@@ -107,6 +114,7 @@ const mapDbTransactionToTransaction = (
     isRecurring: dbTx.recorrente,
     installments: dbTx.parcelas || undefined,
     currentInstallment: dbTx.parcela_atual || undefined,
+    parentTransactionId: dbTx.transacao_pai_id || undefined,
     tags: dbTx.tags || undefined,
     createdAt: new Date(dbTx.created_at),
     updatedAt: new Date(dbTx.updated_at),

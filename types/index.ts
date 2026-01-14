@@ -108,6 +108,7 @@ export interface Transaction {
   isRecurring?: boolean
   installments?: number | null
   currentInstallment?: number | null
+  parentTransactionId?: string | null // ID da transação pai (para agrupar parcelas)
   tags?: string[]
   ownership?: OwnershipType  // "household" (Casa) ou "personal" (Pessoal)
   userId: string
