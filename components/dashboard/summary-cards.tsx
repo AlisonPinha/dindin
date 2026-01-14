@@ -1,6 +1,6 @@
 "use client"
 
-import { TrendingUp, TrendingDown, Wallet, PiggyBank, ArrowUpRight, ArrowDownRight, Percent } from "lucide-react"
+import { TrendingUp, TrendingDown, Wallet, PiggyBank, ArrowUpRight, ArrowDownRight, Scale } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { formatCurrency, cn } from "@/lib/utils"
 
@@ -9,8 +9,7 @@ interface SummaryCardData {
   value: number
   previousValue: number
   icon: React.ElementType
-  type: "balance" | "income" | "expense" | "investment" | "savings_rate"
-  isPercentage?: boolean
+  type: "balance" | "income" | "expense" | "investment" | "monthly_balance"
 }
 
 interface SummaryCardsProps {
@@ -22,8 +21,6 @@ interface SummaryCardsProps {
   previousExpenses: number
   totalInvested: number
   previousInvested: number
-  savingsRate?: number
-  previousSavingsRate?: number
 }
 
 function calculateVariation(current: number, previous: number): number {
@@ -41,9 +38,7 @@ function SummaryCard({ data }: { data: SummaryCardData }) {
   const value = Number.isFinite(data.value) ? data.value : 0
   const previousValue = Number.isFinite(data.previousValue) ? data.previousValue : 0
 
-  const variation = data.isPercentage
-    ? value - previousValue // Para percentuais, mostra diferença em pontos percentuais
-    : calculateVariation(value, previousValue)
+  const variation = calculateVariation(Math.abs(value), Math.abs(previousValue))
   const isPositive = variation >= 0
 
   const getColorClasses = () => {
@@ -72,19 +67,13 @@ function SummaryCard({ data }: { data: SummaryCardData }) {
           iconColor: "text-blue-600 dark:text-blue-400",
           valueColor: "text-blue-600 dark:text-blue-400",
         }
-      case "savings_rate":
-        // Cor baseada no valor da taxa de poupança
-        if (value >= 20) {
+      case "monthly_balance":
+        // Cor baseada no valor do balanço (positivo = verde, negativo = vermelho)
+        if (value >= 0) {
           return {
             iconBg: "bg-emerald-100 dark:bg-emerald-950/50",
             iconColor: "text-emerald-600 dark:text-emerald-400",
             valueColor: "text-emerald-600 dark:text-emerald-400",
-          }
-        } else if (value >= 10) {
-          return {
-            iconBg: "bg-amber-100 dark:bg-amber-950/50",
-            iconColor: "text-amber-600 dark:text-amber-400",
-            valueColor: "text-amber-600 dark:text-amber-400",
           }
         } else {
           return {
@@ -99,13 +88,13 @@ function SummaryCard({ data }: { data: SummaryCardData }) {
   const colors = getColorClasses()
 
   // For expenses, positive variation means spending more (bad)
-  // For savings_rate, positive is always good
+  // For monthly_balance, positive value is good, negative is bad
   const isVariationGood = data.type === "expense" ? !isPositive : isPositive
 
   // Formatar valor
-  const displayValue = data.isPercentage
-    ? `${value.toFixed(1)}%`
-    : formatCurrency(value)
+  const displayValue = formatCurrency(Math.abs(value))
+  // Prefixo para balanço do mês
+  const valuePrefix = data.type === "monthly_balance" ? (value >= 0 ? "+" : "-") : ""
 
   return (
     <Card className="relative overflow-hidden">
@@ -114,7 +103,7 @@ function SummaryCard({ data }: { data: SummaryCardData }) {
           <div className="space-y-2">
             <p className="text-sm font-medium text-muted-foreground">{data.title}</p>
             <p className={cn("text-2xl font-bold", colors.valueColor)}>
-              {displayValue}
+              {valuePrefix}{displayValue}
             </p>
             <div className="flex items-center gap-1">
               {isVariationGood ? (
@@ -129,7 +118,7 @@ function SummaryCard({ data }: { data: SummaryCardData }) {
                 )}
               >
                 {isPositive ? "+" : ""}
-                {variation.toFixed(1)}{data.isPercentage ? "pp" : "%"}
+                {variation.toFixed(1)}%
               </span>
               <span className="text-xs text-muted-foreground">vs mês anterior</span>
             </div>
@@ -152,16 +141,10 @@ export function SummaryCards({
   previousExpenses,
   totalInvested,
   previousInvested,
-  savingsRate,
-  previousSavingsRate,
 }: SummaryCardsProps) {
-  // Calcular taxa de poupança se não fornecida
-  const currentSavingsRate = savingsRate ?? (totalIncome > 0
-    ? ((totalIncome - totalExpenses) / totalIncome) * 100
-    : 0)
-  const prevSavingsRate = previousSavingsRate ?? (previousIncome > 0
-    ? ((previousIncome - previousExpenses) / previousIncome) * 100
-    : 0)
+  // Calcular balanço do mês (receitas - despesas)
+  const currentMonthlyBalance = totalIncome - totalExpenses
+  const previousMonthlyBalance = previousIncome - previousExpenses
 
   // Garantir que todos os valores sejam números válidos
   const cards: SummaryCardData[] = [
@@ -187,12 +170,11 @@ export function SummaryCards({
       type: "expense",
     },
     {
-      title: "Taxa de Poupança",
-      value: Number.isFinite(currentSavingsRate) ? currentSavingsRate : 0,
-      previousValue: Number.isFinite(prevSavingsRate) ? prevSavingsRate : 0,
-      icon: Percent,
-      type: "savings_rate",
-      isPercentage: true,
+      title: "Balanço do Mês",
+      value: Number.isFinite(currentMonthlyBalance) ? currentMonthlyBalance : 0,
+      previousValue: Number.isFinite(previousMonthlyBalance) ? previousMonthlyBalance : 0,
+      icon: Scale,
+      type: "monthly_balance",
     },
     {
       title: "Investido no Mês",
