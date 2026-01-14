@@ -277,13 +277,16 @@ export function QuickTransactionModal({
     const isRealCategory = formState.categoryId && !formState.categoryId.startsWith("default-")
 
     try {
+      const dbType = mapTypeToDb(type)
+      console.log("[QuickTransaction] Enviando transação:", { type, dbType })
+
       const response = await fetch("/api/transacoes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           descricao: formState.description || category?.name || (type === "income" ? "Receita" : "Despesa"),
           valor: formState.value,
-          tipo: mapTypeToDb(type),
+          tipo: dbType,
           data: now.toISOString(),
           mesFatura: mesFatura,
           categoryId: isRealCategory ? formState.categoryId : null,
