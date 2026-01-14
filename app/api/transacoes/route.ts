@@ -138,12 +138,11 @@ export async function POST(request: NextRequest) {
       return ErrorResponses.badRequest("Data é obrigatória");
     }
 
-    // Verificar se a conta pertence ao usuário e obter tipo (se fornecida)
-    let contaTipo: string | null = null;
+    // Verificar se a conta pertence ao usuário (se fornecida)
     if (accountId) {
       const { data: account } = await supabase
         .from("contas")
-        .select("id, tipo")
+        .select("id")
         .eq("id", accountId)
         .eq("user_id", auth.user.id)
         .single();
@@ -151,14 +150,16 @@ export async function POST(request: NextRequest) {
       if (!account) {
         return ErrorResponses.notFound("Conta", true);
       }
-      contaTipo = account.tipo;
     }
 
     // Função para calcular mes_fatura
-    // Para cartão de crédito: usa mesFatura enviado pelo frontend
+    // Se mesFatura foi enviado explicitamente (importação de fatura), usa ele
+    // Para cartão de crédito sem mesFatura: usa mesFatura enviado pelo frontend
     // Para outras contas: primeiro dia do mês da transação
     const calcularMesFatura = (dataTransacao: string, mesFaturaParam?: string): string => {
-      if (contaTipo === "CARTAO_CREDITO" && mesFaturaParam) {
+      // Se mesFatura foi enviado explicitamente, SEMPRE usar ele
+      // Isso é importante para importação de faturas de cartão
+      if (mesFaturaParam) {
         return mesFaturaParam;
       }
       const date = new Date(dataTransacao);

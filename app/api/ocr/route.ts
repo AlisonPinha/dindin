@@ -34,6 +34,7 @@ interface ExtractedTransaction {
 
 interface ExtractionResult {
   type: "boleto" | "fatura";
+  mesFatura?: string;    // Mês/ano da fatura no formato YYYY-MM (ex: "2026-01")
   transactions: ExtractedTransaction[];
 }
 
@@ -372,9 +373,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Normalizar mesFatura para formato YYYY-MM-01 se existir
+    let mesFatura: string | undefined;
+    if (resultado.mesFatura) {
+      // Aceitar formatos: "2026-01", "01/2026", "janeiro/2026", etc.
+      const match = resultado.mesFatura.match(/(\d{4})-(\d{2})|(\d{2})\/(\d{4})/);
+      if (match) {
+        if (match[1] && match[2]) {
+          // Formato YYYY-MM
+          mesFatura = `${match[1]}-${match[2]}-01`;
+        } else if (match[3] && match[4]) {
+          // Formato MM/YYYY
+          mesFatura = `${match[4]}-${match[3]}-01`;
+        }
+      }
+    }
+
     return NextResponse.json({
       success: true,
       type: resultado.type || (documentType as "boleto" | "fatura"),
+      mesFatura,
       transactions: cleanedTransactions,
       count: cleanedTransactions.length,
     });
@@ -422,6 +440,7 @@ function getPromptForDocumentType(type: string | null): string {
 Retorne APENAS um JSON válido no formato:
 {
   "type": "fatura",
+  "mesFatura": "YYYY-MM",
   "transactions": [
     {
       "descricao": "nome do estabelecimento (limpo, sem info de parcela)",
@@ -466,7 +485,13 @@ REGRAS CRÍTICAS - LEIA COM ATENÇÃO:
 
 5. DATAS:
    - Use a data da transação mostrada na fatura
-   - Se a fatura mostra apenas mês/dia (ex: 03/07), adicione o ano correto baseado no período da fatura`,
+   - Se a fatura mostra apenas mês/dia (ex: 03/07), adicione o ano correto baseado no período da fatura
+
+6. MÊS DA FATURA (mesFatura) - MUITO IMPORTANTE:
+   - Extraia o mês/ano da fatura a partir do título como "Fatura de janeiro" ou data de vencimento
+   - Exemplo: "Fatura de janeiro" com vencimento 12/01/2026 → mesFatura: "2026-01"
+   - Formato: YYYY-MM (ex: "2026-01" para janeiro de 2026)
+   - Este campo é OBRIGATÓRIO para faturas de cartão de crédito`,
 
     boleto: `Analise este boleto bancário brasileiro.
 

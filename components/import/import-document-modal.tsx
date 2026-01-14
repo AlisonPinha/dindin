@@ -230,6 +230,7 @@ export function ImportDocumentModal({
   const [transactions, setTransactions] = useState<ExtractedTransaction[]>([])
   const [error, setError] = useState<string | null>(null)
   const [duplicateIndices, setDuplicateIndices] = useState<Set<number>>(new Set())
+  const [mesFatura, setMesFatura] = useState<string | null>(null) // Mês da fatura para cartão de crédito
 
   // Novos estados para filtros, busca e edição
   const [searchQuery, setSearchQuery] = useState("")
@@ -248,6 +249,7 @@ export function ImportDocumentModal({
     setTransactions([])
     setError(null)
     setDuplicateIndices(new Set())
+    setMesFatura(null)
     setSearchQuery("")
     setFilterType("all")
     setFilterCategory("all")
@@ -444,6 +446,7 @@ export function ImportDocumentModal({
 
       setDuplicateIndices(duplicates)
       setTransactions(transactionsWithDuplicates)
+      setMesFatura(data.mesFatura || null) // Salvar mês da fatura se existir
       setStep("preview")
 
       // Mostrar aviso se houver duplicatas
@@ -591,16 +594,24 @@ export function ImportDocumentModal({
 
       for (const transaction of transactionsToImport) {
         try {
+          // Preparar dados da transação
+          const transactionData: Record<string, unknown> = {
+            descricao: transaction.descricao,
+            valor: transaction.valor,
+            tipo: transaction.tipo,
+            data: transaction.data,
+            categoryId: transaction.categoryId,
+          }
+
+          // Se temos mesFatura (importação de fatura de cartão), usar ele
+          if (mesFatura) {
+            transactionData.mesFatura = mesFatura
+          }
+
           const response = await fetch("/api/transacoes", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              descricao: transaction.descricao,
-              valor: transaction.valor,
-              tipo: transaction.tipo,
-              data: transaction.data,
-              categoryId: transaction.categoryId,
-            }),
+            body: JSON.stringify(transactionData),
           })
 
           if (response.ok) {
