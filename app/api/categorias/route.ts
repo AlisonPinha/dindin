@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedUser, getSupabaseClient } from "@/lib/supabase/auth-helper";
 import type { DbCategoryType, DbCategoryGroup } from "@/lib/supabase";
 import { logger } from "@/lib/logger";
@@ -116,18 +116,12 @@ export async function PUT(request: NextRequest) {
 
     // Não permite editar categorias do sistema (user_id = null)
     if (existing.user_id === null) {
-      return NextResponse.json(
-        { error: "Não é possível editar categorias do sistema" },
-        { status: 403 }
-      );
+      return ErrorResponses.forbidden("Não é possível editar categorias do sistema");
     }
 
     // Não permite editar categorias de outros usuários
     if (existing.user_id !== auth.user.id) {
-      return NextResponse.json(
-        { error: "Categoria não pertence ao usuário" },
-        { status: 403 }
-      );
+      return ErrorResponses.forbidden("Categoria não pertence ao usuário");
     }
 
     const updateData: Record<string, unknown> = {};
@@ -183,18 +177,12 @@ export async function DELETE(request: NextRequest) {
 
     // Não permite deletar categorias do sistema
     if (existing.user_id === null) {
-      return NextResponse.json(
-        { error: "Não é possível excluir categorias do sistema" },
-        { status: 403 }
-      );
+      return ErrorResponses.forbidden("Não é possível excluir categorias do sistema");
     }
 
     // Não permite deletar categorias de outros usuários
     if (existing.user_id !== auth.user.id) {
-      return NextResponse.json(
-        { error: "Categoria não pertence ao usuário" },
-        { status: 403 }
-      );
+      return ErrorResponses.forbidden("Categoria não pertence ao usuário");
     }
 
     // Verificar se categoria tem transações vinculadas
@@ -204,13 +192,7 @@ export async function DELETE(request: NextRequest) {
       .eq("category_id", id);
 
     if (count && count > 0) {
-      return NextResponse.json(
-        {
-          error: "Categoria possui transações vinculadas",
-          transactionCount: count,
-        },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest(`Categoria possui ${count} transação(ões) vinculada(s)`);
     }
 
     const { error } = await supabase

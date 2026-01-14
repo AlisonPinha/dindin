@@ -3,7 +3,14 @@
 import { useEffect, useState, useCallback } from "react"
 import { useStore } from "./use-store"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
-import type { Transaction, Category, Account, User, Investment, Goal } from "@/types"
+import {
+  mapDbUserToUser,
+  mapDbCategoryToCategory,
+  mapDbAccountToAccount,
+  mapDbTransactionToTransaction,
+  mapDbInvestmentToInvestment,
+  mapDbGoalToGoal,
+} from "@/lib/mappers"
 import type {
   DbUser,
   DbCategory,
@@ -12,157 +19,6 @@ import type {
   DbInvestment,
   DbGoal,
 } from "@/lib/supabase"
-
-// Mapeamentos de tipos do banco (snake_case) para o frontend (camelCase)
-function mapDbUserToUser(dbUser: DbUser): User {
-  return {
-    id: dbUser.id,
-    name: dbUser.nome,
-    email: dbUser.email,
-    avatar: dbUser.avatar || undefined,
-    isOnboarded: dbUser.is_onboarded,
-    monthlyIncome: dbUser.renda_mensal || undefined,
-    createdAt: new Date(dbUser.created_at),
-    updatedAt: new Date(dbUser.updated_at),
-  }
-}
-
-function mapDbCategoryToCategory(dbCat: DbCategory): Category {
-  const typeMap: Record<string, "income" | "expense"> = {
-    RECEITA: "income",
-    DESPESA: "expense",
-    INVESTIMENTO: "expense",
-  }
-  const budgetGroupMap: Record<string, "essentials" | "lifestyle" | "investments"> = {
-    ESSENCIAL: "essentials",
-    LIVRE: "lifestyle",
-    INVESTIMENTO: "investments",
-  }
-  return {
-    id: dbCat.id,
-    name: dbCat.nome,
-    type: typeMap[dbCat.tipo] || "expense",
-    color: dbCat.cor,
-    icon: dbCat.icone || undefined,
-    budgetGroup: budgetGroupMap[dbCat.grupo] || undefined,
-    monthlyBudget: dbCat.orcamento_mensal || undefined,
-    userId: "",
-    createdAt: new Date(dbCat.created_at),
-    updatedAt: new Date(dbCat.updated_at),
-  }
-}
-
-function mapDbAccountToAccount(dbAcc: DbAccount | any): Account {
-  const typeMap: Record<string, "checking" | "credit" | "investment"> = {
-    CORRENTE: "checking",
-    CARTAO_CREDITO: "credit",
-    INVESTIMENTO: "investment",
-  }
-  // API retorna saldoAtual calculado, mas se não existir, usar saldo
-  // Tratar tanto saldoAtual (calculado) quanto saldo (do banco)
-  const balance = (dbAcc as any).saldoAtual ?? dbAcc.saldo ?? 0
-  const numBalance = typeof balance === "string" ? parseFloat(balance) : Number(balance)
-  const finalBalance = Number.isFinite(numBalance) ? numBalance : 0
-  
-  return {
-    id: dbAcc.id,
-    name: dbAcc.nome,
-    type: typeMap[dbAcc.tipo] || "checking",
-    balance: finalBalance,
-    color: dbAcc.cor || "#6366f1",
-    bank: dbAcc.banco || undefined,
-    userId: dbAcc.user_id,
-    createdAt: new Date(dbAcc.created_at),
-    updatedAt: new Date(dbAcc.updated_at),
-  }
-}
-
-function mapDbTransactionToTransaction(
-  dbTx: DbTransaction,
-  categories: Category[],
-  accounts: Account[],
-  users: User[]
-): Transaction {
-  const typeMap: Record<string, "income" | "expense" | "transfer"> = {
-    ENTRADA: "income",
-    SAIDA: "expense",
-    TRANSFERENCIA: "transfer",
-    INVESTIMENTO: "expense",
-  }
-
-  const category = categories.find((c) => c.id === dbTx.category_id) || null
-  const account = accounts.find((a) => a.id === dbTx.account_id) || null
-  const user = users.find((u) => u.id === dbTx.user_id) || null
-
-  return {
-    id: dbTx.id,
-    description: dbTx.descricao,
-    amount: dbTx.valor,
-    type: typeMap[dbTx.tipo] || "expense",
-    date: new Date(dbTx.data),
-    mesFatura: dbTx.mes_fatura ? new Date(dbTx.mes_fatura) : undefined,
-    userId: dbTx.user_id,
-    categoryId: dbTx.category_id,
-    accountId: dbTx.account_id,
-    category,
-    account,
-    user,
-    notes: dbTx.notas || undefined,
-    ownership: dbTx.ownership === "PESSOAL" ? "personal" : "household",
-    isRecurring: dbTx.recorrente,
-    installments: dbTx.parcelas || undefined,
-    currentInstallment: dbTx.parcela_atual || undefined,
-    parentTransactionId: dbTx.transacao_pai_id || undefined,
-    tags: dbTx.tags || undefined,
-    createdAt: new Date(dbTx.created_at),
-    updatedAt: new Date(dbTx.updated_at),
-  }
-}
-
-function mapDbInvestmentToInvestment(dbInv: DbInvestment): Investment {
-  const typeMap: Record<string, "stocks" | "bonds" | "crypto" | "real_estate" | "funds" | "other"> = {
-    RENDA_FIXA: "bonds",
-    RENDA_VARIAVEL: "stocks",
-    CRIPTO: "crypto",
-    FUNDO: "funds",
-  }
-  return {
-    id: dbInv.id,
-    name: dbInv.nome,
-    type: typeMap[dbInv.tipo] || "bonds",
-    institution: dbInv.instituicao || "",
-    purchasePrice: dbInv.preco_compra,
-    currentPrice: dbInv.preco_atual,
-    profitability: dbInv.rentabilidade || 0,
-    purchaseDate: new Date(dbInv.data_compra),
-    maturityDate: dbInv.data_vencimento ? new Date(dbInv.data_vencimento) : undefined,
-    userId: dbInv.user_id,
-    createdAt: new Date(dbInv.created_at),
-    updatedAt: new Date(dbInv.updated_at),
-  }
-}
-
-function mapDbGoalToGoal(dbGoal: DbGoal): Goal {
-  const typeMap: Record<string, "savings" | "investment" | "patrimony" | "budget"> = {
-    ECONOMIA_CATEGORIA: "savings",
-    INVESTIMENTO_MENSAL: "investment",
-    PATRIMONIO: "patrimony",
-    REGRA_PERCENTUAL: "budget",
-  }
-  return {
-    id: dbGoal.id,
-    name: dbGoal.nome,
-    description: "",
-    type: typeMap[dbGoal.tipo] || "savings",
-    targetAmount: dbGoal.valor_alvo,
-    currentAmount: dbGoal.valor_atual || 0,
-    deadline: dbGoal.prazo ? new Date(dbGoal.prazo) : undefined,
-    status: dbGoal.ativo ? "active" : "completed",
-    userId: dbGoal.user_id,
-    createdAt: new Date(dbGoal.created_at),
-    updatedAt: new Date(dbGoal.updated_at),
-  }
-}
 
 export function useDataLoader() {
   const {
@@ -248,7 +104,6 @@ export function useDataLoader() {
 
       setIsDataLoaded(true)
     } catch (err) {
-      // Erro capturado no estado - não logar no console
       setError(err instanceof Error ? err.message : "Erro desconhecido")
     } finally {
       setIsLoading(false)

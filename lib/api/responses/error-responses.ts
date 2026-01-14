@@ -22,6 +22,12 @@ export const ErrorResponses = {
     ),
 
   /**
+   * Acesso negado (403)
+   */
+  forbidden: (message: string) =>
+    NextResponse.json({ error: message }, { status: 403 }),
+
+  /**
    * Requisição inválida (400)
    */
   badRequest: (message: string) =>

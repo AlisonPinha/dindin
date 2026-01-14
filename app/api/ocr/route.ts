@@ -332,7 +332,8 @@ export async function POST(request: NextRequest) {
       try {
         const parsed = new Date(dateStr);
         if (!isNaN(parsed.getTime())) {
-          return parsed.toISOString().split("T")[0] as string;
+          // Usar data local para evitar problemas de fuso horário
+          return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
         }
       } catch {
         // Ignorar erro de parse
@@ -341,8 +342,9 @@ export async function POST(request: NextRequest) {
       return fallback;
     };
 
-    // Validar e limpar os dados
-    const today = new Date().toISOString().split("T")[0] as string;
+    // Validar e limpar os dados - usar data local
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
     const cleanedTransactions = resultado.transactions
       .filter((t) => t && (t.descricao || t.valor)) // Filtrar transações inválidas
       .map((t) => {

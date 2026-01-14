@@ -173,7 +173,10 @@ export async function POST(request: NextRequest) {
       }
 
       const transactions = [];
-      const valorParcela = Math.round((valor / parcelas) * 100) / 100; // Arredondar para 2 casas
+      // Calcular valor da parcela arredondado para baixo
+      const valorParcela = Math.floor((valor / parcelas) * 100) / 100;
+      // A última parcela absorve a diferença para evitar perda de centavos
+      const valorUltimaParcela = Math.round((valor - valorParcela * (parcelas - 1)) * 100) / 100;
       const dataBase = new Date(data);
 
       // Para parcelas, calcular mes_fatura de cada uma
@@ -197,12 +200,15 @@ export async function POST(request: NextRequest) {
           mesFaturaParcela = `${dataParcela.getFullYear()}-${String(dataParcela.getMonth() + 1).padStart(2, "0")}-01`;
         }
 
+        // Usar data local para evitar problemas de fuso horário
+        const dataParcelaLocal = `${dataParcela.getFullYear()}-${String(dataParcela.getMonth() + 1).padStart(2, "0")}-${String(dataParcela.getDate()).padStart(2, "0")}`;
+
         const transactionData: Record<string, unknown> = {
           descricao: `${descricao} (${i + 1}/${parcelas})`,
-          valor: valorParcela,
+          valor: i === parcelas - 1 ? valorUltimaParcela : valorParcela, // Última parcela absorve a diferença
           tipo: tipo as DbTransactionType,
-          data: dataParcela.toISOString().split("T")[0], // Apenas data, sem hora
-          mes_fatura: mesFaturaParcela, // NOVO: mês da fatura
+          data: dataParcelaLocal,
+          mes_fatura: mesFaturaParcela,
           recorrente: false,
           parcelas,
           parcela_atual: i + 1,
@@ -238,8 +244,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Single transaction
-    const dataTransacao = new Date(data).toISOString().split("T")[0] ?? "";
+    // Single transaction - usar data local para evitar problemas de fuso horário
+    const dateObj = new Date(data);
+    const dataTransacao = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, "0")}-${String(dateObj.getDate()).padStart(2, "0")}`;
     const insertData: Record<string, unknown> = {
       descricao: descricao.trim(),
       valor,
@@ -337,7 +344,10 @@ export async function PUT(request: NextRequest) {
     if (descricao !== undefined) updateData.descricao = descricao;
     if (valor !== undefined) updateData.valor = valor;
     if (tipo !== undefined) updateData.tipo = tipo;
-    if (data !== undefined) updateData.data = new Date(data).toISOString().split("T")[0];
+    if (data !== undefined) {
+      const d = new Date(data);
+      updateData.data = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
     if (mesFatura !== undefined) updateData.mes_fatura = mesFatura;
     if (recorrente !== undefined) updateData.recorrente = recorrente;
     if (categoryId !== undefined) updateData.category_id = categoryId;
