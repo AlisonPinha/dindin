@@ -201,6 +201,73 @@ export async function POST(request: NextRequest) {
       budget = newBudget;
     }
 
+    // 5. Criar categoria "Salário" para o usuário (se não existir)
+    let salaryCategory;
+    const { data: existingSalaryCategory } = await supabase
+      .from("categorias")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("nome", "Salário")
+      .single();
+
+    if (!existingSalaryCategory) {
+      const { data: newCategory, error: categoryError } = await supabase
+        .from("categorias")
+        .insert({
+          user_id: userId,
+          nome: "Salário",
+          tipo: "RECEITA",
+          cor: "#22c55e", // Verde
+          icone: "Banknote",
+          grupo: "LIVRE", // Receita não se encaixa na regra 50/30/20
+        })
+        .select()
+        .single();
+
+      if (categoryError) {
+        logger.error("Failed to create salary category", categoryError, { action: "create", resource: "categorias" });
+      } else {
+        salaryCategory = newCategory;
+      }
+    } else {
+      salaryCategory = existingSalaryCategory;
+    }
+
+    // 6. Criar transação recorrente de salário para o mês atual
+    let salaryTransaction;
+    if (salaryCategory) {
+      // Encontrar a primeira conta corrente para associar o salário
+      const checkingAccount = createdAccounts?.find((acc: { tipo: string }) => acc.tipo === "CORRENTE");
+
+      const today = new Date();
+      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const mesFatura = `${firstDayOfMonth.getFullYear()}-${String(firstDayOfMonth.getMonth() + 1).padStart(2, "0")}-01`;
+
+      const { data: newTransaction, error: transactionError } = await supabase
+        .from("transacoes")
+        .insert({
+          user_id: userId,
+          descricao: "Salário",
+          valor: rendaMensal,
+          tipo: "ENTRADA",
+          data: firstDayOfMonth.toISOString(),
+          mes_fatura: mesFatura,
+          recorrente: true,
+          category_id: salaryCategory.id,
+          account_id: checkingAccount?.id || null,
+          ownership: "CASA",
+          tags: ["salário", "renda"],
+        })
+        .select()
+        .single();
+
+      if (transactionError) {
+        logger.error("Failed to create salary transaction", transactionError, { action: "create", resource: "transacoes" });
+      } else {
+        salaryTransaction = newTransaction;
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: "Onboarding concluído com sucesso!",
@@ -208,6 +275,8 @@ export async function POST(request: NextRequest) {
         user: updatedUser,
         accounts: createdAccounts,
         budget,
+        salaryCategory,
+        salaryTransaction,
       },
     });
   } catch (error) {
