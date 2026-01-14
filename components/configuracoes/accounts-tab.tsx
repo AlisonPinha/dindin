@@ -7,7 +7,6 @@ import {
   Trash2,
   Wallet,
   CreditCard,
-  PiggyBank,
   TrendingUp,
   Building2,
   Power,
@@ -66,7 +65,6 @@ interface AccountsTabProps {
 
 const accountTypes: { value: AccountType; label: string; icon: React.ElementType }[] = [
   { value: "checking", label: "Conta Corrente", icon: Building2 },
-  { value: "savings", label: "Poupança", icon: PiggyBank },
   { value: "credit", label: "Cartão de Crédito", icon: CreditCard },
   { value: "investment", label: "Investimentos", icon: TrendingUp },
 ]

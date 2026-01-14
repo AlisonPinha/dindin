@@ -72,7 +72,6 @@ const mockAccounts = [
   { id: "1", name: "Nubank", color: "#8b5cf6" },
   { id: "2", name: "Itaú", color: "#f97316" },
   { id: "3", name: "Cartão Nubank", color: "#a855f7" },
-  { id: "4", name: "Poupança", color: "#22c55e" },
 ]
 
 const typeConfig = {

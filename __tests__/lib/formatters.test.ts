@@ -156,7 +156,6 @@ describe("formatTransactionType", () => {
 describe("formatAccountType", () => {
   it("should translate account types", () => {
     expect(formatAccountType("CORRENTE")).toBe("Conta Corrente")
-    expect(formatAccountType("POUPANCA")).toBe("Poupança")
     expect(formatAccountType("CARTAO_CREDITO")).toBe("Cartão de Crédito")
     expect(formatAccountType("INVESTIMENTO")).toBe("Investimento")
   })

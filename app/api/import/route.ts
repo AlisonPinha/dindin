@@ -90,7 +90,7 @@ function validateAccount(acc: ImportAccount, index: number): ValidationError[] {
     errors.push({ index, field: "nome", message: "Nome é obrigatório" });
   }
 
-  if (!acc.tipo || !["CORRENTE", "POUPANCA", "CARTAO_CREDITO", "INVESTIMENTO", "DINHEIRO", "OUTRO"].includes(acc.tipo)) {
+  if (!acc.tipo || !["CORRENTE", "CARTAO_CREDITO", "INVESTIMENTO", "DINHEIRO", "OUTRO"].includes(acc.tipo)) {
     errors.push({ index, field: "tipo", message: "Tipo inválido" });
   }
 

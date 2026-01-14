@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js"
 // Database Types (matching Prisma schema)
 // ===========================================
 
-export type DbAccountType = "CORRENTE" | "POUPANCA" | "CARTAO_CREDITO" | "INVESTIMENTO"
+export type DbAccountType = "CORRENTE" | "CARTAO_CREDITO" | "INVESTIMENTO"
 export type DbCategoryType = "RECEITA" | "DESPESA" | "INVESTIMENTO"
 export type DbCategoryGroup = "ESSENCIAL" | "INVESTIMENTO" | "LIVRE"
 export type DbTransactionType = "ENTRADA" | "SAIDA" | "TRANSFERENCIA" | "INVESTIMENTO"

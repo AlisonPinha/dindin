@@ -15,21 +15,6 @@ export const mockContaCorrente: DbAccount = {
   updated_at: "2025-01-01T00:00:00.000Z",
 }
 
-// Poupança
-export const mockPoupanca: DbAccount = {
-  id: "poupanca-456",
-  nome: "Poupança Reserva",
-  tipo: "POUPANCA" as DbAccountType,
-  banco: "Caixa",
-  saldo: 10000.00,
-  cor: "#10B981",
-  icone: "PiggyBank",
-  ativo: true,
-  user_id: "test-user-123",
-  created_at: "2025-01-01T00:00:00.000Z",
-  updated_at: "2025-01-01T00:00:00.000Z",
-}
-
 // Cartão de crédito
 export const mockCartaoCredito: DbAccount = {
   id: "cartao-789",
@@ -78,7 +63,6 @@ export const mockContaInativa: DbAccount = {
 // Lista de contas para testes
 export const mockAccountsList: DbAccount[] = [
   mockContaCorrente,
-  mockPoupanca,
   mockCartaoCredito,
   mockContaInvestimento,
 ]

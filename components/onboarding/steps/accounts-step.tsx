@@ -6,7 +6,6 @@ import {
   Trash2,
   Wallet,
   CreditCard,
-  PiggyBank,
   TrendingUp,
   Building2,
 } from "lucide-react"
@@ -41,7 +40,6 @@ interface AccountsStepProps {
 
 const accountTypes: { value: DbAccountType; label: string; icon: React.ElementType }[] = [
   { value: "CORRENTE", label: "Conta Corrente", icon: Building2 },
-  { value: "POUPANCA", label: "Poupança", icon: PiggyBank },
   { value: "CARTAO_CREDITO", label: "Cartão de Crédito", icon: CreditCard },
   { value: "INVESTIMENTO", label: "Investimentos", icon: TrendingUp },
 ]

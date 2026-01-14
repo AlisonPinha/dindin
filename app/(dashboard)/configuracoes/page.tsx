@@ -33,7 +33,7 @@ interface FamilyMemberConfig {
 interface AccountConfig {
   id: string
   name: string
-  type: "checking" | "savings" | "credit" | "investment"
+  type: "checking" | "credit" | "investment"
   balance: number
   color: string
   icon?: string
@@ -202,7 +202,6 @@ export default function ConfiguracoesPage() {
   // Type mappings for API
   const accountTypeToDb: Record<string, string> = {
     checking: "CORRENTE",
-    savings: "POUPANCA",
     credit: "CARTAO_CREDITO",
     investment: "INVESTIMENTO",
   }

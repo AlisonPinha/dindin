@@ -52,9 +52,8 @@ const mapDbCategoryToCategory = (dbCat: DbCategory): Category => {
 }
 
 const mapDbAccountToAccount = (dbAcc: DbAccount | any): Account => {
-  const typeMap: Record<string, "checking" | "savings" | "credit" | "investment"> = {
+  const typeMap: Record<string, "checking" | "credit" | "investment"> = {
     CORRENTE: "checking",
-    POUPANCA: "savings",
     CARTAO_CREDITO: "credit",
     INVESTIMENTO: "investment",
   }

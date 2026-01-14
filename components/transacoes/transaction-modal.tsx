@@ -64,6 +64,8 @@ interface TransactionFormData {
   categoryId?: string
   accountId?: string
   memberId?: string
+  // Credit card invoice month
+  mesFatura?: string // Format: YYYY-MM-01
   // Installments
   isInstallment: boolean
   installmentCount: number
@@ -123,12 +125,31 @@ const defaultFormData: TransactionFormData = {
   amount: 0,
   description: "",
   date: new Date(),
+  mesFatura: undefined,
   isInstallment: false,
   installmentCount: 2,
   isRecurring: false,
   recurrenceFrequency: "monthly",
   tags: [],
   notes: "",
+}
+
+// Helper to generate invoice month options (current month + 6 months ahead)
+function getInvoiceMonthOptions(baseDate: Date): { value: string; label: string }[] {
+  const options: { value: string; label: string }[] = []
+  const months = [
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+  ]
+
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(baseDate.getFullYear(), baseDate.getMonth() + i, 1)
+    const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`
+    const label = `${months[date.getMonth()]} ${date.getFullYear()}`
+    options.push({ value, label })
+  }
+
+  return options
 }
 
 export function TransactionModal({
@@ -465,7 +486,17 @@ export function TransactionModal({
             <Label htmlFor="account-trigger">Conta</Label>
             <Select
               value={formData.accountId || ""}
-              onValueChange={(value) => updateField("accountId", value || undefined)}
+              onValueChange={(value) => {
+                updateField("accountId", value || undefined)
+                // Clear mesFatura when changing account
+                if (value) {
+                  const selectedAccount = accounts.find(a => a.id === value)
+                  // If not a credit card, clear mesFatura
+                  if (selectedAccount?.type !== "credit") {
+                    updateField("mesFatura", undefined)
+                  }
+                }
+              }}
             >
               <SelectTrigger id="account-trigger">
                 <SelectValue placeholder="Selecione uma conta" />
@@ -479,6 +510,40 @@ export function TransactionModal({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Invoice Month - Only for Credit Cards */}
+          {(() => {
+            const selectedAccount = accounts.find(a => a.id === formData.accountId)
+            const isCartaoCredito = selectedAccount?.type === "credit"
+
+            if (!isCartaoCredito) return null
+
+            const invoiceOptions = getInvoiceMonthOptions(formData.date)
+
+            return (
+              <div className="space-y-2 animate-in slide-in-from-top-2">
+                <Label htmlFor="mesFatura-trigger">Fatura do Mês</Label>
+                <p className="text-xs text-muted-foreground">
+                  Em qual fatura essa compra vai aparecer?
+                </p>
+                <Select
+                  value={formData.mesFatura || invoiceOptions[0]?.value || ""}
+                  onValueChange={(value) => updateField("mesFatura", value)}
+                >
+                  <SelectTrigger id="mesFatura-trigger">
+                    <SelectValue placeholder="Selecione o mês da fatura" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {invoiceOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )
+          })()}
 
           {/* Member */}
           <div className="space-y-2">

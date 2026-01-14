@@ -5,7 +5,6 @@ import {
   Building2,
   CreditCard,
   Wallet,
-  PiggyBank,
   TrendingUp,
   ChevronRight,
   ArrowUpRight,
@@ -44,21 +43,18 @@ interface AccountsSummaryProps {
 
 const accountTypeIcons: Record<string, React.ElementType> = {
   checking: Building2,
-  savings: PiggyBank,
   credit: CreditCard,
   investment: TrendingUp,
 }
 
 const accountTypeLabels: Record<string, string> = {
   checking: "Conta Corrente",
-  savings: "Poupança",
   credit: "Cartão de Crédito",
   investment: "Investimento",
 }
 
 const defaultColors: Record<string, string> = {
   checking: "#8b5cf6",
-  savings: "#10b981",
   credit: "#f43f5e",
   investment: "#0ea5e9",
 }

@@ -178,6 +178,7 @@ export default function TransacoesPage() {
       categoryId?: string
       accountId?: string
       memberId?: string
+      mesFatura?: string // Credit card invoice month (YYYY-MM-01)
       isInstallment: boolean
       installmentCount: number
       isRecurring: boolean
@@ -205,6 +206,7 @@ export default function TransacoesPage() {
             valor: data.amount,
             tipo: mapTransactionType(data.type),
             data: data.date.toISOString(),
+            mesFatura: data.mesFatura || null, // Invoice month for credit cards
             categoryId: data.categoryId || null,
             accountId: data.accountId || null,
             notas: data.notes || null,
@@ -228,6 +230,7 @@ export default function TransacoesPage() {
           amount: created.valor,
           type: data.type,
           date: new Date(created.data),
+          mesFatura: created.mes_fatura ? new Date(created.mes_fatura) : undefined,
           categoryId: created.category_id,
           accountId: created.account_id,
           category: category || null,
@@ -257,6 +260,7 @@ export default function TransacoesPage() {
             valor: data.amount,
             tipo: mapTransactionType(data.type),
             data: data.date.toISOString(),
+            mesFatura: data.mesFatura || null,
             categoryId: data.categoryId || null,
             accountId: data.accountId || null,
             notas: data.notes || null,

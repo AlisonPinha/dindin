@@ -155,7 +155,6 @@ export function formatInvestmentType(type: string): string {
 export function formatAccountType(type: string): string {
   const labels: Record<string, string> = {
     CORRENTE: "Conta Corrente",
-    POUPANCA: "Poupança",
     CARTAO_CREDITO: "Cartão de Crédito",
     INVESTIMENTO: "Investimento",
   }

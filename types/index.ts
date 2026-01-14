@@ -2,7 +2,7 @@
 // UI ENUMS (used by existing components)
 // ============================================
 
-export type AccountType = "checking" | "savings" | "credit" | "investment"
+export type AccountType = "checking" | "credit" | "investment"
 
 export type CategoryType = "income" | "expense"
 
@@ -29,7 +29,7 @@ export type BudgetGroup = "essentials" | "lifestyle" | "investments"
 // Used internally by API routes and hooks
 // ============================================
 
-export type DbAccountType = "CORRENTE" | "POUPANCA" | "CARTAO_CREDITO" | "INVESTIMENTO"
+export type DbAccountType = "CORRENTE" | "CARTAO_CREDITO" | "INVESTIMENTO"
 export type DbCategoryType = "RECEITA" | "DESPESA" | "INVESTIMENTO"
 export type DbCategoryGroup = "ESSENCIAL" | "INVESTIMENTO" | "LIVRE"
 export type DbTransactionType = "ENTRADA" | "SAIDA" | "TRANSFERENCIA" | "INVESTIMENTO"

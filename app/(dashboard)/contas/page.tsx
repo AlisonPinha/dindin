@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Plus, Wallet, Building2, CreditCard, PiggyBank, TrendingUp, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
+import { Plus, Wallet, Building2, CreditCard, TrendingUp, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -27,7 +27,6 @@ import Link from "next/link"
 
 const accountTypeConfig = {
   checking: { label: "Conta Corrente", icon: Wallet, color: "text-blue-500" },
-  savings: { label: "Poupança", icon: PiggyBank, color: "text-green-500" },
   credit: { label: "Cartão de Crédito", icon: CreditCard, color: "text-red-500" },
   investment: { label: "Investimentos", icon: TrendingUp, color: "text-purple-500" },
 }

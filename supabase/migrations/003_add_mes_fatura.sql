@@ -16,7 +16,7 @@ ALTER TABLE transacoes ADD COLUMN IF NOT EXISTS transacao_pai_id UUID REFERENCES
 UPDATE transacoes t
 SET mes_fatura = DATE_TRUNC('month', t.data)::DATE
 WHERE mes_fatura IS NULL
-  AND conta_id IN (
+  AND account_id IN (
     SELECT id FROM contas WHERE tipo != 'CARTAO_CREDITO'
   );
 

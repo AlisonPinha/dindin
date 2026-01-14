@@ -47,7 +47,7 @@ export const mockTransacaoSaida: DbTransaction = {
 // Transação de transferência
 export const mockTransacaoTransferencia: DbTransaction = {
   id: "tx-transf-789",
-  descricao: "Transferência para poupança",
+  descricao: "Transferência entre contas",
   valor: 1000.00,
   tipo: "TRANSFERENCIA" as DbTransactionType,
   data: "2025-01-15T00:00:00.000Z",

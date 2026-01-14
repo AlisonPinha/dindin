@@ -224,8 +224,6 @@ function getIconForAccountType(tipo: string): string {
   switch (tipo) {
     case "CORRENTE":
       return "Wallet";
-    case "POUPANCA":
-      return "PiggyBank";
     case "CARTAO_CREDITO":
       return "CreditCard";
     case "INVESTIMENTO":
