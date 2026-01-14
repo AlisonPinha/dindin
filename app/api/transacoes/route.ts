@@ -106,9 +106,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const supabase = await getSupabaseClient();
 
-    // Debug: log do body recebido
-    logger.info("Transação recebida", { body: JSON.stringify(body) });
-
     const {
       descricao,
       valor,
