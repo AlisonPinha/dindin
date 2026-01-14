@@ -130,6 +130,19 @@ export function mapDbAccountToAccount(dbAcc: DbAccountWithBalance): Account {
   }
 }
 
+/**
+ * Parse date string as local date (avoid timezone issues)
+ * "2026-01-01" → Date at midnight local time, not UTC
+ */
+function parseLocalDate(dateStr: string): Date {
+  // Se a string já contém timezone info (T ou Z), usar diretamente
+  if (dateStr.includes("T") || dateStr.includes("Z")) {
+    return new Date(dateStr)
+  }
+  // Para strings YYYY-MM-DD, adicionar T00:00:00 para forçar interpretação local
+  return new Date(dateStr + "T00:00:00")
+}
+
 export function mapDbTransactionToTransaction(
   dbTx: DbTransaction,
   categories: Category[],
@@ -141,8 +154,8 @@ export function mapDbTransactionToTransaction(
     description: dbTx.descricao,
     amount: dbTx.valor,
     type: transactionTypeMap[dbTx.tipo] || "expense",
-    date: new Date(dbTx.data),
-    mesFatura: dbTx.mes_fatura ? new Date(dbTx.mes_fatura) : undefined,
+    date: parseLocalDate(dbTx.data),
+    mesFatura: dbTx.mes_fatura ? parseLocalDate(dbTx.mes_fatura) : undefined,
     userId: dbTx.user_id,
     categoryId: dbTx.category_id,
     accountId: dbTx.account_id,
