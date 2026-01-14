@@ -1,4 +1,3 @@
-export { AnimatedNumber, AnimatedCurrency, AnimatedPercentage } from "./animated-number"
 export {
   Skeleton,
   CardSkeleton,

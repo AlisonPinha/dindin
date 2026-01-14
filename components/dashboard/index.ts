@@ -1,8 +1,5 @@
 export { SummaryCards } from "./summary-cards"
-export { ExpenseChart } from "./expense-chart"
-export { MonthlyChart } from "./monthly-chart"
 export { RecentTransactions } from "./recent-transactions"
-export { GoalsProgress } from "./goals-progress"
 export { BudgetRuleChart } from "./budget-rule-chart"
 export { WeeklyFlowChart } from "./weekly-flow-chart"
 export { GoalAlerts } from "./goal-alerts"
