@@ -21,9 +21,8 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
     },
     ref
   ) => {
-    const [displayValue, setDisplayValue] = React.useState("")
     const [isFocused, setIsFocused] = React.useState(false)
-    const previousValueRef = React.useRef<number>(value)
+    const previousValueRef = React.useRef<number | null>(null)
 
     // Format number to currency display with thousand separators
     const formatCurrency = React.useCallback((num: number): string => {
@@ -34,7 +33,10 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
       }).format(num)
     }, [])
 
-    // Initialize display value - only update if value changed externally (not while typing)
+    // Initialize display value with formatted value
+    const [displayValue, setDisplayValue] = React.useState(() => formatCurrency(value))
+
+    // Update display value when value prop changes externally (not while typing)
     React.useEffect(() => {
       // Only reformat if value changed externally (not from user typing)
       // and input is not focused
