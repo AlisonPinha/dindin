@@ -47,7 +47,8 @@ export interface DbCategory {
   cor: string
   icone: string | null
   grupo: DbCategoryGroup
-  orcamento_mensal: number | null
+  limite_mensal: number | null // Campo real no banco
+  orcamento_mensal?: number | null // Alias legado
   created_at: string
   updated_at: string
 }

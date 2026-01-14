@@ -6,7 +6,6 @@ import { ptBR } from "date-fns/locale"
 import {
   ArrowDownLeft,
   ArrowUpRight,
-  ArrowLeftRight,
   Calendar as CalendarIcon,
   ChevronDown,
   ChevronUp,
@@ -110,13 +109,6 @@ const transactionTypes: {
     icon: ArrowUpRight,
     color: "text-rose-500",
     bgColor: "bg-rose-500",
-  },
-  {
-    value: "transfer",
-    label: "Transferência",
-    icon: ArrowLeftRight,
-    color: "text-blue-500",
-    bgColor: "bg-blue-500",
   },
 ]
 
@@ -334,7 +326,7 @@ export function TransactionModal({
           {/* Transaction Type Toggle */}
           <div className="space-y-2">
             <Label id="transaction-type-label">Tipo de Transação</Label>
-            <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-labelledby="transaction-type-label">
+            <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-labelledby="transaction-type-label">
               {transactionTypes.map((type) => {
                 const isSelected = formData.type === type.value
                 return (

@@ -99,7 +99,7 @@ export function mapDbCategoryToCategory(dbCat: DbCategory): Category {
     color: dbCat.cor,
     icon: dbCat.icone || undefined,
     budgetGroup: budgetGroupMap[dbCat.grupo] || undefined,
-    monthlyBudget: dbCat.orcamento_mensal || undefined,
+    monthlyBudget: dbCat.limite_mensal || dbCat.orcamento_mensal || undefined,
     userId: "",
     createdAt: new Date(dbCat.created_at),
     updatedAt: new Date(dbCat.updated_at),
