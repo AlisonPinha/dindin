@@ -90,8 +90,8 @@ function validateAccount(acc: ImportAccount, index: number): ValidationError[] {
     errors.push({ index, field: "nome", message: "Nome é obrigatório" });
   }
 
-  if (!acc.tipo || !["CORRENTE", "CARTAO_CREDITO", "INVESTIMENTO", "DINHEIRO", "OUTRO"].includes(acc.tipo)) {
-    errors.push({ index, field: "tipo", message: "Tipo inválido" });
+  if (!acc.tipo || !["CORRENTE", "CARTAO_CREDITO", "INVESTIMENTO"].includes(acc.tipo)) {
+    errors.push({ index, field: "tipo", message: "Tipo inválido. Use: CORRENTE, CARTAO_CREDITO ou INVESTIMENTO" });
   }
 
   return errors;
@@ -105,16 +105,16 @@ function validateCategory(cat: ImportCategory, index: number): ValidationError[]
     errors.push({ index, field: "nome", message: "Nome é obrigatório" });
   }
 
-  if (!cat.tipo || !["ENTRADA", "SAIDA"].includes(cat.tipo)) {
-    errors.push({ index, field: "tipo", message: "Tipo inválido" });
+  if (!cat.tipo || !["RECEITA", "DESPESA", "INVESTIMENTO"].includes(cat.tipo)) {
+    errors.push({ index, field: "tipo", message: "Tipo inválido. Use: RECEITA, DESPESA ou INVESTIMENTO" });
   }
 
   if (!cat.cor) {
     errors.push({ index, field: "cor", message: "Cor é obrigatória" });
   }
 
-  if (!cat.grupo || !["ESSENCIAL", "NAO_ESSENCIAL", "INVESTIMENTO", "DIVIDA", "RENDA"].includes(cat.grupo)) {
-    errors.push({ index, field: "grupo", message: "Grupo inválido" });
+  if (!cat.grupo || !["ESSENCIAL", "INVESTIMENTO", "LIVRE"].includes(cat.grupo)) {
+    errors.push({ index, field: "grupo", message: "Grupo inválido. Use: ESSENCIAL, INVESTIMENTO ou LIVRE" });
   }
 
   return errors;

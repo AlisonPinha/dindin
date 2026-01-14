@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser, getSupabaseClient } from "@/lib/supabase/auth-helper";
 import type { DbGoalType } from "@/lib/supabase";
 import { logger } from "@/lib/logger";
+import { ErrorResponses, SuccessResponses } from "@/lib/api";
 
 // GET - Listar metas do usuário logado
 export async function GET(request: NextRequest) {
@@ -42,10 +43,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(goalsWithProgress);
   } catch (error) {
     logger.error("Failed to fetch goals", error, { action: "fetch", resource: "metas" });
-    return NextResponse.json(
-      { error: "Erro ao buscar metas" },
-      { status: 500 }
-    );
+    return ErrorResponses.serverError("Erro ao buscar metas");
   }
 }
 
@@ -62,24 +60,15 @@ export async function POST(request: NextRequest) {
 
     // Validações
     if (!nome?.trim()) {
-      return NextResponse.json(
-        { error: "Nome é obrigatório" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("Nome é obrigatório");
     }
 
     if (!tipo) {
-      return NextResponse.json(
-        { error: "Tipo é obrigatório" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("Tipo é obrigatório");
     }
 
     if (!valorMeta || valorMeta <= 0) {
-      return NextResponse.json(
-        { error: "Valor da meta deve ser maior que zero" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("Valor da meta deve ser maior que zero");
     }
 
     // Verificar se a categoria pertence ao usuário (se fornecida)
@@ -91,10 +80,7 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (!category) {
-        return NextResponse.json(
-          { error: "Categoria não encontrada" },
-          { status: 404 }
-        );
+        return ErrorResponses.notFound("Categoria", true);
       }
     }
 
@@ -105,7 +91,10 @@ export async function POST(request: NextRequest) {
         tipo: tipo as DbGoalType,
         valor_alvo: valorMeta,
         valor_atual: valorAtual || 0,
-        prazo: prazo ? new Date(prazo).toISOString() : null,
+        prazo: prazo ? (() => {
+          const d = new Date(prazo);
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        })() : null,
         category_id: categoryId || null,
         user_id: auth.user.id,
         ativo: true,
@@ -115,19 +104,13 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json(
-      {
-        ...goal,
-        category: goal.categorias,
-      },
-      { status: 201 }
-    );
+    return SuccessResponses.created({
+      ...goal,
+      category: goal.categorias,
+    });
   } catch (error) {
     logger.error("Failed to create goal", error, { action: "create", resource: "metas" });
-    return NextResponse.json(
-      { error: "Erro ao criar meta" },
-      { status: 500 }
-    );
+    return ErrorResponses.serverError("Erro ao criar meta");
   }
 }
 
@@ -143,10 +126,7 @@ export async function PUT(request: NextRequest) {
     const { id, nome, tipo, valorMeta, valorAtual, prazo, categoryId, ativo } = body;
 
     if (!id) {
-      return NextResponse.json(
-        { error: "ID da meta é obrigatório" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("ID da meta é obrigatório");
     }
 
     // Verificar se meta pertence ao usuário
@@ -158,10 +138,7 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (!existing) {
-      return NextResponse.json(
-        { error: "Meta não encontrada" },
-        { status: 404 }
-      );
+      return ErrorResponses.notFound("Meta", true);
     }
 
     // Verificar se a categoria pertence ao usuário (se fornecida)
@@ -173,10 +150,7 @@ export async function PUT(request: NextRequest) {
         .single();
 
       if (!category) {
-        return NextResponse.json(
-          { error: "Categoria não encontrada" },
-          { status: 404 }
-        );
+        return ErrorResponses.notFound("Categoria", true);
       }
     }
 
@@ -185,7 +159,12 @@ export async function PUT(request: NextRequest) {
     if (tipo !== undefined) updateData.tipo = tipo;
     if (valorMeta !== undefined) updateData.valor_alvo = valorMeta;
     if (valorAtual !== undefined) updateData.valor_atual = valorAtual;
-    if (prazo !== undefined) updateData.prazo = prazo ? new Date(prazo).toISOString() : null;
+    if (prazo !== undefined) {
+      updateData.prazo = prazo ? (() => {
+        const d = new Date(prazo);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      })() : null;
+    }
     if (categoryId !== undefined) updateData.category_id = categoryId;
     if (ativo !== undefined) updateData.ativo = ativo;
 
@@ -199,16 +178,13 @@ export async function PUT(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json({
+    return SuccessResponses.ok({
       ...goal,
       category: goal.categorias,
     });
   } catch (error) {
     logger.error("Failed to update goal", error, { action: "update", resource: "metas" });
-    return NextResponse.json(
-      { error: "Erro ao atualizar meta" },
-      { status: 500 }
-    );
+    return ErrorResponses.serverError("Erro ao atualizar meta");
   }
 }
 
@@ -224,10 +200,7 @@ export async function PATCH(request: NextRequest) {
     const { id, valorAtual, incremento } = body;
 
     if (!id) {
-      return NextResponse.json(
-        { error: "ID da meta é obrigatório" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("ID da meta é obrigatório");
     }
 
     // Verificar se meta pertence ao usuário e obter valor atual
@@ -239,10 +212,7 @@ export async function PATCH(request: NextRequest) {
       .single();
 
     if (!current) {
-      return NextResponse.json(
-        { error: "Meta não encontrada" },
-        { status: 404 }
-      );
+      return ErrorResponses.notFound("Meta", true);
     }
 
     let newValorAtual = valorAtual;
@@ -262,7 +232,7 @@ export async function PATCH(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json({
+    return SuccessResponses.ok({
       ...goal,
       category: goal.categorias,
       progresso: goal.valor_alvo > 0 ? (goal.valor_atual / goal.valor_alvo) * 100 : 0,
@@ -270,10 +240,7 @@ export async function PATCH(request: NextRequest) {
     });
   } catch (error) {
     logger.error("Failed to update goal progress", error, { action: "update_progress", resource: "metas" });
-    return NextResponse.json(
-      { error: "Erro ao atualizar progresso da meta" },
-      { status: 500 }
-    );
+    return ErrorResponses.serverError("Erro ao atualizar progresso da meta");
   }
 }
 
@@ -287,10 +254,7 @@ export async function DELETE(request: NextRequest) {
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json(
-        { error: "ID da meta é obrigatório" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("ID da meta é obrigatório");
     }
 
     const supabase = await getSupabaseClient();
@@ -304,10 +268,7 @@ export async function DELETE(request: NextRequest) {
       .single();
 
     if (!existing) {
-      return NextResponse.json(
-        { error: "Meta não encontrada" },
-        { status: 404 }
-      );
+      return ErrorResponses.notFound("Meta", true);
     }
 
     const { error } = await supabase
@@ -318,12 +279,9 @@ export async function DELETE(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json({ success: true });
+    return SuccessResponses.deleted();
   } catch (error) {
     logger.error("Failed to delete goal", error, { action: "delete", resource: "metas" });
-    return NextResponse.json(
-      { error: "Erro ao deletar meta" },
-      { status: 500 }
-    );
+    return ErrorResponses.serverError("Erro ao deletar meta");
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser, getSupabaseClient } from "@/lib/supabase/auth-helper";
 import type { DbInvestmentType } from "@/lib/supabase";
 import { logger } from "@/lib/logger";
+import { ErrorResponses, SuccessResponses } from "@/lib/api";
 
 // GET - Listar investimentos do usuário logado
 export async function GET(request: NextRequest) {
@@ -76,10 +77,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     logger.error("Failed to fetch investments", error, { action: "fetch", resource: "investimentos" });
-    return NextResponse.json(
-      { error: "Erro ao buscar investimentos" },
-      { status: 500 }
-    );
+    return ErrorResponses.serverError("Erro ao buscar investimentos");
   }
 }
 
@@ -104,31 +102,19 @@ export async function POST(request: NextRequest) {
 
     // Validações
     if (!nome?.trim()) {
-      return NextResponse.json(
-        { error: "Nome é obrigatório" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("Nome é obrigatório");
     }
 
     if (!tipo) {
-      return NextResponse.json(
-        { error: "Tipo é obrigatório" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("Tipo é obrigatório");
     }
 
     if (!valorAplicado || valorAplicado <= 0) {
-      return NextResponse.json(
-        { error: "Valor aplicado deve ser maior que zero" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("Valor aplicado deve ser maior que zero");
     }
 
     if (!dataAplicacao) {
-      return NextResponse.json(
-        { error: "Data de aplicação é obrigatória" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("Data de aplicação é obrigatória");
     }
 
     const rentabilidade =
@@ -145,8 +131,14 @@ export async function POST(request: NextRequest) {
         preco_compra: valorAplicado,
         preco_atual: valorAtual || valorAplicado,
         rentabilidade,
-        data_compra: new Date(dataAplicacao).toISOString(),
-        data_vencimento: dataVencimento ? new Date(dataVencimento).toISOString() : null,
+        data_compra: (() => {
+          const d = new Date(dataAplicacao);
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        })(),
+        data_vencimento: dataVencimento ? (() => {
+          const d = new Date(dataVencimento);
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        })() : null,
         user_id: auth.user.id,
       })
       .select()
@@ -154,13 +146,10 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json(investment, { status: 201 });
+    return SuccessResponses.created(investment);
   } catch (error) {
     logger.error("Failed to create investment", error, { action: "create", resource: "investimentos" });
-    return NextResponse.json(
-      { error: "Erro ao criar investimento" },
-      { status: 500 }
-    );
+    return ErrorResponses.serverError("Erro ao criar investimento");
   }
 }
 
@@ -176,10 +165,7 @@ export async function PUT(request: NextRequest) {
     const { id, nome, tipo, instituicao, valorAplicado, valorAtual, dataAplicacao, dataVencimento } = body;
 
     if (!id) {
-      return NextResponse.json(
-        { error: "ID do investimento é obrigatório" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("ID do investimento é obrigatório");
     }
 
     // Verificar se investimento pertence ao usuário
@@ -191,10 +177,7 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (!existing) {
-      return NextResponse.json(
-        { error: "Investimento não encontrado" },
-        { status: 404 }
-      );
+      return ErrorResponses.notFound("Investimento");
     }
 
     const updateData: Record<string, unknown> = {};
@@ -203,8 +186,16 @@ export async function PUT(request: NextRequest) {
     if (instituicao !== undefined) updateData.instituicao = instituicao;
     if (valorAplicado !== undefined) updateData.preco_compra = valorAplicado;
     if (valorAtual !== undefined) updateData.preco_atual = valorAtual;
-    if (dataAplicacao !== undefined) updateData.data_compra = new Date(dataAplicacao).toISOString();
-    if (dataVencimento !== undefined) updateData.data_vencimento = dataVencimento ? new Date(dataVencimento).toISOString() : null;
+    if (dataAplicacao !== undefined) {
+      const d = new Date(dataAplicacao);
+      updateData.data_compra = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
+    if (dataVencimento !== undefined) {
+      updateData.data_vencimento = dataVencimento ? (() => {
+        const d = new Date(dataVencimento);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      })() : null;
+    }
 
     // Calculate new rentabilidade if values changed
     if (valorAplicado !== undefined || valorAtual !== undefined) {
@@ -226,13 +217,10 @@ export async function PUT(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json(investment);
+    return SuccessResponses.ok(investment);
   } catch (error) {
     logger.error("Failed to update investment", error, { action: "update", resource: "investimentos" });
-    return NextResponse.json(
-      { error: "Erro ao atualizar investimento" },
-      { status: 500 }
-    );
+    return ErrorResponses.serverError("Erro ao atualizar investimento");
   }
 }
 
@@ -246,10 +234,7 @@ export async function DELETE(request: NextRequest) {
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json(
-        { error: "ID do investimento é obrigatório" },
-        { status: 400 }
-      );
+      return ErrorResponses.badRequest("ID do investimento é obrigatório");
     }
 
     const supabase = await getSupabaseClient();
@@ -263,10 +248,7 @@ export async function DELETE(request: NextRequest) {
       .single();
 
     if (!existing) {
-      return NextResponse.json(
-        { error: "Investimento não encontrado" },
-        { status: 404 }
-      );
+      return ErrorResponses.notFound("Investimento");
     }
 
     const { error } = await supabase
@@ -277,12 +259,9 @@ export async function DELETE(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json({ success: true });
+    return SuccessResponses.deleted();
   } catch (error) {
     logger.error("Failed to delete investment", error, { action: "delete", resource: "investimentos" });
-    return NextResponse.json(
-      { error: "Erro ao deletar investimento" },
-      { status: 500 }
-    );
+    return ErrorResponses.serverError("Erro ao deletar investimento");
   }
 }
