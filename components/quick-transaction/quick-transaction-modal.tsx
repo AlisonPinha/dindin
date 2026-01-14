@@ -34,7 +34,7 @@ import {
 import { CurrencyInput } from "@/components/ui/currency-input"
 import { useToast } from "@/hooks/use-toast"
 import { ToastAction } from "@/components/ui/toast"
-import { cn, generateId } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { useStore } from "@/hooks/use-store"
 import type { Category } from "@/types"
@@ -50,6 +50,35 @@ interface QuickTransactionModalProps {
 // Helper to map category type
 function mapCategoryType(cat: Category): "expense" | "income" {
   return cat.type === "income" ? "income" : "expense"
+}
+
+// Categorias padrão caso o usuário não tenha cadastrado
+const defaultCategories = {
+  expense: [
+    { id: "default-alimentacao", name: "Alimentação", color: "#f97316", icon: "UtensilsCrossed" },
+    { id: "default-transporte", name: "Transporte", color: "#eab308", icon: "Car" },
+    { id: "default-moradia", name: "Moradia", color: "#ef4444", icon: "Home" },
+    { id: "default-lazer", name: "Lazer", color: "#06b6d4", icon: "Gamepad2" },
+    { id: "default-saude", name: "Saúde", color: "#ec4899", icon: "Heart" },
+    { id: "default-compras", name: "Compras", color: "#d946ef", icon: "ShoppingBag" },
+    { id: "default-outros", name: "Outros", color: "#64748b", icon: "MoreHorizontal" },
+  ],
+  income: [
+    { id: "default-salario", name: "Salário", color: "#22c55e", icon: "Briefcase" },
+    { id: "default-freelance", name: "Freelance", color: "#10b981", icon: "Laptop" },
+    { id: "default-rendimentos", name: "Rendimentos", color: "#3b82f6", icon: "TrendingUp" },
+    { id: "default-outros-income", name: "Outros", color: "#8b5cf6", icon: "Plus" },
+  ],
+}
+
+// Map transaction type to DB type
+function mapTypeToDb(type: TransactionType): string {
+  const map: Record<TransactionType, string> = {
+    expense: "SAIDA",
+    income: "ENTRADA",
+    transfer: "TRANSFERENCIA",
+  }
+  return map[type]
 }
 
 const typeConfig = {
@@ -110,18 +139,32 @@ export function QuickTransactionModal({
   const config = typeConfig[type]
   const Icon = config.icon
 
-  // Get categories for current type from store
+  // Get categories for current type from store + defaults
   const categories = useMemo(() => {
     if (type === "transfer") return []
-    return storeCategories
+
+    // Get user categories from store
+    const userCategories = storeCategories
       .filter((cat) => mapCategoryType(cat) === type)
       .map((cat) => ({
         id: cat.id,
         name: cat.name,
         color: cat.color,
         icon: cat.icon || "Circle",
-        recentCount: 0, // TODO: track recent usage
+        recentCount: 1, // User categories appear first
       }))
+
+    // Get default categories for this type
+    const defaults = (defaultCategories[type] || []).map((cat) => ({
+      ...cat,
+      recentCount: 0,
+    }))
+
+    // Combine: user categories first, then defaults (excluding duplicates by name)
+    const userNames = new Set(userCategories.map((c) => c.name.toLowerCase()))
+    const filteredDefaults = defaults.filter((c) => !userNames.has(c.name.toLowerCase()))
+
+    return [...userCategories, ...filteredDefaults]
   }, [type, storeCategories])
 
   // Get accounts from store
@@ -175,7 +218,7 @@ export function QuickTransactionModal({
     setFormState((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (formState.value <= 0) {
       toast({
         title: "Valor inválido",
@@ -221,41 +264,82 @@ export function QuickTransactionModal({
       return
     }
 
-    // Create transaction (mock - in real app, call API)
-    const transactionId = generateId()
+    // Get selected items for display
     const category = categories.find((c) => c.id === formState.categoryId)
     const account = accounts.find((a) => a.id === formState.accountId)
     const toAccount = accounts.find((a) => a.id === formState.toAccountId)
 
-    // Close modal
-    onOpenChange(false)
+    // Prepare data for API
+    const now = new Date()
+    const mesFatura = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`
 
-    // Show success toast with undo option
-    const typeLabels = {
-      expense: "Despesa",
-      income: "Receita",
-      transfer: "Transferência",
+    // Only send category_id if it's a real UUID (not a default category)
+    const isRealCategory = formState.categoryId && !formState.categoryId.startsWith("default-")
+
+    try {
+      const response = await fetch("/api/transacoes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          descricao: formState.description || category?.name || (type === "income" ? "Receita" : "Despesa"),
+          valor: formState.value,
+          tipo: mapTypeToDb(type),
+          data: now.toISOString(),
+          mesFatura: mesFatura,
+          categoryId: isRealCategory ? formState.categoryId : null,
+          accountId: formState.accountId || null,
+          notas: null,
+          tags: [],
+          recorrente: false,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Erro ao salvar transação")
+      }
+
+      const created = await response.json()
+
+      // Close modal
+      onOpenChange(false)
+
+      // Show success toast
+      const typeLabels = {
+        expense: "Despesa",
+        income: "Receita",
+        transfer: "Transferência",
+      }
+
+      const description =
+        type === "transfer"
+          ? `R$ ${formState.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} de ${account?.name} para ${toAccount?.name}`
+          : `R$ ${formState.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} em ${category?.name}`
+
+      toast({
+        title: `${typeLabels[type]} registrada`,
+        description,
+        action: (
+          <ToastAction
+            altText="Desfazer"
+            onClick={() => handleUndo(created.id)}
+            className="gap-1"
+          >
+            <Undo2 className="h-3 w-3" />
+            Desfazer
+          </ToastAction>
+        ),
+      })
+
+      // Reload data to reflect new transaction
+      window.location.reload()
+    } catch (error) {
+      toast({
+        title: "Erro ao salvar",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      })
     }
-
-    const description =
-      type === "transfer"
-        ? `R$ ${formState.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} de ${account?.name} para ${toAccount?.name}`
-        : `R$ ${formState.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} em ${category?.name}`
-
-    toast({
-      title: `${typeLabels[type]} registrada`,
-      description,
-      action: (
-        <ToastAction
-          altText="Desfazer"
-          onClick={() => handleUndo(transactionId)}
-          className="gap-1"
-        >
-          <Undo2 className="h-3 w-3" />
-          Desfazer
-        </ToastAction>
-      ),
-    })
   }
 
   const handleUndo = (_transactionId: string) => {
