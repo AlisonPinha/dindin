@@ -356,6 +356,10 @@ function calcularFluxoSemanal(
 
 /**
  * Calcula regra 50/30/20
+ * Usa o campo budgetGroup da categoria para classificar:
+ * - essentials: Essenciais (50%)
+ * - lifestyle: Livres (30%)
+ * - investments: Investimentos (20%)
  */
 function calcularRegra503020(
   transacoes: TransactionWithInstallment[],
@@ -363,9 +367,6 @@ function calcularRegra503020(
   receitaTotal: number
 ): Regra503020 {
   const base = receitaTotal > 0 ? receitaTotal : 1
-
-  const categoriasEssenciais = ["moradia", "alimentação", "saúde", "transporte", "contas", "educação"]
-  const categoriasInvestimentos = ["investimento", "renda fixa", "ações", "fundos", "cripto", "reserva"]
 
   let essenciais = 0
   let investimentos = 0
@@ -375,13 +376,15 @@ function calcularRegra503020(
     .filter((t) => t.type === "expense")
     .forEach((t) => {
       const categoria = categories.find((c) => c.id === t.categoryId)
-      const catNome = categoria?.name?.toLowerCase() || ""
+      const grupo = categoria?.budgetGroup
 
-      if (categoriasEssenciais.some((e) => catNome.includes(e))) {
+      // Usar o campo budgetGroup da categoria para classificar
+      if (grupo === "essentials") {
         essenciais += t.amount
-      } else if (categoriasInvestimentos.some((i) => catNome.includes(i))) {
+      } else if (grupo === "investments") {
         investimentos += t.amount
       } else {
+        // lifestyle ou sem grupo definido vai para livres
         livres += t.amount
       }
     })

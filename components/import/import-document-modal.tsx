@@ -536,159 +536,258 @@ export function ImportDocumentModal({
       // Também tenta inferir categoria pela descrição da transação
       const findCategoryId = (categoryName: string | undefined, descricao?: string): string | null => {
         // Mapeamento de palavras-chave na descrição para nomes de categorias
-        // Baseado na estrutura de categorias do usuário:
-        // ESSENCIAIS: Moradia, Utilidades, Alimentação, Transporte, Saúde, Educação, Dívidas Fixas
-        // LIVRES: Lazer, Alimentação Fora, Compras, Assinaturas, Cuidados Pessoais, Pets, Hobbies, Presentes
-        // INVESTIMENTOS: Reserva de Emergência, Investimentos, Objetivos
+        // Baseado na estrutura de categorias do Supabase:
+        // ESSENCIAIS (50%): Moradia, Condomínio, Energia, Água, Gás, Internet, Telefone, Supermercado,
+        //                   Combustível, Transporte, Estacionamento, IPVA/Licenciamento, Seguro Auto,
+        //                   Plano de Saúde, Farmácia, Educação, Financiamento, Empréstimo
+        // LIVRES (30%): Restaurantes, Delivery, Lazer, Viagens, Cinema/Shows, Compras, Roupas,
+        //               Eletrônicos, Assinaturas, Cuidados Pessoais, Pets, Hobbies, Presentes, Bares
+        // INVESTIMENTOS (20%): Reserva de Emergência, Investimentos, Previdência, Objetivos
         const descriptionToCategoryMap: Array<{ keywords: string[]; categoryNames: string[] }> = [
-          // ASSINATURAS (Livres) - Netflix, Spotify, iCloud, Amazon Prime, Disney+
+          // === ESSENCIAIS (50%) ===
+
+          // Moradia - Aluguel
+          {
+            keywords: ["aluguel", "imobiliaria", "imobiliário", "locacao"],
+            categoryNames: ["moradia"]
+          },
+          // Condomínio
+          {
+            keywords: ["condominio", "condomínio", "cond "],
+            categoryNames: ["condominio", "condomínio"]
+          },
+          // Energia
+          {
+            keywords: ["energia", "luz", "enel", "cpfl", "cemig", "light", "celesc", "coelba", "eletropaulo", "copel"],
+            categoryNames: ["energia"]
+          },
+          // Água
+          {
+            keywords: ["agua", "água", "sabesp", "cedae", "copasa", "sanepar", "embasa", "corsan"],
+            categoryNames: ["agua", "água"]
+          },
+          // Gás
+          {
+            keywords: ["gas", "gás", "comgas", "naturgy", "supergasbras", "ultragaz", "liquigas"],
+            categoryNames: ["gas", "gás"]
+          },
+          // Internet
+          {
+            keywords: ["internet", "af internet", "fibra", "banda larga", "net ", "gvt", "oi fibra", "vivo fibra", "claro fibra"],
+            categoryNames: ["internet"]
+          },
+          // Telefone
+          {
+            keywords: ["telefone", "celular", "claro", "vivo", "tim", "oi ", "nextel"],
+            categoryNames: ["telefone"]
+          },
+          // Supermercado
+          {
+            keywords: [
+              "supermercado", "carrefour", "extra", "pao de acucar", "pão de açúcar",
+              "assai", "atacadao", "atacadão", "big", "nacional", "zaffari", "bourbon",
+              "guanabara", "mundial", "dia ", "sams club", "sam's club", "makro",
+              "hortifruti", "sacolao", "sacolão", "feira", "acougue", "açougue", "padaria"
+            ],
+            categoryNames: ["supermercado"]
+          },
+          // Combustível
+          {
+            keywords: [
+              "combustivel", "combustível", "gasolina", "etanol", "diesel", "gnv",
+              "posto", "shell", "ipiranga", "petrobras", "ale ", "br distribuidora"
+            ],
+            categoryNames: ["combustivel", "combustível"]
+          },
+          // Transporte (Uber, 99, etc)
+          {
+            keywords: ["uber", "99", "99app", "taxi", "táxi", "cabify", "indriver", "blablacar"],
+            categoryNames: ["transporte"]
+          },
+          // Estacionamento
+          {
+            keywords: ["estacionamento", "estapar", "park", "parking", "zona azul"],
+            categoryNames: ["estacionamento"]
+          },
+          // IPVA/Licenciamento
+          {
+            keywords: ["ipva", "dpvat", "licenciamento", "detran", "crlv"],
+            categoryNames: ["ipva/licenciamento", "ipva", "licenciamento"]
+          },
+          // Seguro Auto
+          {
+            keywords: ["seguro auto", "seguro carro", "seguro veiculo", "porto seguro", "bradesco seguros", "azul seguros", "suhai", "liberty"],
+            categoryNames: ["seguro auto"]
+          },
+          // Plano de Saúde
+          {
+            keywords: [
+              "plano de saude", "plano de saúde", "unimed", "bradesco saude", "bradesco saúde",
+              "sulamerica", "sulamérica", "amil", "hapvida", "notre dame", "prevent senior"
+            ],
+            categoryNames: ["plano de saude", "plano de saúde"]
+          },
+          // Farmácia
+          {
+            keywords: [
+              "farmacia", "farmácia", "drogaria", "droga raia", "drogasil", "pacheco",
+              "pague menos", "panvel", "ultrafarma", "onofre", "araujo", "extrafarma",
+              "medicamento", "remedio", "remédio"
+            ],
+            categoryNames: ["farmacia", "farmácia"]
+          },
+          // Educação
+          {
+            keywords: [
+              "escola", "colegio", "colégio", "faculdade", "universidade", "curso",
+              "udemy", "coursera", "alura", "rocketseat", "descomplica", "duolingo",
+              "mensalidade escolar", "matricula", "matrícula", "material escolar"
+            ],
+            categoryNames: ["educacao", "educação"]
+          },
+          // Financiamento
+          {
+            keywords: ["financiamento", "financ ", "prestacao", "prestação"],
+            categoryNames: ["financiamento"]
+          },
+          // Empréstimo
+          {
+            keywords: ["emprestimo", "empréstimo", "crediario", "crediário", "credito pessoal", "crédito pessoal"],
+            categoryNames: ["emprestimo", "empréstimo"]
+          },
+
+          // === LIVRES (30%) ===
+
+          // Restaurantes
+          {
+            keywords: [
+              "restaurante", "lanchonete", "churrascaria", "pizzaria", "sushi",
+              "mcdonalds", "burger king", "subway", "outback", "madero", "applebees",
+              "spoleto", "giraffas", "habibs", "china in box"
+            ],
+            categoryNames: ["restaurantes"]
+          },
+          // Delivery
+          {
+            keywords: ["ifood", "uber eats", "rappi", "ze delivery", "zé delivery", "aiqfome", "delivery"],
+            categoryNames: ["delivery"]
+          },
+          // Lazer
+          {
+            keywords: ["parque", "museu", "zoologico", "zoológico", "aquario", "aquário", "praia", "passeio"],
+            categoryNames: ["lazer"]
+          },
+          // Viagens
+          {
+            keywords: [
+              "hotel", "hoteis", "hotéis", "hoteis.com", "booking", "airbnb",
+              "decolar", "hurb", "latam", "gol", "azul", "passagem aerea", "passagem aérea",
+              "hospedagem", "pousada", "resort", "trivago", "expedia", "viagem"
+            ],
+            categoryNames: ["viagens"]
+          },
+          // Cinema/Shows
+          {
+            keywords: [
+              "cinema", "cinemark", "uci", "kinoplex", "cinesystem",
+              "teatro", "show", "ingresso", "ticketmaster", "eventim", "sympla", "blueticket"
+            ],
+            categoryNames: ["cinema/shows", "cinema", "shows"]
+          },
+          // Compras (genérico)
+          {
+            keywords: [
+              "mercadolivre", "mercado livre", "mp 3produtos", "mp 4produtos", "mp 2produtos",
+              "meli", "mercadopago", "ebazar", "amazon", "shopee", "aliexpress", "shein", "wish",
+              "magalu", "magazine luiza", "americanas", "submarino", "casas bahia", "ponto frio"
+            ],
+            categoryNames: ["compras"]
+          },
+          // Roupas
+          {
+            keywords: [
+              "renner", "cea", "c&a", "riachuelo", "marisa", "zara", "hering",
+              "lojas americanas", "levis", "havan", "centauro"
+            ],
+            categoryNames: ["roupas"]
+          },
+          // Eletrônicos
+          {
+            keywords: ["kabum", "pichau", "terabyte", "fast shop", "apple store", "samsung", "lg"],
+            categoryNames: ["eletronicos", "eletrônicos"]
+          },
+          // Assinaturas (Streaming, Apps)
           {
             keywords: [
               "apple.com/bill", "apple.com", "apple bill", "itunes", "app store", "icloud",
               "netflix", "spotify", "amazon prime", "prime video", "disney+", "disney plus",
               "hbo", "paramount", "star+", "globoplay", "deezer", "youtube premium",
-              "youtube music", "apple music", "apple tv", "audible", "kindle",
+              "youtube music", "apple music", "apple tv", "audible",
               "xbox game pass", "playstation plus", "ps plus", "ebn sony", "sonyplaystat",
-              "microsoft", "office 365", "adobe", "dropbox", "google one",
+              "microsoft 365", "office 365", "adobe", "dropbox", "google one",
               "chatgpt", "openai", "midjourney", "canva", "melimais"
             ],
             categoryNames: ["assinaturas"]
           },
-          // COMPRAS (Livres) - Roupas, Calçados, Eletrônicos, Decoração
+          // Cuidados Pessoais
           {
             keywords: [
-              "mercadolivre", "mercado livre", "mp 3produtos", "mp 4produtos", "mp 2produtos",
-              "meli", "mercadopago", "ebazar", "itatiaia", "sensetup", "tapetessaoca",
-              "amazon", "shopee", "aliexpress", "shein", "wish",
-              "magalu", "magazine luiza", "americanas", "submarino",
-              "casas bahia", "ponto frio", "fast shop",
-              "kabum", "pichau", "terabyte", "renner", "cea", "c&a",
-              "riachuelo", "marisa", "zara", "hering"
-            ],
-            categoryNames: ["compras"]
-          },
-          // UTILIDADES (Essenciais) - Energia, Água, Gás, Internet, Telefone
-          {
-            keywords: [
-              "internet", "af internet", "claro", "vivo", "tim", "oi",
-              "net", "gvt", "fibra", "banda larga", "telefone", "celular",
-              "energia", "luz", "enel", "cpfl", "cemig", "light", "celesc", "coelba",
-              "agua", "sabesp", "cedae", "copasa", "sanepar",
-              "gas", "comgas", "naturgy", "supergasbras"
-            ],
-            categoryNames: ["utilidades"]
-          },
-          // LAZER (Livres) - Cinema, Shows, Viagens, Passeios
-          {
-            keywords: [
-              "cinema", "cinemark", "uci", "kinoplex", "teatro", "show", "ingresso",
-              "ticketmaster", "eventim", "sympla",
-              "hotel", "hoteis", "hoteis.com", "booking", "airbnb",
-              "decolar", "hurb", "latam", "gol", "azul", "passagem aerea",
-              "hospedagem", "pousada", "resort", "trivago", "expedia",
-              "parque", "museu", "zoologico", "aquario"
-            ],
-            categoryNames: ["lazer"]
-          },
-          // ALIMENTAÇÃO (Essenciais) - Supermercado, Feira, Açougue, Padaria
-          {
-            keywords: [
-              "supermercado", "mercado", "carrefour", "extra", "pao de acucar",
-              "assai", "atacadao", "big", "nacional", "zaffari", "bourbon",
-              "guanabara", "mundial", "dia", "sams club",
-              "feira", "acougue", "padaria", "hortifruti", "sacolao"
-            ],
-            categoryNames: ["alimentacao", "alimentação"]
-          },
-          // ALIMENTAÇÃO FORA (Livres) - Restaurantes, Delivery, Bares, Cafeteria
-          {
-            keywords: [
-              "ifood", "uber eats", "rappi", "ze delivery", "zé delivery",
-              "restaurante", "lanchonete", "cafe", "pizza", "hamburguer", "sushi",
-              "mcdonalds", "burger king", "subway", "starbucks", "outback",
-              "bar", "boteco", "churrascaria", "pizzaria", "cafeteria"
-            ],
-            categoryNames: ["alimentacao fora", "alimentação fora"]
-          },
-          // TRANSPORTE (Essenciais) - Combustível, Estacionamento, IPVA, Seguro auto, Uber/99
-          {
-            keywords: [
-              "uber", "99", "taxi", "cabify", "99app",
-              "combustivel", "gasolina", "etanol", "diesel",
-              "posto", "shell", "ipiranga", "br", "ale", "petrobras",
-              "estacionamento", "estapar", "park",
-              "pedagio", "sem parar", "conectcar", "veloe",
-              "ipva", "dpvat", "licenciamento", "detran",
-              "seguro auto", "porto seguro", "bradesco seguros", "azul seguros",
-              "mecanico", "oficina", "pneu", "borracharia"
-            ],
-            categoryNames: ["transporte"]
-          },
-          // SAÚDE (Essenciais) - Plano de saúde, Farmácia, Consultas, Exames, Academia
-          {
-            keywords: [
-              "farmacia", "drogaria", "medico", "hospital", "clinica",
-              "laboratorio", "consulta", "exame", "plano de saude",
-              "unimed", "bradesco saude", "sulamerica", "amil", "hapvida", "notre dame",
-              "droga raia", "drogasil", "pacheco", "pague menos", "panvel",
-              "ultrafarma", "onofre", "araujo", "extrafarma",
-              "academia", "smart fit", "bluefit", "bodytech"
-            ],
-            categoryNames: ["saude", "saúde"]
-          },
-          // EDUCAÇÃO (Essenciais) - Escola, Faculdade, Cursos, Material escolar
-          {
-            keywords: [
-              "escola", "colegio", "faculdade", "universidade", "curso",
-              "livro", "livraria", "saraiva", "cultura",
-              "udemy", "coursera", "alura", "rocketseat", "descomplica",
-              "duolingo", "mensalidade", "matricula", "material escolar"
-            ],
-            categoryNames: ["educacao", "educação"]
-          },
-          // PETS (Livres) - Ração, Veterinário, Pet shop
-          {
-            keywords: [
-              "pet", "petshop", "veterinario", "racao", "petz", "cobasi", "petlove",
-              "cachorro", "gato", "animal"
-            ],
-            categoryNames: ["pets"]
-          },
-          // HOBBIES (Livres) - Games, Livros, Esportes, Coleções
-          {
-            keywords: [
-              "games", "game", "steam", "playstation", "xbox", "nintendo", "ps5", "ps4",
-              "livros", "kindle", "ebook",
-              "esporte", "futebol", "corrida", "bicicleta", "bike",
-              "colecao", "figurinha", "card"
-            ],
-            categoryNames: ["hobbies"]
-          },
-          // CUIDADOS PESSOAIS (Livres) - Salão, Barbearia, Estética, Cosméticos
-          {
-            keywords: [
-              "salao", "cabeleireiro", "barbearia", "barber",
-              "estetica", "dermatologista", "pele",
-              "cosmetico", "maquiagem", "perfume", "boticario", "natura", "avon",
-              "manicure", "pedicure", "spa"
+              "salao", "salão", "cabeleireiro", "barbearia", "barber",
+              "estetica", "estética", "cosmetico", "cosmético", "maquiagem",
+              "perfume", "boticario", "boticário", "natura", "avon", "manicure", "pedicure", "spa"
             ],
             categoryNames: ["cuidados pessoais"]
           },
-          // MORADIA (Essenciais) - Aluguel, Condomínio, Financiamento, IPTU
+          // Pets
           {
             keywords: [
-              "aluguel", "condominio", "financiamento", "iptu",
-              "seguro residencial", "imobiliaria"
+              "pet", "petshop", "pet shop", "veterinario", "veterinário", "racao", "ração",
+              "petz", "cobasi", "petlove", "cachorro", "gato", "animal"
             ],
-            categoryNames: ["moradia"]
+            categoryNames: ["pets"]
           },
-          // DÍVIDAS FIXAS (Essenciais) - Empréstimos, Parcelas obrigatórias
+          // Hobbies
           {
             keywords: [
-              "emprestimo", "parcela", "financiamento", "crediario",
-              "cartao", "fatura"
+              "games", "game", "steam", "playstation", "xbox", "nintendo", "ps5", "ps4",
+              "livro", "livraria", "saraiva", "cultura", "kindle", "ebook",
+              "esporte", "futebol", "corrida", "bicicleta", "bike", "academia",
+              "smart fit", "bluefit", "bodytech"
             ],
-            categoryNames: ["dividas fixas", "dívidas fixas"]
+            categoryNames: ["hobbies"]
+          },
+          // Presentes
+          {
+            keywords: ["presente", "gift", "lembranca", "lembrança"],
+            categoryNames: ["presentes"]
+          },
+          // Bares
+          {
+            keywords: ["bar ", "boteco", "pub", "cerveja", "chopp", "happy hour"],
+            categoryNames: ["bares"]
+          },
+
+          // === INVESTIMENTOS (20%) ===
+
+          // Reserva de Emergência
+          {
+            keywords: ["reserva", "emergencia", "emergência", "poupanca", "poupança"],
+            categoryNames: ["reserva de emergencia", "reserva de emergência"]
+          },
+          // Investimentos
+          {
+            keywords: ["investimento", "acao", "ação", "fundo", "cdb", "tesouro", "renda fixa", "cripto", "bitcoin", "etf"],
+            categoryNames: ["investimentos"]
+          },
+          // Previdência
+          {
+            keywords: ["previdencia", "previdência", "pgbl", "vgbl", "aposentadoria"],
+            categoryNames: ["previdencia", "previdência"]
+          },
+          // Objetivos
+          {
+            keywords: ["objetivo", "meta", "sonho"],
+            categoryNames: ["objetivos"]
           }
         ]
 
