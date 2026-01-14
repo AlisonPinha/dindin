@@ -103,6 +103,7 @@ export interface Transaction {
   amount: number
   type: TransactionType
   date: Date
+  mesFatura?: Date | null // Mês da fatura (primeiro dia do mês, ex: 2026-01-01)
   notes?: string | null
   isRecurring?: boolean
   installments?: number | null

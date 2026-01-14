@@ -492,6 +492,14 @@ export function getTransacoesDoMes(
 
   return transactions
     .filter((t) => {
+      // NOVA LÓGICA: Se a transação tem mes_fatura, usar esse campo diretamente
+      // mes_fatura já foi calculado no backend baseado no tipo de conta
+      if (t.mesFatura) {
+        const mesFatura = new Date(t.mesFatura)
+        return mesFatura.getMonth() === viewedMonth && mesFatura.getFullYear() === viewedYear
+      }
+
+      // FALLBACK (para transações antigas sem mes_fatura): usar lógica anterior
       const transactionDate = new Date(t.date)
       const transactionMonth = transactionDate.getMonth()
       const transactionYear = transactionDate.getFullYear()
@@ -519,6 +527,16 @@ export function getTransacoesDoMes(
     .map((t) => {
       // Add calculated installment info for display
       if (isInstallmentTransaction(t)) {
+        // Se tem mes_fatura, o currentInstallment já é a parcela correta
+        if (t.mesFatura) {
+          return {
+            ...t,
+            calculatedInstallment: t.currentInstallment!,
+            installmentDisplay: `${t.currentInstallment}/${t.installments}`,
+          }
+        }
+
+        // Fallback: cálculo dinâmico para transações antigas
         const transactionDate = new Date(t.date)
         const monthDiff = calculateMonthDifference(
           transactionDate.getFullYear(),

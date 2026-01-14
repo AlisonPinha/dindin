@@ -96,6 +96,7 @@ const mapDbTransactionToTransaction = (
     amount: dbTx.valor,
     type: typeMap[dbTx.tipo] || "expense",
     date: new Date(dbTx.data),
+    mesFatura: dbTx.mes_fatura ? new Date(dbTx.mes_fatura) : undefined,
     userId: dbTx.user_id,
     categoryId: dbTx.category_id,
     accountId: dbTx.account_id,

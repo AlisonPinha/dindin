@@ -58,6 +58,7 @@ export interface DbTransaction {
   valor: number
   tipo: DbTransactionType
   data: string
+  mes_fatura: string // Primeiro dia do mês da fatura (YYYY-MM-01)
   recorrente: boolean
   parcelas: number | null
   parcela_atual: number | null

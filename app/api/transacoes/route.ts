@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
     const ownership = searchParams.get("ownership");
     const dataInicio = searchParams.get("dataInicio");
     const dataFim = searchParams.get("dataFim");
+    const mesFatura = searchParams.get("mesFatura"); // NOVO: filtro por mês da fatura (YYYY-MM-01)
     const limit = searchParams.get("limit");
     const offset = searchParams.get("offset");
 
@@ -35,6 +36,7 @@ export async function GET(request: NextRequest) {
     if (ownership) query = query.eq("ownership", ownership);
     if (dataInicio) query = query.gte("data", dataInicio);
     if (dataFim) query = query.lte("data", dataFim);
+    if (mesFatura) query = query.eq("mes_fatura", mesFatura); // Filtro exato por mês da fatura
 
     query = query
       .order("data", { ascending: false })
@@ -63,6 +65,7 @@ export async function GET(request: NextRequest) {
     if (ownership) countQuery = countQuery.eq("ownership", ownership);
     if (dataInicio) countQuery = countQuery.gte("data", dataInicio);
     if (dataFim) countQuery = countQuery.lte("data", dataFim);
+    if (mesFatura) countQuery = countQuery.eq("mes_fatura", mesFatura);
 
     const { count } = await countQuery;
 
@@ -108,6 +111,7 @@ export async function POST(request: NextRequest) {
       valor,
       tipo,
       data,
+      mesFatura, // NOVO: mês da fatura (obrigatório para cartão de crédito)
       recorrente,
       parcelas,
       categoryId,
@@ -134,11 +138,12 @@ export async function POST(request: NextRequest) {
       return ErrorResponses.badRequest("Data é obrigatória");
     }
 
-    // Verificar se a conta pertence ao usuário (se fornecida)
+    // Verificar se a conta pertence ao usuário e obter tipo (se fornecida)
+    let contaTipo: string | null = null;
     if (accountId) {
       const { data: account } = await supabase
         .from("contas")
-        .select("id")
+        .select("id, tipo")
         .eq("id", accountId)
         .eq("user_id", auth.user.id)
         .single();
@@ -146,7 +151,19 @@ export async function POST(request: NextRequest) {
       if (!account) {
         return ErrorResponses.notFound("Conta", true);
       }
+      contaTipo = account.tipo;
     }
+
+    // Função para calcular mes_fatura
+    // Para cartão de crédito: usa mesFatura enviado pelo frontend
+    // Para outras contas: primeiro dia do mês da transação
+    const calcularMesFatura = (dataTransacao: string, mesFaturaParam?: string): string => {
+      if (contaTipo === "CARTAO_CREDITO" && mesFaturaParam) {
+        return mesFaturaParam;
+      }
+      const date = new Date(dataTransacao);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`;
+    };
 
     // If it's an installment transaction, create all installments in batch (atômico)
     if (parcelas && parcelas > 1) {
@@ -159,15 +176,33 @@ export async function POST(request: NextRequest) {
       const valorParcela = Math.round((valor / parcelas) * 100) / 100; // Arredondar para 2 casas
       const dataBase = new Date(data);
 
+      // Para parcelas, calcular mes_fatura de cada uma
+      // Se mesFatura foi informado (cartão), incrementa o mês para cada parcela
+      // Se não foi informado, usa o mês da data da parcela
+      const mesFaturaBase = mesFatura ? new Date(mesFatura) : null;
+
       for (let i = 0; i < parcelas; i++) {
         const dataParcela = new Date(dataBase);
         dataParcela.setMonth(dataParcela.getMonth() + i);
+
+        // Calcular mes_fatura da parcela
+        let mesFaturaParcela: string;
+        if (mesFaturaBase) {
+          // Cartão de crédito: incrementa o mês da fatura base
+          const mesFaturaParcelaDate = new Date(mesFaturaBase);
+          mesFaturaParcelaDate.setMonth(mesFaturaParcelaDate.getMonth() + i);
+          mesFaturaParcela = `${mesFaturaParcelaDate.getFullYear()}-${String(mesFaturaParcelaDate.getMonth() + 1).padStart(2, "0")}-01`;
+        } else {
+          // Outras contas: usa o mês da data da parcela
+          mesFaturaParcela = `${dataParcela.getFullYear()}-${String(dataParcela.getMonth() + 1).padStart(2, "0")}-01`;
+        }
 
         const transactionData: Record<string, unknown> = {
           descricao: `${descricao} (${i + 1}/${parcelas})`,
           valor: valorParcela,
           tipo: tipo as DbTransactionType,
           data: dataParcela.toISOString().split("T")[0], // Apenas data, sem hora
+          mes_fatura: mesFaturaParcela, // NOVO: mês da fatura
           recorrente: false,
           parcelas,
           parcela_atual: i + 1,
@@ -204,11 +239,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Single transaction
+    const dataTransacao = new Date(data).toISOString().split("T")[0] ?? "";
     const insertData: Record<string, unknown> = {
       descricao: descricao.trim(),
       valor,
       tipo: tipo as DbTransactionType,
-      data: new Date(data).toISOString(),
+      data: dataTransacao,
+      mes_fatura: calcularMesFatura(dataTransacao, mesFatura), // NOVO: mês da fatura
       recorrente: recorrente || false,
       category_id: categoryId || null,
       account_id: accountId || null,
@@ -264,7 +301,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const supabase = await getSupabaseClient();
 
-    const { id, descricao, valor, tipo, data, recorrente, categoryId, accountId, tags, notas, ownership } = body;
+    const { id, descricao, valor, tipo, data, mesFatura, recorrente, categoryId, accountId, tags, notas, ownership } = body;
 
     if (!id) {
       return ErrorResponses.badRequest("ID da transação é obrigatório");
@@ -300,7 +337,8 @@ export async function PUT(request: NextRequest) {
     if (descricao !== undefined) updateData.descricao = descricao;
     if (valor !== undefined) updateData.valor = valor;
     if (tipo !== undefined) updateData.tipo = tipo;
-    if (data !== undefined) updateData.data = new Date(data).toISOString();
+    if (data !== undefined) updateData.data = new Date(data).toISOString().split("T")[0];
+    if (mesFatura !== undefined) updateData.mes_fatura = mesFatura;
     if (recorrente !== undefined) updateData.recorrente = recorrente;
     if (categoryId !== undefined) updateData.category_id = categoryId;
     if (accountId !== undefined) updateData.account_id = accountId;
