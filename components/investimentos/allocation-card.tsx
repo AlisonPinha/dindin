@@ -108,9 +108,9 @@ export function AllocationCard({
         <CardTitle>Alocação da Carteira</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="flex items-center gap-6">
+        <div className="flex flex-col md:flex-row md:items-center gap-6">
           {/* Pie Chart */}
-          <div className="w-[180px] h-[180px]">
+          <div className="w-full md:w-[180px] h-[180px] flex-shrink-0 mx-auto md:mx-0">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -132,7 +132,7 @@ export function AllocationCard({
           </div>
 
           {/* Legend with percentages */}
-          <div className="flex-1 space-y-3">
+          <div className="flex-1 w-full space-y-3">
             {currentAllocation.map((item) => {
               const currentPercent = totalValue > 0 ? (item.value / totalValue) * 100 : 0
               const diff = item.targetPercent !== undefined
@@ -140,11 +140,11 @@ export function AllocationCard({
                 : null
 
               return (
-                <div key={item.type} className="space-y-1">
+                <div key={item.type} className="w-full space-y-1">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div
-                        className="h-3 w-3 rounded-full"
+                        className="h-3 w-3 rounded-full flex-shrink-0"
                         style={{ backgroundColor: item.color }}
                       />
                       <span className="text-sm font-medium">{item.label}</span>
@@ -169,12 +169,12 @@ export function AllocationCard({
                   </div>
 
                   {item.targetPercent !== undefined && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 w-full">
                       <Progress
                         value={currentPercent}
                         className="h-1.5 flex-1"
                       />
-                      <span className="text-xs text-muted-foreground w-12 text-right">
+                      <span className="text-xs text-muted-foreground w-14 text-right flex-shrink-0">
                         Meta: {item.targetPercent}%
                       </span>
                     </div>
