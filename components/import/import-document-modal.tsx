@@ -535,137 +535,175 @@ export function ImportDocumentModal({
       // Mapear nome de categoria para ID de categoria
       // Também tenta inferir categoria pela descrição da transação
       const findCategoryId = (categoryName: string | undefined, descricao?: string): string | null => {
-        // Mapeamento abrangente de categorias OCR para categorias do sistema
-        const categoryMap: Record<string, string[]> = {
+        // Mapeamento de palavras-chave na descrição para nomes de categorias
+        // As chaves são palavras que podem aparecer na descrição da transação
+        // Os valores são nomes de categorias que o usuário pode ter cadastrado
+        const descriptionToCategoryMap: Array<{ keywords: string[]; categoryNames: string[] }> = [
+          // Assinaturas e Streaming
+          {
+            keywords: [
+              "apple.com/bill", "apple.com", "apple bill", "itunes", "app store",
+              "netflix", "spotify", "amazon prime", "prime video", "disney+", "disney plus",
+              "hbo", "paramount", "star+", "globoplay", "deezer", "youtube premium",
+              "youtube music", "apple music", "apple tv", "audible", "kindle",
+              "xbox game pass", "playstation plus", "ps plus", "ebn sony", "sonyplaystat",
+              "microsoft", "office 365", "adobe", "dropbox", "icloud", "google one",
+              "chatgpt", "openai", "midjourney", "canva"
+            ],
+            categoryNames: ["assinaturas", "assinatura", "streaming", "servicos digitais", "serviços digitais", "digital"]
+          },
+          // Compras Online / E-commerce
+          {
+            keywords: [
+              "mercadolivre", "mercado livre", "mp ", "meli", "mercadopago",
+              "amazon", "shopee", "aliexpress", "shein", "wish",
+              "magalu", "magazine luiza", "americanas", "submarino",
+              "casas bahia", "ponto frio", "fast shop",
+              "kabum", "pichau", "terabyte", "3produtos", "4produtos", "2produtos",
+              "ebazar", "bazar"
+            ],
+            categoryNames: ["compras", "compra", "e-commerce", "ecommerce", "shopping", "loja", "lojas"]
+          },
+          // Internet e Telefone
+          {
+            keywords: [
+              "internet", "af internet", "claro", "vivo", "tim", "oi",
+              "net", "gvt", "fibra", "banda larga", "telefone", "celular"
+            ],
+            categoryNames: ["internet", "telefone", "telecomunicacoes", "telecomunicações", "comunicacao", "comunicação", "moradia", "casa"]
+          },
+          // Viagem e Hospedagem
+          {
+            keywords: [
+              "hotel", "hoteis", "hoteis.com", "booking", "airbnb",
+              "decolar", "hurb", "latam", "gol", "azul", "passagem",
+              "hospedagem", "pousada", "resort", "trivago", "expedia"
+            ],
+            categoryNames: ["viagem", "viagens", "hospedagem", "turismo", "lazer"]
+          },
           // Alimentação
-          "alimentacao": [
-            "alimentacao", "comida", "restaurante", "supermercado", "mercado",
-            "ifood", "uber eats", "rappi", "zé delivery", "ze delivery",
-            "padaria", "lanchonete", "cafe", "pizza", "hamburguer", "sushi",
-            "mcdonalds", "burger king", "subway", "starbucks", "outback",
-            "carrefour", "extra", "pao de acucar", "assai", "atacadao", "sams club",
-            "big", "nacional", "zaffari", "bourbon", "guanabara", "mundial"
-          ],
+          {
+            keywords: [
+              "ifood", "uber eats", "rappi", "ze delivery", "zé delivery",
+              "restaurante", "lanchonete", "padaria", "cafe", "pizza",
+              "mcdonalds", "burger king", "subway", "starbucks", "outback",
+              "supermercado", "mercado", "carrefour", "extra", "pao de acucar",
+              "assai", "atacadao", "big", "nacional", "zaffari"
+            ],
+            categoryNames: ["alimentacao", "alimentação", "comida", "restaurante", "mercado", "supermercado"]
+          },
           // Transporte
-          "transporte": [
-            "transporte", "uber", "99", "taxi", "cabify", "combustivel", "gasolina",
-            "posto", "shell", "ipiranga", "br", "ale", "estacionamento", "pedagio",
-            "bilhete unico", "metro", "trem", "onibus", "passagem", "locacao carro",
-            "localiza", "movida", "unidas", "hertz", "rent a car"
-          ],
-          // Compras / E-commerce
-          "compras": [
-            "compras", "shopping", "mercado livre", "mercadolivre", "amazon",
-            "aliexpress", "shopee", "magalu", "magazine luiza", "americanas",
-            "casas bahia", "ponto frio", "fast shop", "renner", "c&a", "cea",
-            "riachuelo", "marisa", "zara", "shein", "wish", "etsy", "ebay",
-            "kabum", "pichau", "terabyte", "aliexpress", "apple.com", "apple"
-          ],
-          // Assinaturas / Streaming
-          "assinaturas": [
-            "assinaturas", "streaming", "netflix", "spotify", "amazon prime",
-            "disney+", "disney plus", "hbo max", "hbo", "paramount", "star+",
-            "globoplay", "deezer", "youtube premium", "youtube music", "apple music",
-            "apple tv", "audible", "kindle unlimited", "xbox game pass", "playstation plus",
-            "adobe", "microsoft 365", "office 365", "dropbox", "icloud", "google one"
-          ],
-          // Lazer / Entretenimento
-          "lazer": [
-            "lazer", "entretenimento", "cinema", "cinemark", "uci", "kinoplex",
-            "show", "teatro", "museu", "parque", "ingresso", "ticketmaster",
-            "eventim", "sympla", "games", "steam", "playstation", "xbox", "nintendo",
-            "bar", "balada", "festa", "clube", "academia"
-          ],
+          {
+            keywords: [
+              "uber", "99", "taxi", "cabify", "combustivel", "gasolina",
+              "posto", "shell", "ipiranga", "estacionamento", "pedagio",
+              "metro", "trem", "onibus", "passagem"
+            ],
+            categoryNames: ["transporte", "transportes", "mobilidade", "combustivel", "combustível"]
+          },
           // Saúde
-          "saude": [
-            "saude", "farmacia", "drogaria", "medico", "hospital", "clinica",
-            "laboratorio", "consulta", "exame", "plano de saude", "unimed",
-            "bradesco saude", "sulamerica", "amil", "hapvida", "notre dame",
-            "droga raia", "drogasil", "pacheco", "pague menos", "panvel",
-            "ultrafarma", "onofre", "drogaria araujo", "extrafarma"
-          ],
+          {
+            keywords: [
+              "farmacia", "drogaria", "medico", "hospital", "clinica",
+              "laboratorio", "consulta", "exame", "plano de saude",
+              "unimed", "bradesco saude", "sulamerica", "amil",
+              "droga raia", "drogasil", "pacheco", "pague menos", "panvel"
+            ],
+            categoryNames: ["saude", "saúde", "farmacia", "farmácia", "medico", "médico"]
+          },
           // Educação
-          "educacao": [
-            "educacao", "escola", "faculdade", "universidade", "curso",
-            "livro", "livraria", "material escolar", "saraiva", "cultura",
-            "udemy", "coursera", "alura", "rocketseat", "descomplica",
-            "duolingo", "mensalidade", "matricula"
-          ],
-          // Moradia / Casa
-          "moradia": [
-            "moradia", "aluguel", "condominio", "luz", "energia", "agua",
-            "internet", "telefone", "gas", "iptu", "seguro residencial",
-            "net", "claro", "vivo", "tim", "oi", "gvt", "enel", "cpfl",
-            "copel", "cemig", "light", "celesc", "coelba", "sabesp", "cedae"
-          ],
-          // Viagem / Hospedagem
-          "viagem": [
-            "viagem", "hotel", "hoteis", "hoteis.com", "booking", "airbnb",
-            "decolar", "hurb", "latam", "gol", "azul", "passagem aerea",
-            "hospedagem", "pousada", "resort", "cruzeiro", "trivago",
-            "expedia", "kayak", "skyscanner"
-          ],
+          {
+            keywords: [
+              "escola", "faculdade", "universidade", "curso",
+              "livro", "livraria", "udemy", "coursera", "alura",
+              "rocketseat", "descomplica", "duolingo", "mensalidade"
+            ],
+            categoryNames: ["educacao", "educação", "estudo", "estudos", "curso", "cursos"]
+          },
+          // Lazer / Entretenimento
+          {
+            keywords: [
+              "cinema", "cinemark", "teatro", "show", "ingresso",
+              "games", "steam", "playstation", "xbox", "nintendo",
+              "bar", "balada", "festa", "clube", "academia"
+            ],
+            categoryNames: ["lazer", "entretenimento", "diversao", "diversão"]
+          },
           // Pet
-          "pet": [
-            "pet", "petshop", "veterinario", "racao", "petz", "cobasi",
-            "petlove", "cachorro", "gato", "animal"
-          ],
-          // Outros
-          "outros": ["outros", "outras", "diversos", "geral"]
-        }
+          {
+            keywords: [
+              "pet", "petshop", "veterinario", "racao", "petz", "cobasi", "petlove"
+            ],
+            categoryNames: ["pet", "pets", "animal", "animais"]
+          },
+          // Moradia / Casa
+          {
+            keywords: [
+              "aluguel", "condominio", "luz", "energia", "agua", "gas", "iptu",
+              "enel", "cpfl", "cemig", "light", "sabesp", "cedae"
+            ],
+            categoryNames: ["moradia", "casa", "aluguel", "contas", "contas fixas"]
+          }
+        ]
 
-        // 1. Primeiro, tentar pela categoria retornada pelo OCR
+        const normalizedDesc = descricao ? normalizeText(descricao) : ""
+        const normalizedCategoryName = categoryName ? normalizeText(categoryName) : ""
+
+        // 1. Tentar match exato com categoria do sistema pelo nome da categoria OCR
         if (categoryName) {
-          const normalizedCategory = normalizeText(categoryName)
-
-          // Match exato com categoria do sistema
           const exactMatch = categories.find(
-            (cat) => normalizeText(cat.name) === normalizedCategory
+            (cat) => normalizeText(cat.name) === normalizedCategoryName
           )
           if (exactMatch) return exactMatch.id
+        }
 
-          // Match por mapeamento
-          for (const [categoryKey, aliases] of Object.entries(categoryMap)) {
-            if (aliases.some(alias => normalizedCategory.includes(alias) || alias.includes(normalizedCategory))) {
-              const matched = categories.find(
-                (cat) => normalizeText(cat.name).includes(categoryKey) || categoryKey.includes(normalizeText(cat.name))
-              )
-              if (matched) return matched.id
+        // 2. Inferir categoria pela descrição da transação
+        if (normalizedDesc) {
+          for (const mapping of descriptionToCategoryMap) {
+            // Verificar se alguma keyword está na descrição
+            const hasKeyword = mapping.keywords.some(keyword =>
+              normalizedDesc.includes(normalizeText(keyword))
+            )
+
+            if (hasKeyword) {
+              // Tentar encontrar uma categoria do usuário que corresponda
+              for (const catName of mapping.categoryNames) {
+                const matched = categories.find(cat => {
+                  const normalizedCatName = normalizeText(cat.name)
+                  return normalizedCatName === catName ||
+                         normalizedCatName.includes(catName) ||
+                         catName.includes(normalizedCatName)
+                })
+                if (matched) return matched.id
+              }
             }
           }
         }
 
-        // 2. Se não encontrou pela categoria, tentar inferir pela descrição
-        if (descricao) {
-          const normalizedDesc = normalizeText(descricao)
-
-          for (const [categoryKey, aliases] of Object.entries(categoryMap)) {
-            if (aliases.some(alias => normalizedDesc.includes(alias))) {
-              // Encontrar a categoria do sistema correspondente
-              const matched = categories.find(
-                (cat) => normalizeText(cat.name).includes(categoryKey) || categoryKey.includes(normalizeText(cat.name))
-              )
-              if (matched) return matched.id
-            }
-          }
-        }
-
-        // 3. Se ainda não encontrou, tentar match parcial com qualquer categoria
+        // 3. Tentar match parcial com categoria do sistema pelo nome da categoria OCR
         if (categoryName) {
-          const normalizedCategory = normalizeText(categoryName)
-          const partialMatch = categories.find(
-            (cat) => normalizeText(cat.name).includes(normalizedCategory) ||
-                     normalizedCategory.includes(normalizeText(cat.name))
-          )
+          const partialMatch = categories.find(cat => {
+            const normalizedCatName = normalizeText(cat.name)
+            return normalizedCatName.includes(normalizedCategoryName) ||
+                   normalizedCategoryName.includes(normalizedCatName)
+          })
           if (partialMatch) return partialMatch.id
         }
 
-        // 4. Retornar primeira categoria de despesa como fallback (se existir)
-        const defaultExpenseCategory = categories.find(
-          (cat) => cat.type === "expense" || normalizeText(cat.name) === "outros"
-        )
-        if (defaultExpenseCategory) return defaultExpenseCategory.id
+        // 4. Tentar match direto da descrição com nome de categoria
+        if (normalizedDesc) {
+          const directMatch = categories.find(cat => {
+            const normalizedCatName = normalizeText(cat.name)
+            return normalizedDesc.includes(normalizedCatName) ||
+                   normalizedCatName.split(" ").some(word =>
+                     word.length > 3 && normalizedDesc.includes(word)
+                   )
+          })
+          if (directMatch) return directMatch.id
+        }
 
+        // 5. NÃO usar fallback - retornar null para transações sem categoria identificada
+        // Isso permite que o usuário categorize manualmente
         return null
       }
 
