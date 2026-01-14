@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
-  ArrowLeftRight,
+  Repeat,
   TrendingUp,
   Target,
   Settings,
@@ -36,7 +36,7 @@ import { useRouter } from "next/navigation"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Transações", href: "/transacoes", icon: ArrowLeftRight },
+  { name: "Transações", href: "/transacoes", icon: Repeat },
   { name: "Investimentos", href: "/investimentos", icon: TrendingUp },
   { name: "Metas", href: "/metas", icon: Target },
   { name: "Configurações", href: "/configuracoes", icon: Settings },
@@ -188,15 +188,6 @@ export function Sidebar({ className, onClose }: SidebarProps) {
                 <ArrowUpCircle className="h-4 w-4 text-white" />
               </div>
               <span className="font-medium">Receita</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => openAddTransaction("transfer")}
-              className="gap-3 py-2.5"
-            >
-              <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
-                <ArrowLeftRight className="h-4 w-4 text-white" />
-              </div>
-              <span className="font-medium">Transferência</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
