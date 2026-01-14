@@ -16,7 +16,7 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
       className,
       value,
       onChange,
-      locale = "pt-BR",
+      locale: _locale = "pt-BR",
       ...props
     },
     ref
