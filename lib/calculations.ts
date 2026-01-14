@@ -479,6 +479,18 @@ function isInstallmentTransaction(t: Transaction): boolean {
   )
 }
 
+/**
+ * Filtra transações para o mês visualizado.
+ *
+ * LÓGICA SIMPLIFICADA:
+ * - Compara mes_fatura com o mês/ano visualizado
+ * - Funciona para qualquer tipo de conta
+ * - Parcelas já têm seu próprio mes_fatura (definido no backend)
+ *
+ * @param transactions - Lista de transações
+ * @param viewedMonth - Mês visualizado (0-11, onde 0 = Janeiro)
+ * @param viewedYear - Ano visualizado
+ */
 export function getTransacoesDoMes(
   transactions: Transaction[],
   viewedMonth: number,
@@ -492,64 +504,24 @@ export function getTransacoesDoMes(
 
   return transactions
     .filter((t) => {
-      // NOVA LÓGICA: Se a transação tem mes_fatura, usar esse campo diretamente
-      // mes_fatura já foi calculado no backend baseado no tipo de conta
+      // LÓGICA PRINCIPAL: Usar mes_fatura para filtrar
+      // mes_fatura é calculado no backend baseado no tipo de conta
       if (t.mesFatura) {
         const mesFatura = new Date(t.mesFatura)
         return mesFatura.getMonth() === viewedMonth && mesFatura.getFullYear() === viewedYear
       }
 
-      // FALLBACK (para transações antigas sem mes_fatura): usar lógica anterior
+      // FALLBACK (transações antigas sem mes_fatura): usar data da transação
       const transactionDate = new Date(t.date)
-      const transactionMonth = transactionDate.getMonth()
-      const transactionYear = transactionDate.getFullYear()
-
-      // REGRA: Transação parcelada (parcela_inicial >= 1 E total_parcelas >= 2)
-      if (isInstallmentTransaction(t)) {
-        // FÓRMULA: diferenca_em_meses = (ano_visualizado - ano_transacao) * 12 + (mes_visualizado - mes_transacao)
-        const monthDiff = calculateMonthDifference(
-          transactionYear,
-          transactionMonth,
-          viewedYear,
-          viewedMonth
-        )
-        // FÓRMULA: parcela_atual = parcela_inicial + diferenca_em_meses
-        const calculatedInstallment = t.currentInstallment! + monthDiff
-
-        // REGRA: Pertence ao mês se parcela_calculada >= 1 E parcela_calculada <= total_parcelas
-        return calculatedInstallment >= 1 && calculatedInstallment <= t.installments!
-      }
-
-      // REGRA: Transação única (sem parcelamento)
-      // Pertence ao mês se: mes_da_transacao == mes_visualizado E ano_da_transacao == ano_visualizado
-      return transactionMonth === viewedMonth && transactionYear === viewedYear
+      return transactionDate.getMonth() === viewedMonth && transactionDate.getFullYear() === viewedYear
     })
     .map((t) => {
-      // Add calculated installment info for display
+      // Adicionar texto de parcela para exibição
       if (isInstallmentTransaction(t)) {
-        // Se tem mes_fatura, o currentInstallment já é a parcela correta
-        if (t.mesFatura) {
-          return {
-            ...t,
-            calculatedInstallment: t.currentInstallment!,
-            installmentDisplay: `${t.currentInstallment}/${t.installments}`,
-          }
-        }
-
-        // Fallback: cálculo dinâmico para transações antigas
-        const transactionDate = new Date(t.date)
-        const monthDiff = calculateMonthDifference(
-          transactionDate.getFullYear(),
-          transactionDate.getMonth(),
-          viewedYear,
-          viewedMonth
-        )
-        const calculatedInstallment = t.currentInstallment! + monthDiff
-
         return {
           ...t,
-          calculatedInstallment,
-          installmentDisplay: `${calculatedInstallment}/${t.installments}`,
+          calculatedInstallment: t.currentInstallment!,
+          installmentDisplay: `${t.currentInstallment}/${t.installments}`,
         }
       }
       return t
