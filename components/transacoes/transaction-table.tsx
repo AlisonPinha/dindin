@@ -12,6 +12,7 @@ import {
   Paperclip,
   Home,
   User,
+  CreditCard,
 } from "lucide-react"
 import { getCategoryIcon } from "@/lib/category-icons"
 import {
@@ -58,6 +59,7 @@ interface TransactionWithExtras extends Transaction {
     totalAmount: number
   }
   attachment?: string
+  mesFatura?: Date | null
 }
 
 interface TransactionTableProps {
@@ -206,7 +208,19 @@ export function TransactionTable({
               >
                 {/* Date */}
                 <TableCell className="font-medium text-sm">
-                  {formatDate(transaction.date)}
+                  <div className="flex items-center gap-1.5">
+                    {formatDate(transaction.date)}
+                    {transaction.mesFatura && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <CreditCard className="h-3.5 w-3.5 text-blue-500 cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <span>Fatura de {new Date(transaction.mesFatura).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</span>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
                 </TableCell>
 
                 {/* Description */}

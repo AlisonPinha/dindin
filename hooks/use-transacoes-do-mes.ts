@@ -296,6 +296,8 @@ function agruparPorContexto(
 
 /**
  * Calcula fluxo semanal
+ * Para transações de cartão de crédito (com mesFatura), agrupa na primeira semana do mês da fatura
+ * Para outras transações, usa a data original da transação
  */
 function calcularFluxoSemanal(
   transacoes: TransactionWithInstallment[],
@@ -312,8 +314,19 @@ function calcularFluxoSemanal(
   ]
 
   transacoes.forEach((t) => {
-    const dataTransacao = new Date(t.date)
-    const diaTransacao = dataTransacao.getDate()
+    // Para transações de cartão de crédito com mesFatura definido,
+    // agrupar na primeira semana (dia do vencimento/fatura)
+    // Para outras transações, usar a data original
+    let diaTransacao: number
+
+    if (t.mesFatura) {
+      // Transação de cartão de crédito: agrupar no início do mês da fatura
+      // Isso faz sentido pois a fatura é paga no início do mês
+      diaTransacao = 1
+    } else {
+      const dataTransacao = new Date(t.date)
+      diaTransacao = dataTransacao.getDate()
+    }
 
     const semanaIndex = semanas.findIndex(
       (s) => diaTransacao >= s.inicio && diaTransacao <= s.fim
