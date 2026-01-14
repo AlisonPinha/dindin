@@ -359,3 +359,302 @@ export function calculateTimeToGoal(
 
   return months
 }
+
+// ================================
+// Installment Calculations
+// ================================
+
+/**
+ * Calculates the month difference between two dates
+ * FÓRMULA: diferenca_em_meses = (ano_destino - ano_origem) * 12 + (mes_destino - mes_origem)
+ *
+ * @param fromYear - Ano de origem
+ * @param fromMonth - Mês de origem (0-11)
+ * @param toYear - Ano de destino
+ * @param toMonth - Mês de destino (0-11)
+ * @returns Diferença em meses (pode ser negativo)
+ */
+export function calculateMonthDifference(
+  fromYear: number,
+  fromMonth: number,
+  toYear: number,
+  toMonth: number
+): number {
+  return (toYear - fromYear) * 12 + (toMonth - fromMonth)
+}
+
+export interface InstallmentCalculation {
+  calculatedInstallment: number
+  totalInstallments: number
+  isVisible: boolean
+  displayText: string
+}
+
+/**
+ * Calculates the dynamic installment number based on the viewed month
+ *
+ * FÓRMULA:
+ * diferenca_em_meses = (ano_visualizado - ano_transacao) * 12 + (mes_visualizado - mes_transacao)
+ * parcela_atual = parcela_inicial + diferenca_em_meses
+ *
+ * REGRAS:
+ * - Se parcela_atual > total_parcelas: não exibir (parcelas finalizadas)
+ * - Se parcela_atual < 1: não exibir (ainda não começou)
+ *
+ * @param transactionDate - Data original da compra/transação
+ * @param initialInstallment - Número da parcela salvo no banco (parcela_atual)
+ * @param totalInstallments - Total de parcelas (parcelas)
+ * @param viewedMonth - Mês sendo visualizado (0-11)
+ * @param viewedYear - Ano sendo visualizado
+ */
+export function calculateDynamicInstallment(
+  transactionDate: Date,
+  initialInstallment: number,
+  totalInstallments: number,
+  viewedMonth: number,
+  viewedYear: number
+): InstallmentCalculation {
+  const purchaseMonth = transactionDate.getMonth()
+  const purchaseYear = transactionDate.getFullYear()
+
+  // FÓRMULA: diferenca_em_meses = (ano_visualizado - ano_transacao) * 12 + (mes_visualizado - mes_transacao)
+  const monthDiff = calculateMonthDifference(purchaseYear, purchaseMonth, viewedYear, viewedMonth)
+
+  // FÓRMULA: parcela_atual = parcela_inicial + diferenca_em_meses
+  const calculatedInstallment = initialInstallment + monthDiff
+
+  // REGRA: Pertence ao mês se parcela_calculada >= 1 E parcela_calculada <= total_parcelas
+  const isVisible = calculatedInstallment >= 1 && calculatedInstallment <= totalInstallments
+
+  // Format display text
+  const displayText = isVisible
+    ? `${calculatedInstallment}/${totalInstallments}`
+    : ""
+
+  return {
+    calculatedInstallment,
+    totalInstallments,
+    isVisible,
+    displayText,
+  }
+}
+
+// ================================
+// Centralized Month Filter
+// ================================
+
+/**
+ * Transaction with calculated installment info for the viewed period
+ */
+export interface TransactionWithInstallment extends Transaction {
+  calculatedInstallment?: number
+  installmentDisplay?: string
+}
+
+/**
+ * Centralized function to filter transactions for a specific month
+ * This function should be used throughout the entire app to ensure consistency
+ *
+ * RULES:
+ * 1. Single transactions (no installments): include if transaction month/year matches viewed month/year
+ * 2. Installment transactions: include if calculated installment is between 1 and total installments
+ *
+ * @param transactions - All transactions to filter
+ * @param viewedMonth - Month being viewed (0-11)
+ * @param viewedYear - Year being viewed
+ * @returns Filtered transactions with calculated installment info
+ */
+/**
+ * Checks if a transaction is an installment transaction
+ * An installment transaction has: parcela_inicial >= 1 AND total_parcelas >= 2
+ */
+function isInstallmentTransaction(t: Transaction): boolean {
+  return (
+    t.installments !== null &&
+    t.installments !== undefined &&
+    t.installments >= 2 &&
+    t.currentInstallment !== null &&
+    t.currentInstallment !== undefined &&
+    t.currentInstallment >= 1
+  )
+}
+
+export function getTransacoesDoMes(
+  transactions: Transaction[],
+  viewedMonth: number,
+  viewedYear: number
+): TransactionWithInstallment[] {
+  // Validação de entrada
+  if (!Array.isArray(transactions)) {
+    console.error("getTransacoesDoMes: transactions deve ser um array")
+    return []
+  }
+
+  return transactions
+    .filter((t) => {
+      const transactionDate = new Date(t.date)
+      const transactionMonth = transactionDate.getMonth()
+      const transactionYear = transactionDate.getFullYear()
+
+      // REGRA: Transação parcelada (parcela_inicial >= 1 E total_parcelas >= 2)
+      if (isInstallmentTransaction(t)) {
+        // FÓRMULA: diferenca_em_meses = (ano_visualizado - ano_transacao) * 12 + (mes_visualizado - mes_transacao)
+        const monthDiff = calculateMonthDifference(
+          transactionYear,
+          transactionMonth,
+          viewedYear,
+          viewedMonth
+        )
+        // FÓRMULA: parcela_atual = parcela_inicial + diferenca_em_meses
+        const calculatedInstallment = t.currentInstallment! + monthDiff
+
+        // REGRA: Pertence ao mês se parcela_calculada >= 1 E parcela_calculada <= total_parcelas
+        return calculatedInstallment >= 1 && calculatedInstallment <= t.installments!
+      }
+
+      // REGRA: Transação única (sem parcelamento)
+      // Pertence ao mês se: mes_da_transacao == mes_visualizado E ano_da_transacao == ano_visualizado
+      return transactionMonth === viewedMonth && transactionYear === viewedYear
+    })
+    .map((t) => {
+      // Add calculated installment info for display
+      if (isInstallmentTransaction(t)) {
+        const transactionDate = new Date(t.date)
+        const monthDiff = calculateMonthDifference(
+          transactionDate.getFullYear(),
+          transactionDate.getMonth(),
+          viewedYear,
+          viewedMonth
+        )
+        const calculatedInstallment = t.currentInstallment! + monthDiff
+
+        return {
+          ...t,
+          calculatedInstallment,
+          installmentDisplay: `${calculatedInstallment}/${t.installments}`,
+        }
+      }
+      return t
+    })
+}
+
+/**
+ * Get income transactions for a specific month
+ */
+export function getReceitasDoMes(
+  transactions: Transaction[],
+  viewedMonth: number,
+  viewedYear: number
+): TransactionWithInstallment[] {
+  return getTransacoesDoMes(transactions, viewedMonth, viewedYear)
+    .filter((t) => t.type === "income")
+}
+
+/**
+ * Get expense transactions for a specific month
+ */
+export function getDespesasDoMes(
+  transactions: Transaction[],
+  viewedMonth: number,
+  viewedYear: number
+): TransactionWithInstallment[] {
+  return getTransacoesDoMes(transactions, viewedMonth, viewedYear)
+    .filter((t) => t.type === "expense")
+}
+
+/**
+ * Calculate totals for a specific month
+ */
+export interface MonthTotals {
+  totalIncome: number
+  totalExpenses: number
+  balance: number
+  transactionCount: number
+}
+
+export function calcularTotaisDoMes(
+  transactions: Transaction[],
+  viewedMonth: number,
+  viewedYear: number
+): MonthTotals {
+  const filtered = getTransacoesDoMes(transactions, viewedMonth, viewedYear)
+
+  const totalIncome = filtered
+    .filter((t) => t.type === "income")
+    .reduce((sum, t) => sum + t.amount, 0)
+
+  const totalExpenses = filtered
+    .filter((t) => t.type === "expense")
+    .reduce((sum, t) => sum + t.amount, 0)
+
+  return {
+    totalIncome,
+    totalExpenses,
+    balance: totalIncome - totalExpenses,
+    transactionCount: filtered.length,
+  }
+}
+
+// ================================
+// Safe Percentage Calculations
+// ================================
+
+/**
+ * Safely calculates a percentage, returning 0 if division would be invalid
+ * @param numerator - The value to be divided
+ * @param denominator - The value to divide by
+ * @param decimalPlaces - Number of decimal places (default: 1)
+ * @returns The percentage value, or 0 if invalid
+ */
+export function safePercentage(
+  numerator: number,
+  denominator: number,
+  decimalPlaces = 1
+): number {
+  if (denominator === 0 || !Number.isFinite(denominator) || !Number.isFinite(numerator)) {
+    return 0
+  }
+  const result = (numerator / denominator) * 100
+  if (!Number.isFinite(result)) {
+    return 0
+  }
+  const multiplier = Math.pow(10, decimalPlaces)
+  return Math.round(result * multiplier) / multiplier
+}
+
+/**
+ * Formats a percentage for display, returning "—" for invalid values
+ * @param value - The percentage value
+ * @param decimalPlaces - Number of decimal places (default: 1)
+ * @returns Formatted string like "25.5%" or "—"
+ */
+export function formatPercentage(
+  value: number | null | undefined,
+  decimalPlaces = 1
+): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return "—"
+  }
+  return `${value.toFixed(decimalPlaces)}%`
+}
+
+/**
+ * Safely calculates variation between two values
+ * @param current - Current value
+ * @param previous - Previous value
+ * @returns Variation as percentage, or null if invalid
+ */
+export function safeVariation(
+  current: number,
+  previous: number
+): number | null {
+  if (previous === 0) {
+    // If previous is 0 but current is not, return null (can't calculate percentage)
+    return current === 0 ? 0 : null
+  }
+  const variation = ((current - previous) / previous) * 100
+  if (!Number.isFinite(variation)) {
+    return null
+  }
+  return Math.round(variation * 10) / 10
+}

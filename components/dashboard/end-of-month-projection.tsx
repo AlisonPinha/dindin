@@ -16,6 +16,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { formatCurrency, cn } from "@/lib/utils"
+import { useTransacoesDoMes } from "@/hooks"
+import { safePercentage } from "@/lib/calculations"
 
 interface MonthComparison {
   month: string
@@ -24,33 +26,28 @@ interface MonthComparison {
 }
 
 interface EndOfMonthProjectionProps {
-  currentDayOfMonth: number
-  totalDaysInMonth: number
-  totalIncome: number
-  currentExpenses: number
-  averageDailyExpense: number
-  previousMonths: MonthComparison[]
+  previousMonths?: MonthComparison[]
   className?: string
 }
 
 export function EndOfMonthProjection({
-  currentDayOfMonth,
-  totalDaysInMonth,
-  totalIncome,
-  currentExpenses,
-  averageDailyExpense,
-  previousMonths,
+  previousMonths = [],
   className,
 }: EndOfMonthProjectionProps) {
-  // Calculate projections
-  const remainingDays = totalDaysInMonth - currentDayOfMonth
-  const projectedAdditionalExpenses = averageDailyExpense * remainingDays
-  const projectedTotalExpenses = currentExpenses + projectedAdditionalExpenses
-  const projectedBalance = totalIncome - projectedTotalExpenses
+  const { projecao, totais } = useTransacoesDoMes()
+
+  // Use data from hook
+  const currentDayOfMonth = projecao.diaAtual
+  const totalDaysInMonth = projecao.diasNoMes
+  const totalIncome = totais.receitas
+  const currentExpenses = projecao.gastosAtuais
+  const averageDailyExpense = projecao.mediaDiariaGastos
+  const projectedAdditionalExpenses = projecao.gastosRestantesProjetados
+  const projectedBalance = projecao.saldoProjetado
 
   // Calculate progress through month
-  const monthProgress = (currentDayOfMonth / totalDaysInMonth) * 100
-  const expenseProgress = (currentExpenses / totalIncome) * 100
+  const monthProgress = safePercentage(currentDayOfMonth, totalDaysInMonth)
+  const expenseProgress = safePercentage(currentExpenses, totalIncome)
 
   // Determine status
   const isTight = projectedBalance > 0 && projectedBalance < totalIncome * 0.1

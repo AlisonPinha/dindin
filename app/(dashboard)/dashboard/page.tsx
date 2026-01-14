@@ -8,6 +8,8 @@ import {
   AccountsSummary,
 } from "@/components/dashboard"
 import { useStore } from "@/hooks/use-store"
+import { useTransacoesDoMes } from "@/hooks"
+import { safePercentage, getTransacoesDoMes } from "@/lib/calculations"
 import type { Transaction, Account } from "@/types"
 import { Skeleton } from "@/components/animations/skeleton"
 
@@ -20,6 +22,7 @@ const MonthlyComparison = lazy(() => import("@/components/dashboard/monthly-comp
 const TopExpenses = lazy(() => import("@/components/dashboard/top-expenses").then(m => ({ default: m.TopExpenses })))
 const CoupleRanking = lazy(() => import("@/components/dashboard/couple-ranking").then(m => ({ default: m.CoupleRanking })))
 const PersonalExpensesSummary = lazy(() => import("@/components/dashboard/personal-expenses-summary").then(m => ({ default: m.PersonalExpensesSummary })))
+const FinancialHealthScore = lazy(() => import("@/components/dashboard/financial-health-score").then(m => ({ default: m.FinancialHealthScore })))
 
 // Loading skeleton for charts
 function ChartSkeleton({ className = "" }: { className?: string }) {
@@ -40,146 +43,80 @@ export default function DashboardPage() {
     goals,
     categories,
     familyMembers,
+    investments,
   } = useStore()
+
+  // ========================================
+  // FONTE ÚNICA DE VERDADE - useTransacoesDoMes
+  // ========================================
+  const {
+    transacoes,
+    totais,
+    totaisAnteriores,
+    mesVis,
+    anoVis,
+    mesAnterior,
+    anoAnterior,
+    despesasPorCategoria,
+    despesasPorMembro,
+    despesasPorContexto,
+  } = useTransacoesDoMes()
 
   const MONTHS = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
   ]
 
-  // Filter transactions for the selected period
-  const periodTransactions = useMemo(() => {
-    return transactions.filter(t => {
-      const date = new Date(t.date)
-      return date.getMonth() === selectedPeriod.month && date.getFullYear() === selectedPeriod.year
-    })
-  }, [transactions, selectedPeriod])
-
-  // Calculate summary data from real transactions
+  // Calculate summary data using CENTRALIZED hook data
   const summaryData = useMemo(() => {
-    const totalIncome = periodTransactions
-      .filter(t => t.type === "income")
-      .reduce((sum, t) => sum + t.amount, 0)
-
-    const totalExpenses = periodTransactions
-      .filter(t => t.type === "expense")
-      .reduce((sum, t) => sum + t.amount, 0)
-
     const totalBalance = accounts.reduce((sum, a) => {
       const balance = Number(a.balance) || 0
-      // Cartões de crédito são subtraídos (débito)
       if (a.type === "credit") {
         return sum - balance
       }
       return sum + balance
     }, 0)
 
-    // Calculate previous period (last month)
-    const prevMonth = selectedPeriod.month === 0 ? 11 : selectedPeriod.month - 1
-    const prevYear = selectedPeriod.month === 0 ? selectedPeriod.year - 1 : selectedPeriod.year
-
-    const prevTransactions = transactions.filter(t => {
-      const date = new Date(t.date)
-      return date.getMonth() === prevMonth && date.getFullYear() === prevYear
-    })
-
-    const previousIncome = prevTransactions
-      .filter(t => t.type === "income")
-      .reduce((sum, t) => sum + t.amount, 0)
-
-    const previousExpenses = prevTransactions
-      .filter(t => t.type === "expense")
-      .reduce((sum, t) => sum + t.amount, 0)
-
     // Calculate previous balance (estimate)
-    const previousBalance = totalBalance - (totalIncome - totalExpenses)
+    const previousBalance = totalBalance - totais.saldo
+
+    // Calcular investimentos do período atual (compras feitas no mês)
+    const periodInvestments = investments.filter(inv => {
+      const purchaseDate = new Date(inv.purchaseDate)
+      return purchaseDate.getMonth() === mesVis &&
+             purchaseDate.getFullYear() === anoVis
+    })
+    const totalInvested = periodInvestments.reduce((sum, inv) => sum + inv.purchasePrice, 0)
+
+    // Investimentos do mês anterior
+    const prevInvestments = investments.filter(inv => {
+      const purchaseDate = new Date(inv.purchaseDate)
+      return purchaseDate.getMonth() === mesAnterior && purchaseDate.getFullYear() === anoAnterior
+    })
+    const previousInvested = prevInvestments.reduce((sum, inv) => sum + inv.purchasePrice, 0)
+
+    // Valor total atual de todos os investimentos (para referência)
+    const totalInvestmentValue = investments.reduce((sum, inv) => sum + inv.currentPrice, 0)
 
     return {
       totalBalance,
       previousBalance: previousBalance > 0 ? previousBalance : 0,
-      totalIncome,
-      previousIncome,
-      totalExpenses,
-      previousExpenses,
-      totalInvested: 0, // Would need investments data
-      previousInvested: 0,
+      totalIncome: totais.receitas,
+      previousIncome: totaisAnteriores.receitas,
+      totalExpenses: totais.despesas,
+      previousExpenses: totaisAnteriores.despesas,
+      totalInvested,
+      previousInvested,
+      totalInvestmentValue,
     }
-  }, [periodTransactions, accounts, transactions, selectedPeriod])
+  }, [totais, totaisAnteriores, accounts, mesVis, anoVis, mesAnterior, anoAnterior, investments])
 
-  // Calculate budget rule data (50/30/20)
-  const budgetData = useMemo(() => {
-    const totalIncome = summaryData.totalIncome || 1 // Avoid division by zero
-
-    let essentials = 0
-    let lifestyle = 0
-    let investments = 0
-
-    periodTransactions
-      .filter(t => t.type === "expense")
-      .forEach(t => {
-        const category = categories.find(c => c.id === t.categoryId)
-        if (category) {
-          const catName = category.name.toLowerCase()
-          if (['moradia', 'alimentação', 'transporte', 'saúde', 'educação'].some(e => catName.includes(e))) {
-            essentials += t.amount
-          } else if (['investimento', 'renda fixa', 'ações', 'fundos', 'cripto'].some(e => catName.includes(e))) {
-            investments += t.amount
-          } else {
-            lifestyle += t.amount
-          }
-        } else {
-          lifestyle += t.amount
-        }
-      })
-
-    return {
-      totalIncome,
-      essentials,
-      lifestyle,
-      investments,
-    }
-  }, [periodTransactions, categories, summaryData.totalIncome])
-
-  // Calculate weekly flow data
-  const weeklyData = useMemo(() => {
-    const weeks: { week: string; income: number; expense: number; balance: number }[] = []
-    const daysInMonth = new Date(selectedPeriod.year, selectedPeriod.month + 1, 0).getDate()
-
-    for (let w = 0; w < 4; w++) {
-      const weekStart = w * 7 + 1
-      const weekEnd = Math.min((w + 1) * 7, daysInMonth)
-
-      const weekTransactions = periodTransactions.filter(t => {
-        const date = new Date(t.date)
-        const day = date.getDate()
-        return day >= weekStart && day <= weekEnd
-      })
-
-      const income = weekTransactions
-        .filter(t => t.type === "income")
-        .reduce((sum, t) => sum + t.amount, 0)
-
-      const expense = weekTransactions
-        .filter(t => t.type === "expense")
-        .reduce((sum, t) => sum + t.amount, 0)
-
-      weeks.push({
-        week: `Sem ${w + 1}`,
-        income,
-        expense,
-        balance: income - expense,
-      })
-    }
-
-    return weeks
-  }, [periodTransactions, selectedPeriod])
-
-  // Get recent transactions (last 5)
+  // Get recent transactions (last 5) from centralized hook
   const recentTransactions = useMemo(() => {
-    return [...periodTransactions]
+    return [...transacoes]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 5)
-  }, [periodTransactions])
+  }, [transacoes])
 
   // Get active goals with alerts
   const goalAlerts = useMemo(() => {
@@ -192,39 +129,36 @@ export default function DashboardPage() {
     balanceHistory?: { date: string; balance: number }[]
   })[] = useMemo(() => {
     return accounts.map(account => {
-      const accountTransactions = periodTransactions.filter(t => t.accountId === account.id)
+      const accountTransactions = transacoes.filter(t => t.accountId === account.id)
       return {
         ...account,
         transactions: accountTransactions,
         balanceHistory: [], // Would need historical data
       }
     })
-  }, [accounts, periodTransactions])
+  }, [accounts, transacoes])
 
-  // Calculate projection data
-  const projectionData = useMemo(() => {
-    const now = new Date()
-    const currentDayOfMonth = now.getDate()
-    const totalDaysInMonth = new Date(selectedPeriod.year, selectedPeriod.month + 1, 0).getDate()
-    const averageDailyExpense = currentDayOfMonth > 0
-      ? summaryData.totalExpenses / currentDayOfMonth
-      : 0
+  // Projection data is now calculated directly in EndOfMonthProjection component
+  // using the useTransacoesDoMes hook
 
-    return {
-      currentDayOfMonth,
-      totalDaysInMonth,
-      totalIncome: summaryData.totalIncome,
-      currentExpenses: summaryData.totalExpenses,
-      averageDailyExpense: Math.round(averageDailyExpense),
-      previousMonths: [], // Would need historical data
-    }
-  }, [selectedPeriod, summaryData])
-
-  // Calculate savings data by category
+  // Calculate savings data by category (usando orçamento mensal real das categorias)
   const savingsData = useMemo(() => {
     const categorySpending: Record<string, { spent: number; budget: number; name: string; color: string }> = {}
 
-    periodTransactions
+    // Primeiro, inicializar todas as categorias de despesa com seus orçamentos
+    categories
+      .filter(c => c.type === "expense" && c.monthlyBudget && c.monthlyBudget > 0)
+      .forEach(category => {
+        categorySpending[category.id] = {
+          spent: 0,
+          budget: category.monthlyBudget || 0,
+          name: category.name,
+          color: category.color || "#8E8E93",
+        }
+      })
+
+    // Depois, adicionar os gastos do período usando dados do hook centralizado
+    transacoes
       .filter(t => t.type === "expense")
       .forEach(t => {
         const category = categories.find(c => c.id === t.categoryId)
@@ -232,7 +166,7 @@ export default function DashboardPage() {
           if (!categorySpending[category.id]) {
             categorySpending[category.id] = {
               spent: 0,
-              budget: 0, // Would need budget data
+              budget: category.monthlyBudget || 0,
               name: category.name,
               color: category.color || "#8E8E93",
             }
@@ -244,23 +178,27 @@ export default function DashboardPage() {
         }
       })
 
-    const categorySavings = Object.entries(categorySpending).map(([id, data]) => ({
-      categoryId: id,
-      categoryName: data.name,
-      categoryColor: data.color,
-      budgetAmount: data.budget,
-      spentAmount: data.spent,
-      savedAmount: data.budget - data.spent,
-    }))
+    // Filtrar apenas categorias que têm orçamento definido ou gastos no período
+    const categorySavings = Object.entries(categorySpending)
+      .filter(([, data]) => data.budget > 0 || data.spent > 0)
+      .map(([id, data]) => ({
+        categoryId: id,
+        categoryName: data.name,
+        categoryColor: data.color,
+        budgetAmount: data.budget,
+        spentAmount: data.spent,
+        savedAmount: data.budget - data.spent,
+      }))
+      .sort((a, b) => b.spentAmount - a.spentAmount)
 
     return {
       categorySavings,
       totalBudget: categorySavings.reduce((sum, c) => sum + c.budgetAmount, 0),
       totalSpent: categorySavings.reduce((sum, c) => sum + c.spentAmount, 0),
     }
-  }, [periodTransactions, categories])
+  }, [transacoes, categories])
 
-  // Calculate monthly comparison data (last 6 months)
+  // Calculate monthly comparison data (last 6 months) using CENTRALIZED function
   const comparisonData = useMemo(() => {
     const data: { month: string; income: number; expenses: number; investments: number; balance: number }[] = []
     const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
@@ -274,10 +212,8 @@ export default function DashboardPage() {
         year -= 1
       }
 
-      const monthTransactions = transactions.filter(t => {
-        const date = new Date(t.date)
-        return date.getMonth() === month && date.getFullYear() === year
-      })
+      // Use centralized function for consistent filtering
+      const monthTransactions = getTransacoesDoMes(transactions, month, year)
 
       const income = monthTransactions
         .filter(t => t.type === "income")
@@ -299,64 +235,39 @@ export default function DashboardPage() {
     return data
   }, [transactions, selectedPeriod])
 
-  // Calculate top expenses
+  // Calculate top expenses using despesasPorCategoria from hook
   const topExpensesData = useMemo(() => {
-    const categoryTotals: Record<string, { current: number; previous: number; name: string; color: string }> = {}
-    const totalExpenses = summaryData.totalExpenses || 1
-
-    // Current period
-    periodTransactions
-      .filter(t => t.type === "expense")
-      .forEach(t => {
-        const category = categories.find(c => c.id === t.categoryId)
-        if (category) {
-          if (!categoryTotals[category.id]) {
-            categoryTotals[category.id] = {
-              current: 0,
-              previous: 0,
-              name: category.name,
-              color: category.color || "#8E8E93",
-            }
-          }
-          const entry = categoryTotals[category.id]
-          if (entry) {
-            entry.current += t.amount
-          }
-        }
-      })
-
-    const expenses = Object.entries(categoryTotals)
+    const expenses = Object.entries(despesasPorCategoria)
       .map(([id, data]) => ({
         categoryId: id,
-        categoryName: data.name,
-        categoryColor: data.color,
-        currentAmount: data.current,
-        previousAmount: data.previous,
-        percentage: (data.current / totalExpenses) * 100,
+        categoryName: data.nome,
+        categoryColor: data.cor,
+        currentAmount: data.valor,
+        previousAmount: 0,
+        percentage: data.percentual,
       }))
       .sort((a, b) => b.currentAmount - a.currentAmount)
       .slice(0, 9)
 
     return {
       expenses,
-      totalExpenses: summaryData.totalExpenses,
+      totalExpenses: totais.despesas,
     }
-  }, [periodTransactions, categories, summaryData.totalExpenses])
+  }, [despesasPorCategoria, totais.despesas])
 
-  // Calculate couple ranking (if family members exist)
+  // Calculate couple ranking using despesasPorMembro from hook
   const coupleRanking = useMemo(() => {
     const allMembers = user ? [user, ...familyMembers] : familyMembers
 
     const members = allMembers.slice(0, 2).map(member => {
-      const memberExpenses = periodTransactions
-        .filter(t => t.type === "expense" && t.userId === member.id)
-        .reduce((sum, t) => sum + t.amount, 0)
+      const memberData = despesasPorMembro[member.id]
+      const memberExpenses = memberData?.total || 0
 
       return {
         id: member.id,
         name: member.name,
         avatar: member.avatar || "",
-        savedAmount: 0, // Would need budget data
+        savedAmount: 0,
         unnecessarySpent: memberExpenses,
         streak: 0,
         isWinner: false,
@@ -378,23 +289,17 @@ export default function DashboardPage() {
       members,
       categoryName: "Gastos",
     }
-  }, [periodTransactions, user, familyMembers])
+  }, [despesasPorMembro, user, familyMembers])
 
-  // Calculate personal expenses summary
+  // Calculate personal expenses summary using despesasPorContexto from hook
   const personalExpensesData = useMemo(() => {
     const allMembers = user ? [user, ...familyMembers] : familyMembers
-    let householdExpense = 0
 
     const members = allMembers.slice(0, 2).map(member => {
-      const memberPersonalExpense = periodTransactions
+      // Calculate personal expense for each member from transacoes
+      const memberPersonalExpense = transacoes
         .filter(t => t.type === "expense" && t.userId === member.id && t.ownership === "personal")
         .reduce((sum, t) => sum + t.amount, 0)
-
-      const memberHouseholdExpense = periodTransactions
-        .filter(t => t.type === "expense" && t.userId === member.id && t.ownership !== "personal")
-        .reduce((sum, t) => sum + t.amount, 0)
-
-      householdExpense += memberHouseholdExpense
 
       return {
         id: member.id,
@@ -406,10 +311,68 @@ export default function DashboardPage() {
 
     return {
       members,
-      householdExpense,
-      totalExpense: summaryData.totalExpenses,
+      householdExpense: despesasPorContexto.casa,
+      totalExpense: totais.despesas,
     }
-  }, [periodTransactions, user, familyMembers, summaryData.totalExpenses])
+  }, [transacoes, despesasPorContexto, totais.despesas, user, familyMembers])
+
+  // Calculate Financial Health Score using SAFE calculations
+  const healthScoreData = useMemo(() => {
+    // Taxa de poupança usando safePercentage
+    const savingsRate = safePercentage(
+      summaryData.totalIncome - summaryData.totalExpenses,
+      summaryData.totalIncome
+    )
+
+    // Aderência ao orçamento (quanto % ficou dentro do orçamento)
+    const totalBudget = savingsData.totalBudget
+    const totalSpent = savingsData.totalSpent
+    const budgetAdherence = totalBudget > 0
+      ? Math.max(0, 100 - safePercentage(Math.max(0, totalSpent - totalBudget), totalBudget))
+      : 100 // Se não há orçamento definido, considera 100%
+
+    // Reserva de emergência (meses de despesas cobertos pelo saldo)
+    const emergencyFundMonths = summaryData.totalExpenses > 0 && summaryData.totalBalance > 0
+      ? summaryData.totalBalance / summaryData.totalExpenses
+      : 0
+
+    // Calcular score geral (0-100)
+    let score = 100
+
+    // Taxa de poupança (peso 40%)
+    if (savingsRate < 0) {
+      score -= 40 // Gastando mais do que ganha
+    } else if (savingsRate < 10) {
+      score -= 30
+    } else if (savingsRate < 20) {
+      score -= 15
+    }
+
+    // Aderência ao orçamento (peso 30%)
+    if (budgetAdherence < 80) {
+      score -= 30
+    } else if (budgetAdherence < 90) {
+      score -= 20
+    } else if (budgetAdherence < 100) {
+      score -= 10
+    }
+
+    // Reserva de emergência (peso 30%)
+    if (emergencyFundMonths < 1) {
+      score -= 30
+    } else if (emergencyFundMonths < 3) {
+      score -= 20
+    } else if (emergencyFundMonths < 6) {
+      score -= 10
+    }
+
+    return {
+      score: Math.max(0, Math.round(score)),
+      savingsRate: Math.max(-100, savingsRate),
+      budgetAdherence,
+      emergencyFundMonths: Math.max(0, emergencyFundMonths),
+    }
+  }, [summaryData, savingsData])
 
   return (
     <div className="space-y-8 page-transition">
@@ -429,18 +392,23 @@ export default function DashboardPage() {
       {/* Accounts Summary */}
       <AccountsSummary accounts={accountsWithHistory} />
 
-      {/* Charts Row */}
+      {/* Health Score + Budget Rule Row */}
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Weekly Flow Chart - takes 2 columns */}
-        <Suspense fallback={<ChartSkeleton className="lg:col-span-2" />}>
-          <WeeklyFlowChart data={weeklyData} />
+        {/* Financial Health Score - takes 1 column */}
+        <Suspense fallback={<ChartSkeleton />}>
+          <FinancialHealthScore {...healthScoreData} />
         </Suspense>
 
-        {/* Budget Rule Chart - takes 1 column */}
-        <Suspense fallback={<ChartSkeleton />}>
-          <BudgetRuleChart {...budgetData} />
+        {/* Weekly Flow Chart - takes 2 columns */}
+        <Suspense fallback={<ChartSkeleton className="lg:col-span-2" />}>
+          <WeeklyFlowChart className="lg:col-span-2" />
         </Suspense>
       </div>
+
+      {/* Budget Rule Chart (full width for more visibility) */}
+      <Suspense fallback={<ChartSkeleton />}>
+        <BudgetRuleChart />
+      </Suspense>
 
       {/* Bottom Row */}
       <div className="grid gap-6 lg:grid-cols-2">
@@ -463,7 +431,7 @@ export default function DashboardPage() {
         {/* Insights Row 1 - Projection and Savings */}
         <div className="grid gap-6 lg:grid-cols-2">
           <Suspense fallback={<ChartSkeleton />}>
-            <EndOfMonthProjection {...projectionData} />
+            <EndOfMonthProjection />
           </Suspense>
 
           <Suspense fallback={<ChartSkeleton />}>

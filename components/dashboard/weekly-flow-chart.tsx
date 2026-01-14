@@ -13,16 +13,10 @@ import {
 } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { formatCurrency } from "@/lib/utils"
-
-interface WeeklyData {
-  week: string
-  income: number
-  expense: number
-  balance: number
-}
+import { useTransacoesDoMes } from "@/hooks"
 
 interface WeeklyFlowChartProps {
-  data: WeeklyData[]
+  className?: string
 }
 
 interface TooltipPayload {
@@ -64,23 +58,23 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   )
 }
 
-export function WeeklyFlowChart({ data }: WeeklyFlowChartProps) {
-  // Calculate cumulative balance (trend line)
-  let cumulative = 0
-  const dataWithTrend = data.map((item) => {
-    cumulative += item.income - item.expense
-    return {
-      ...item,
-      trend: cumulative,
-    }
-  })
+export function WeeklyFlowChart({ className }: WeeklyFlowChartProps) {
+  const { fluxoSemanal, totais } = useTransacoesDoMes()
 
-  const totalIncome = data.reduce((sum, item) => sum + item.income, 0)
-  const totalExpense = data.reduce((sum, item) => sum + item.expense, 0)
-  const netBalance = totalIncome - totalExpense
+  // Transform hook data to chart format with trend line
+  const dataWithTrend = fluxoSemanal.map((semana) => ({
+    week: `Sem ${semana.semana}`,
+    income: semana.receitas,
+    expense: semana.despesas,
+    trend: semana.saldo, // Already cumulative from hook
+  }))
+
+  const totalIncome = totais.receitas
+  const totalExpense = totais.despesas
+  const netBalance = totais.saldo
 
   return (
-    <Card className="col-span-full lg:col-span-2">
+    <Card className={className || "col-span-full lg:col-span-2"}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>

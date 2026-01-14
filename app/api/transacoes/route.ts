@@ -222,25 +222,13 @@ export async function POST(request: NextRequest) {
       insertData.ownership = ownership as DbOwnershipType;
     }
 
-    logger.info("Creating transaction", { insertData: JSON.stringify(insertData) });
-
     const { data: transaction, error } = await supabase
       .from("transacoes")
       .insert(insertData)
       .select("*, categorias(*), contas(*)")
       .single();
 
-    if (error) {
-      logger.error("Supabase insert error", error, {
-        action: "insert",
-        resource: "transacoes",
-        errorCode: error.code,
-        errorMessage: error.message,
-        errorDetails: error.details,
-        errorHint: error.hint,
-      });
-      throw error;
-    }
+    if (error) throw error;
 
     return SuccessResponses.created({
       ...transaction,

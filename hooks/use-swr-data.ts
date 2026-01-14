@@ -104,6 +104,10 @@ const mapDbTransactionToTransaction = (
     user: users.find((u) => u.id === dbTx.user_id) || null,
     notes: dbTx.notas || undefined,
     ownership: dbTx.ownership === "PESSOAL" ? "personal" : "household",
+    isRecurring: dbTx.recorrente,
+    installments: dbTx.parcelas || undefined,
+    currentInstallment: dbTx.parcela_atual || undefined,
+    tags: dbTx.tags || undefined,
     createdAt: new Date(dbTx.created_at),
     updatedAt: new Date(dbTx.updated_at),
   }

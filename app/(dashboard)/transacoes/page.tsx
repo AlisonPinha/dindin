@@ -13,6 +13,7 @@ import type { TransactionFilters } from "@/components/transacoes"
 import { useToast } from "@/hooks/use-toast"
 import { useStore } from "@/hooks/use-store"
 import { useSWRData } from "@/hooks/use-swr-data"
+import { getTransacoesDoMes } from "@/lib/calculations"
 import type { Transaction, TransactionType } from "@/types"
 
 // Extended transaction type for installments and attachments
@@ -47,6 +48,7 @@ export default function TransacoesPage() {
     accounts,
     familyMembers,
     user,
+    selectedPeriod,
     addTransaction,
     updateTransaction,
     deleteTransaction: deleteTransactionStore,
@@ -58,10 +60,6 @@ export default function TransacoesPage() {
   // State for loading during API calls
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Convert store transactions to extended type
-  const transactions = useMemo(() => {
-    return storeTransactions.map(t => ({ ...t } as TransactionWithExtras))
-  }, [storeTransactions])
   const [filters, setFilters] = useState<TransactionFilters>({
     type: "all",
     categories: [],
@@ -74,14 +72,24 @@ export default function TransacoesPage() {
   const [modalMode, setModalMode] = useState<"create" | "edit">("create")
   const [editingTransaction, setEditingTransaction] = useState<TransactionWithExtras | null>(null)
 
-  // Apply filters
+  // Use centralized function for period filtering, then apply additional UI filters
   const filteredTransactions = useMemo(() => {
-    return transactions.filter((transaction) => {
-      // Date filter
-      if (filters.dateStart && new Date(transaction.date) < filters.dateStart) {
+    // First: filter by selected period using centralized function
+    const periodFiltered = getTransacoesDoMes(
+      storeTransactions,
+      selectedPeriod.month,
+      selectedPeriod.year
+    )
+
+    // Second: apply additional UI filters
+    return periodFiltered.filter((transaction) => {
+      const transactionDate = new Date(transaction.date)
+
+      // Additional date filters (if user specified custom range)
+      if (filters.dateStart && transactionDate < filters.dateStart) {
         return false
       }
-      if (filters.dateEnd && new Date(transaction.date) > filters.dateEnd) {
+      if (filters.dateEnd && transactionDate > filters.dateEnd) {
         return false
       }
 
@@ -114,8 +122,21 @@ export default function TransacoesPage() {
       }
 
       return true
+    }).map((transaction) => {
+      // Add installment display info for UI
+      if (transaction.calculatedInstallment && transaction.installments) {
+        return {
+          ...transaction,
+          installment: {
+            current: transaction.calculatedInstallment,
+            total: transaction.installments,
+            totalAmount: transaction.amount * transaction.installments,
+          },
+        } as TransactionWithExtras
+      }
+      return transaction as TransactionWithExtras
     })
-  }, [transactions, filters])
+  }, [storeTransactions, filters, selectedPeriod])
 
   // Calculate totals
   const totals = useMemo(() => {

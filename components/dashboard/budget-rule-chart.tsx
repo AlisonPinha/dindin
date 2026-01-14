@@ -4,6 +4,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recha
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { formatCurrency, cn } from "@/lib/utils"
+import { useTransacoesDoMes } from "@/hooks"
 
 interface BudgetCategory {
   name: string
@@ -11,13 +12,6 @@ interface BudgetCategory {
   actualValue: number
   targetValue: number
   color: string
-}
-
-interface BudgetRuleChartProps {
-  totalIncome: number
-  essentials: number // 50%
-  investments: number // 20%
-  lifestyle: number // 30%
 }
 
 interface ChartDataItem {
@@ -49,32 +43,29 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   )
 }
 
-export function BudgetRuleChart({
-  totalIncome,
-  essentials,
-  investments,
-  lifestyle,
-}: BudgetRuleChartProps) {
+export function BudgetRuleChart() {
+  const { regra503020 } = useTransacoesDoMes()
+
   const categories: BudgetCategory[] = [
     {
       name: "Essenciais (50%)",
       targetPercent: 50,
-      actualValue: essentials,
-      targetValue: totalIncome * 0.5,
+      actualValue: regra503020.essenciais.valor,
+      targetValue: regra503020.essenciais.meta,
       color: "#10b981", // emerald
     },
     {
       name: "Livres (30%)",
       targetPercent: 30,
-      actualValue: lifestyle,
-      targetValue: totalIncome * 0.3,
+      actualValue: regra503020.livres.valor,
+      targetValue: regra503020.livres.meta,
       color: "#3b82f6", // blue
     },
     {
       name: "Investimentos (20%)",
       targetPercent: 20,
-      actualValue: investments,
-      targetValue: totalIncome * 0.2,
+      actualValue: regra503020.investimentos.valor,
+      targetValue: regra503020.investimentos.meta,
       color: "#8b5cf6", // violet
     },
   ]
@@ -85,7 +76,7 @@ export function BudgetRuleChart({
     color: cat.color,
   }))
 
-  const total = essentials + investments + lifestyle
+  const total = regra503020.totalGasto
 
   const getProgressStatus = (actual: number, target: number) => {
     const ratio = actual / target
