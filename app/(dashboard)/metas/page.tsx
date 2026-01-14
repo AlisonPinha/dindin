@@ -396,23 +396,31 @@ export default function MetasPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
-          <TabsTrigger value="all">
-            Todas ({countByType.all})
-          </TabsTrigger>
-          <TabsTrigger value="savings">
-            Economia ({countByType.savings})
-          </TabsTrigger>
-          <TabsTrigger value="investment">
-            Investimento ({countByType.investment})
-          </TabsTrigger>
-          <TabsTrigger value="patrimony">
-            Patrimônio ({countByType.patrimony})
-          </TabsTrigger>
-          <TabsTrigger value="budget">
-            50/30/20
-          </TabsTrigger>
-        </TabsList>
+        <div className="relative">
+          {/* Indicador de scroll (fade direita) */}
+          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none z-10 lg:hidden" />
+
+          {/* Container scroll */}
+          <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0">
+            <TabsList className="inline-flex min-w-max gap-1 lg:grid lg:w-auto lg:grid-cols-5">
+              <TabsTrigger value="all" className="whitespace-nowrap px-4">
+                Todas ({countByType.all})
+              </TabsTrigger>
+              <TabsTrigger value="savings" className="whitespace-nowrap px-4">
+                Economia ({countByType.savings})
+              </TabsTrigger>
+              <TabsTrigger value="investment" className="whitespace-nowrap px-4">
+                Investimento ({countByType.investment})
+              </TabsTrigger>
+              <TabsTrigger value="patrimony" className="whitespace-nowrap px-4">
+                Patrimônio ({countByType.patrimony})
+              </TabsTrigger>
+              <TabsTrigger value="budget" className="whitespace-nowrap px-4">
+                50/30/20
+              </TabsTrigger>
+            </TabsList>
+          </div>
+        </div>
 
         {/* All tabs content */}
         <TabsContent value="all" className="mt-6 space-y-8">
