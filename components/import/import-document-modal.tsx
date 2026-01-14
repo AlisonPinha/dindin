@@ -642,9 +642,16 @@ export function ImportDocumentModal({
         return null
       }
 
+      // Função auxiliar para formatar data como YYYY-MM-DD
+      const formatDateYYYYMMDD = (date: Date): string => {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+      }
+
       // Função auxiliar para incrementar mês no formato YYYY-MM-01
       const incrementMonth = (mesFaturaStr: string, months: number): string => {
-        const [year, month] = mesFaturaStr.split("-").map(Number)
+        const parts = mesFaturaStr.split("-").map(Number)
+        const year = parts[0] || new Date().getFullYear()
+        const month = parts[1] || 1
         const date = new Date(year, month - 1 + months, 1)
         return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`
       }
@@ -699,7 +706,7 @@ export function ImportDocumentModal({
             descricao: `${descricaoBase} (${t.parcela}/${t.totalParcelas})`,
             valor,
             tipo,
-            data: finalDate.toISOString().split("T")[0],
+            data: formatDateYYYYMMDD(finalDate),
             categoryId,
             mesFatura: mesFatura || undefined,
             parcela: t.parcela,
@@ -720,7 +727,7 @@ export function ImportDocumentModal({
                 descricao: `${descricaoBase} (${i}/${t.totalParcelas})`,
                 valor,
                 tipo,
-                data: futureDate.toISOString().split("T")[0],
+                data: formatDateYYYYMMDD(futureDate),
                 categoryId,
                 mesFatura: futureMesFatura,
                 parcela: i,
@@ -739,7 +746,7 @@ export function ImportDocumentModal({
             descricao,
             valor,
             tipo,
-            data: finalDate.toISOString().split("T")[0],
+            data: formatDateYYYYMMDD(finalDate),
             categoryId,
           })
         }
