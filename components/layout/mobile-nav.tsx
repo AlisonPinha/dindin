@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
-  ArrowLeftRight,
+  Repeat,
   TrendingUp,
   Target,
   Plus,
@@ -27,7 +27,7 @@ interface NavItem {
 
 const navigation: NavItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Transações", href: "/transacoes", icon: ArrowLeftRight },
+  { name: "Transações", href: "/transacoes", icon: Repeat },
   { name: "add", href: "#", icon: Plus, isAction: true },
   { name: "Investimentos", href: "/investimentos", icon: TrendingUp },
   { name: "Metas", href: "/metas", icon: Target },
@@ -47,14 +47,8 @@ const addOptions = [
     color: "bg-emerald-500",
   },
   {
-    type: "transfer" as const,
-    label: "Transferência",
-    icon: ArrowLeftRight,
-    color: "bg-blue-500",
-  },
-  {
     type: "import" as const,
-    label: "Importar",
+    label: "Importar Documento",
     icon: Upload,
     color: "bg-amber-500",
   },
@@ -88,7 +82,7 @@ export function MobileNav() {
     }
   }, [pathname])
 
-  const handleOptionClick = (type: "expense" | "income" | "transfer" | "import") => {
+  const handleOptionClick = (type: "expense" | "income" | "import") => {
     setIsMenuOpen(false)
     if (type === "import") {
       setImportDocumentOpen(true)

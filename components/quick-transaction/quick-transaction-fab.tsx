@@ -6,12 +6,11 @@ import {
   X,
   ArrowDownCircle,
   ArrowUpCircle,
-  ArrowLeftRight,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { QuickTransactionModal } from "./quick-transaction-modal"
 
-type TransactionType = "expense" | "income" | "transfer"
+type TransactionType = "expense" | "income"
 
 const fabOptions = [
   {
@@ -27,13 +26,6 @@ const fabOptions = [
     icon: ArrowUpCircle,
     color: "bg-emerald-500 hover:bg-emerald-600",
     textColor: "text-emerald-500",
-  },
-  {
-    type: "transfer" as TransactionType,
-    label: "Transferência",
-    icon: ArrowLeftRight,
-    color: "bg-blue-500 hover:bg-blue-600",
-    textColor: "text-blue-500",
   },
 ]
 
