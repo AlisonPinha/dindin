@@ -717,9 +717,8 @@ export function ImportDocumentModal({
         // Encontrar categoria (passa também a descrição para melhor inferência)
         const categoryId = findCategoryId(t.categoria, descricaoBase)
 
-        // Se tem parcela, criar a transação da parcela atual E as futuras automaticamente
+        // Se tem parcela, incluir na descrição
         if (t.parcela && t.totalParcelas && t.totalParcelas > 1) {
-          // Criar a parcela atual
           transactionsToImport.push({
             descricao: `${descricaoBase} (${t.parcela}/${t.totalParcelas})`,
             valor,
@@ -727,51 +726,7 @@ export function ImportDocumentModal({
             data: formatDateYYYYMMDD(finalDate),
             categoryId,
             mesFatura: mesFatura || undefined,
-            parcela: t.parcela,
-            totalParcelas: t.totalParcelas,
           })
-
-          // Criar parcelas futuras automaticamente (da próxima até a última)
-          if (mesFatura && t.parcela < t.totalParcelas) {
-            const mesFaturaBase = new Date(mesFatura)
-
-            for (let i = t.parcela + 1; i <= t.totalParcelas; i++) {
-              // Calcular mês da fatura para a parcela futura
-              const monthsAhead = i - t.parcela
-              const futureMesFatura = new Date(mesFaturaBase)
-              futureMesFatura.setMonth(futureMesFatura.getMonth() + monthsAhead)
-              const futureMesFaturaStr = `${futureMesFatura.getFullYear()}-${String(futureMesFatura.getMonth() + 1).padStart(2, "0")}-01`
-
-              // Calcular data da parcela futura (mesma data do mês, meses à frente)
-              const futureDate = new Date(finalDate)
-              futureDate.setMonth(futureDate.getMonth() + monthsAhead)
-
-              // Verificar se essa parcela futura já existe no banco
-              const futureTransaction: ExtractedTransaction = {
-                descricao: `${descricaoBase} (${i}/${t.totalParcelas})`,
-                valor,
-                tipo,
-                data: formatDateYYYYMMDD(futureDate),
-                parcela: i,
-                totalParcelas: t.totalParcelas,
-              }
-
-              const isDuplicate = checkDuplicate(futureTransaction, existingTransactions, futureMesFaturaStr)
-
-              if (!isDuplicate) {
-                transactionsToImport.push({
-                  descricao: `${descricaoBase} (${i}/${t.totalParcelas})`,
-                  valor,
-                  tipo,
-                  data: formatDateYYYYMMDD(futureDate),
-                  categoryId,
-                  mesFatura: futureMesFaturaStr,
-                  parcela: i,
-                  totalParcelas: t.totalParcelas,
-                })
-              }
-            }
-          }
         } else {
           // Transação sem parcelas ou parcela única
           let descricao = descricaoBase
@@ -840,21 +795,9 @@ export function ImportDocumentModal({
         // Atualizar dados do SWR para refletir as novas transações
         await mutators.transactions()
         setStep("success")
-
-        // Montar mensagem de sucesso detalhada
-        const originalCount = selectedTransactions.length
-        const futureCreated = successCount - originalCount
-        let description = `${originalCount} transação(ões) importada(s)`
-        if (futureCreated > 0) {
-          description += ` + ${futureCreated} parcela(s) futura(s) criada(s) automaticamente`
-        }
-        if (errorCount > 0) {
-          description += `. ${errorCount} falharam.`
-        }
-
         toast({
           title: "Importação concluída",
-          description,
+          description: `${successCount} transação(ões) importada(s) com sucesso.${errorCount > 0 ? ` ${errorCount} falharam.` : ""}`,
         })
       } else {
         const errorDetails = errors.length > 0 ? `\n\nErros:\n${errors.slice(0, 3).join("\n")}${errors.length > 3 ? `\n... e mais ${errors.length - 3} erro(s)` : ""}` : ""
