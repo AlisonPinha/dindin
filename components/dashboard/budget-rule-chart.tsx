@@ -112,7 +112,7 @@ export function BudgetRuleChart() {
   }
 
   return (
-    <Card className="col-span-full lg:col-span-1">
+    <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           Regra 50/30/20

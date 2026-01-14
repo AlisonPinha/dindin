@@ -375,9 +375,9 @@ export default function DashboardPage() {
   }, [summaryData, savingsData])
 
   return (
-    <div className="space-y-8 page-transition">
+    <div className="space-y-6 page-transition">
       {/* Header */}
-      <div>
+      <div className="w-full">
         <h1 className="text-display">
           Olá, {user?.name || "Usuário"}
         </h1>
@@ -387,13 +387,17 @@ export default function DashboardPage() {
       </div>
 
       {/* Summary Cards */}
-      <SummaryCards {...summaryData} />
+      <div className="w-full">
+        <SummaryCards {...summaryData} />
+      </div>
 
       {/* Accounts Summary */}
-      <AccountsSummary accounts={accountsWithHistory} />
+      <div className="w-full">
+        <AccountsSummary accounts={accountsWithHistory} />
+      </div>
 
-      {/* Health Score + Budget Rule Row */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      {/* Health Score + Weekly Flow Row */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Financial Health Score - takes 1 column */}
         <Suspense fallback={<ChartSkeleton />}>
           <FinancialHealthScore {...healthScoreData} />
@@ -406,12 +410,14 @@ export default function DashboardPage() {
       </div>
 
       {/* Budget Rule Chart (full width for more visibility) */}
-      <Suspense fallback={<ChartSkeleton />}>
-        <BudgetRuleChart />
-      </Suspense>
+      <div className="w-full">
+        <Suspense fallback={<ChartSkeleton />}>
+          <BudgetRuleChart />
+        </Suspense>
+      </div>
 
-      {/* Bottom Row */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      {/* Recent Transactions + Goal Alerts Row */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Recent Transactions */}
         <RecentTransactions transactions={recentTransactions} />
 
@@ -420,7 +426,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Insights Section */}
-      <div className="space-y-6">
+      <div className="space-y-4 w-full">
         <div>
           <h2 className="text-headline">Insights</h2>
           <p className="text-callout text-secondary mt-1">
@@ -429,7 +435,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Insights Row 1 - Projection and Savings */}
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Suspense fallback={<ChartSkeleton />}>
             <EndOfMonthProjection />
           </Suspense>
@@ -440,12 +446,14 @@ export default function DashboardPage() {
         </div>
 
         {/* Insights Row 2 - Monthly Comparison (full width) */}
-        <Suspense fallback={<ChartSkeleton />}>
-          <MonthlyComparison data={comparisonData} />
-        </Suspense>
+        <div className="w-full">
+          <Suspense fallback={<ChartSkeleton />}>
+            <MonthlyComparison data={comparisonData} />
+          </Suspense>
+        </div>
 
         {/* Insights Row 3 - Top Expenses and Personal Expenses */}
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Suspense fallback={<ChartSkeleton />}>
             <TopExpenses {...topExpensesData} />
           </Suspense>
@@ -456,9 +464,11 @@ export default function DashboardPage() {
         </div>
 
         {/* Insights Row 4 - Couple Ranking */}
-        <Suspense fallback={<ChartSkeleton />}>
-          <CoupleRanking {...coupleRanking} />
-        </Suspense>
+        <div className="w-full">
+          <Suspense fallback={<ChartSkeleton />}>
+            <CoupleRanking {...coupleRanking} />
+          </Suspense>
+        </div>
       </div>
     </div>
   )

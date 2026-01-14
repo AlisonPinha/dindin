@@ -12,7 +12,7 @@ import {
   ComposedChart,
 } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { formatCurrency } from "@/lib/utils"
+import { formatCurrency, cn } from "@/lib/utils"
 import { useTransacoesDoMes } from "@/hooks"
 
 interface WeeklyFlowChartProps {
@@ -74,7 +74,7 @@ export function WeeklyFlowChart({ className }: WeeklyFlowChartProps) {
   const netBalance = totais.saldo
 
   return (
-    <Card className={className || "col-span-full lg:col-span-2"}>
+    <Card className={cn("w-full", className)}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
