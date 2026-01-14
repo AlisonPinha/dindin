@@ -36,6 +36,8 @@ import { useToast } from "@/hooks/use-toast"
 import { ToastAction } from "@/components/ui/toast"
 import { cn, generateId } from "@/lib/utils"
 import { useMediaQuery } from "@/hooks/use-media-query"
+import { useStore } from "@/hooks/use-store"
+import type { Category } from "@/types"
 
 type TransactionType = "expense" | "income" | "transfer"
 
@@ -45,34 +47,10 @@ interface QuickTransactionModalProps {
   type: TransactionType
 }
 
-// Mock categories - in real app, fetch from API/store
-const mockCategories = {
-  expense: [
-    { id: "1", name: "Alimentação", color: "#f97316", icon: "UtensilsCrossed", recentCount: 15 },
-    { id: "2", name: "Transporte", color: "#eab308", icon: "Car", recentCount: 12 },
-    { id: "3", name: "Moradia", color: "#ef4444", icon: "Home", recentCount: 8 },
-    { id: "4", name: "Lazer", color: "#06b6d4", icon: "Gamepad2", recentCount: 6 },
-    { id: "5", name: "Saúde", color: "#ec4899", icon: "Heart", recentCount: 5 },
-    { id: "6", name: "Compras", color: "#d946ef", icon: "ShoppingBag", recentCount: 4 },
-    { id: "7", name: "Educação", color: "#8b5cf6", icon: "GraduationCap", recentCount: 3 },
-    { id: "8", name: "Assinaturas", color: "#6366f1", icon: "CreditCard", recentCount: 2 },
-    { id: "9", name: "Restaurantes", color: "#f43f5e", icon: "Coffee", recentCount: 1 },
-    { id: "10", name: "Outros", color: "#64748b", icon: "MoreHorizontal", recentCount: 0 },
-  ],
-  income: [
-    { id: "11", name: "Salário", color: "#22c55e", icon: "Briefcase", recentCount: 10 },
-    { id: "12", name: "Freelance", color: "#10b981", icon: "Laptop", recentCount: 5 },
-    { id: "13", name: "Rendimentos", color: "#3b82f6", icon: "TrendingUp", recentCount: 3 },
-    { id: "14", name: "Outros", color: "#8b5cf6", icon: "Plus", recentCount: 1 },
-  ],
+// Helper to map category type
+function mapCategoryType(cat: Category): "expense" | "income" {
+  return cat.type === "income" ? "income" : "expense"
 }
-
-// Mock accounts - in real app, fetch from API/store
-const mockAccounts = [
-  { id: "1", name: "Nubank", color: "#8b5cf6" },
-  { id: "2", name: "Itaú", color: "#f97316" },
-  { id: "3", name: "Cartão Nubank", color: "#a855f7" },
-]
 
 const typeConfig = {
   expense: {
@@ -126,14 +104,34 @@ export function QuickTransactionModal({
   const [showCategorySearch, setShowCategorySearch] = useState(false)
   const valueInputRef = useRef<HTMLInputElement>(null)
 
+  // Get real data from store
+  const { accounts: storeAccounts, categories: storeCategories } = useStore()
+
   const config = typeConfig[type]
   const Icon = config.icon
 
-  // Get categories for current type
+  // Get categories for current type from store
   const categories = useMemo(() => {
     if (type === "transfer") return []
-    return mockCategories[type] || []
-  }, [type])
+    return storeCategories
+      .filter((cat) => mapCategoryType(cat) === type)
+      .map((cat) => ({
+        id: cat.id,
+        name: cat.name,
+        color: cat.color,
+        icon: cat.icon || "Circle",
+        recentCount: 0, // TODO: track recent usage
+      }))
+  }, [type, storeCategories])
+
+  // Get accounts from store
+  const accounts = useMemo(() => {
+    return storeAccounts.map((acc) => ({
+      id: acc.id,
+      name: acc.name,
+      color: acc.color || "#6366f1",
+    }))
+  }, [storeAccounts])
 
   // Filter and sort categories (recent first, then search)
   const filteredCategories = useMemo(() => {
@@ -226,8 +224,8 @@ export function QuickTransactionModal({
     // Create transaction (mock - in real app, call API)
     const transactionId = generateId()
     const category = categories.find((c) => c.id === formState.categoryId)
-    const account = mockAccounts.find((a) => a.id === formState.accountId)
-    const toAccount = mockAccounts.find((a) => a.id === formState.toAccountId)
+    const account = accounts.find((a) => a.id === formState.accountId)
+    const toAccount = accounts.find((a) => a.id === formState.toAccountId)
 
     // Close modal
     onOpenChange(false)
@@ -378,7 +376,7 @@ export function QuickTransactionModal({
             <SelectValue placeholder="Selecione a conta" />
           </SelectTrigger>
           <SelectContent>
-            {mockAccounts.map((account) => (
+            {accounts.map((account) => (
               <SelectItem key={account.id} value={account.id}>
                 <div className="flex items-center gap-2">
                   <div
@@ -407,7 +405,7 @@ export function QuickTransactionModal({
               <SelectValue placeholder="Selecione a conta destino" />
             </SelectTrigger>
             <SelectContent>
-              {mockAccounts
+              {accounts
                 .filter((a) => a.id !== formState.accountId)
                 .map((account) => (
                   <SelectItem key={account.id} value={account.id}>
