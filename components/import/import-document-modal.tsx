@@ -496,58 +496,172 @@ export function ImportDocumentModal({
     setIsLoading(true)
 
     try {
-      // Mapear nome de categoria para ID de categoria
-      const findCategoryId = (categoryName: string | undefined): string | null => {
-        if (!categoryName) return null
-        
-        // Normalizar nome da categoria (case-insensitive, remover acentos)
-        const normalized = categoryName
+      // Função auxiliar para normalizar texto (remover acentos e lowercase)
+      const normalizeText = (text: string): string => {
+        return text
           .toLowerCase()
           .normalize("NFD")
           .replace(/[\u0300-\u036f]/g, "")
           .trim()
+      }
 
-        // Mapear categorias comuns do OCR para categorias do sistema
+      // Mapear nome de categoria para ID de categoria
+      // Também tenta inferir categoria pela descrição da transação
+      const findCategoryId = (categoryName: string | undefined, descricao?: string): string | null => {
+        // Mapeamento abrangente de categorias OCR para categorias do sistema
         const categoryMap: Record<string, string[]> = {
-          alimentação: ["alimentação", "comida", "restaurante", "supermercado"],
-          transporte: ["transporte", "uber", "taxi", "combustível", "gasolina"],
-          compras: ["compras", "shopping", "mercado", "mercado livre"],
-          assinaturas: ["assinaturas", "streaming", "netflix", "spotify"],
-          lazer: ["lazer", "entretenimento", "cinema", "show"],
-          saúde: ["saúde", "farmacia", "médico", "hospital"],
-          educação: ["educação", "escola", "curso", "livro"],
-          moradia: ["moradia", "aluguel", "condomínio", "luz", "água", "internet"],
-          outros: ["outros", "outras"],
+          // Alimentação
+          "alimentacao": [
+            "alimentacao", "comida", "restaurante", "supermercado", "mercado",
+            "ifood", "uber eats", "rappi", "zé delivery", "ze delivery",
+            "padaria", "lanchonete", "cafe", "pizza", "hamburguer", "sushi",
+            "mcdonalds", "burger king", "subway", "starbucks", "outback",
+            "carrefour", "extra", "pao de acucar", "assai", "atacadao", "sams club",
+            "big", "nacional", "zaffari", "bourbon", "guanabara", "mundial"
+          ],
+          // Transporte
+          "transporte": [
+            "transporte", "uber", "99", "taxi", "cabify", "combustivel", "gasolina",
+            "posto", "shell", "ipiranga", "br", "ale", "estacionamento", "pedagio",
+            "bilhete unico", "metro", "trem", "onibus", "passagem", "locacao carro",
+            "localiza", "movida", "unidas", "hertz", "rent a car"
+          ],
+          // Compras / E-commerce
+          "compras": [
+            "compras", "shopping", "mercado livre", "mercadolivre", "amazon",
+            "aliexpress", "shopee", "magalu", "magazine luiza", "americanas",
+            "casas bahia", "ponto frio", "fast shop", "renner", "c&a", "cea",
+            "riachuelo", "marisa", "zara", "shein", "wish", "etsy", "ebay",
+            "kabum", "pichau", "terabyte", "aliexpress", "apple.com", "apple"
+          ],
+          // Assinaturas / Streaming
+          "assinaturas": [
+            "assinaturas", "streaming", "netflix", "spotify", "amazon prime",
+            "disney+", "disney plus", "hbo max", "hbo", "paramount", "star+",
+            "globoplay", "deezer", "youtube premium", "youtube music", "apple music",
+            "apple tv", "audible", "kindle unlimited", "xbox game pass", "playstation plus",
+            "adobe", "microsoft 365", "office 365", "dropbox", "icloud", "google one"
+          ],
+          // Lazer / Entretenimento
+          "lazer": [
+            "lazer", "entretenimento", "cinema", "cinemark", "uci", "kinoplex",
+            "show", "teatro", "museu", "parque", "ingresso", "ticketmaster",
+            "eventim", "sympla", "games", "steam", "playstation", "xbox", "nintendo",
+            "bar", "balada", "festa", "clube", "academia"
+          ],
+          // Saúde
+          "saude": [
+            "saude", "farmacia", "drogaria", "medico", "hospital", "clinica",
+            "laboratorio", "consulta", "exame", "plano de saude", "unimed",
+            "bradesco saude", "sulamerica", "amil", "hapvida", "notre dame",
+            "droga raia", "drogasil", "pacheco", "pague menos", "panvel",
+            "ultrafarma", "onofre", "drogaria araujo", "extrafarma"
+          ],
+          // Educação
+          "educacao": [
+            "educacao", "escola", "faculdade", "universidade", "curso",
+            "livro", "livraria", "material escolar", "saraiva", "cultura",
+            "udemy", "coursera", "alura", "rocketseat", "descomplica",
+            "duolingo", "mensalidade", "matricula"
+          ],
+          // Moradia / Casa
+          "moradia": [
+            "moradia", "aluguel", "condominio", "luz", "energia", "agua",
+            "internet", "telefone", "gas", "iptu", "seguro residencial",
+            "net", "claro", "vivo", "tim", "oi", "gvt", "enel", "cpfl",
+            "copel", "cemig", "light", "celesc", "coelba", "sabesp", "cedae"
+          ],
+          // Viagem / Hospedagem
+          "viagem": [
+            "viagem", "hotel", "hoteis", "hoteis.com", "booking", "airbnb",
+            "decolar", "hurb", "latam", "gol", "azul", "passagem aerea",
+            "hospedagem", "pousada", "resort", "cruzeiro", "trivago",
+            "expedia", "kayak", "skyscanner"
+          ],
+          // Pet
+          "pet": [
+            "pet", "petshop", "veterinario", "racao", "petz", "cobasi",
+            "petlove", "cachorro", "gato", "animal"
+          ],
+          // Outros
+          "outros": ["outros", "outras", "diversos", "geral"]
         }
 
-        // Procurar categoria exata primeiro
-        const exactMatch = categories.find(
-          (cat) => cat.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === normalized
-        )
-        if (exactMatch) return exactMatch.id
+        // 1. Primeiro, tentar pela categoria retornada pelo OCR
+        if (categoryName) {
+          const normalizedCategory = normalizeText(categoryName)
 
-        // Procurar por mapeamento
-        for (const [key, aliases] of Object.entries(categoryMap)) {
-          if (aliases.some(alias => normalized.includes(alias))) {
-            const matched = categories.find(
-              (cat) => cat.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === key
-            )
-            if (matched) return matched.id
+          // Match exato com categoria do sistema
+          const exactMatch = categories.find(
+            (cat) => normalizeText(cat.name) === normalizedCategory
+          )
+          if (exactMatch) return exactMatch.id
+
+          // Match por mapeamento
+          for (const [categoryKey, aliases] of Object.entries(categoryMap)) {
+            if (aliases.some(alias => normalizedCategory.includes(alias) || alias.includes(normalizedCategory))) {
+              const matched = categories.find(
+                (cat) => normalizeText(cat.name).includes(categoryKey) || categoryKey.includes(normalizeText(cat.name))
+              )
+              if (matched) return matched.id
+            }
           }
         }
 
-        // Se não encontrar, procurar por substring
-        const partialMatch = categories.find(
-          (cat) => cat.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(normalized) ||
-                   normalized.includes(cat.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
+        // 2. Se não encontrou pela categoria, tentar inferir pela descrição
+        if (descricao) {
+          const normalizedDesc = normalizeText(descricao)
+
+          for (const [categoryKey, aliases] of Object.entries(categoryMap)) {
+            if (aliases.some(alias => normalizedDesc.includes(alias))) {
+              // Encontrar a categoria do sistema correspondente
+              const matched = categories.find(
+                (cat) => normalizeText(cat.name).includes(categoryKey) || categoryKey.includes(normalizeText(cat.name))
+              )
+              if (matched) return matched.id
+            }
+          }
+        }
+
+        // 3. Se ainda não encontrou, tentar match parcial com qualquer categoria
+        if (categoryName) {
+          const normalizedCategory = normalizeText(categoryName)
+          const partialMatch = categories.find(
+            (cat) => normalizeText(cat.name).includes(normalizedCategory) ||
+                     normalizedCategory.includes(normalizeText(cat.name))
+          )
+          if (partialMatch) return partialMatch.id
+        }
+
+        // 4. Retornar primeira categoria de despesa como fallback (se existir)
+        const defaultExpenseCategory = categories.find(
+          (cat) => cat.type === "expense" || normalizeText(cat.name) === "outros"
         )
-        if (partialMatch) return partialMatch.id
+        if (defaultExpenseCategory) return defaultExpenseCategory.id
 
         return null
       }
 
-      // Validar e preparar transações para importação
-      const transactionsToImport = selectedTransactions.map((t) => {
+      // Função auxiliar para incrementar mês no formato YYYY-MM-01
+      const incrementMonth = (mesFaturaStr: string, months: number): string => {
+        const [year, month] = mesFaturaStr.split("-").map(Number)
+        const date = new Date(year, month - 1 + months, 1)
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`
+      }
+
+      // Validar e preparar transações para importação (incluindo parcelas futuras)
+      const transactionsToImport: Array<{
+        descricao: string
+        valor: number
+        tipo: "SAIDA" | "ENTRADA"
+        data: string
+        categoryId: string | null
+        mesFatura?: string
+        parcela?: number
+        totalParcelas?: number
+      }> = []
+
+      selectedTransactions.forEach((t) => {
         // Validar data (não pode ser muito no futuro ou muito no passado)
         const transactionDate = new Date(t.data)
         const today = new Date()
@@ -569,21 +683,65 @@ export function ImportDocumentModal({
         // Manter tipo original (ENTRADA ou SAIDA) para a API
         const tipo = t.tipo
 
-        // Encontrar categoria
-        const categoryId = findCategoryId(t.categoria)
+        // Remover info de parcela existente da descrição base (para evitar duplicação)
+        const descricaoBase = t.descricao.trim()
+          .replace(/\s*\(\d+\/\d+\)\s*$/, "") // Remove (X/Y) do final
+          .replace(/\s*parcela\s*\d+\s*(de|\/)\s*\d+\s*$/i, "") // Remove "parcela X de Y"
+          .trim()
 
-        // Montar descrição com info de parcela se existir
-        let descricao = t.descricao.trim()
-        if (t.parcela && t.totalParcelas) {
-          descricao = `${descricao} (${t.parcela}/${t.totalParcelas})`
-        }
+        // Encontrar categoria (passa também a descrição para melhor inferência)
+        const categoryId = findCategoryId(t.categoria, descricaoBase)
 
-        return {
-          descricao,
-          valor,
-          tipo,
-          data: finalDate.toISOString().split("T")[0], // Formato YYYY-MM-DD
-          categoryId,
+        // Se tem parcela, criar transação atual e parcelas futuras
+        if (t.parcela && t.totalParcelas && t.totalParcelas > 1) {
+          // Adicionar transação da parcela atual
+          transactionsToImport.push({
+            descricao: `${descricaoBase} (${t.parcela}/${t.totalParcelas})`,
+            valor,
+            tipo,
+            data: finalDate.toISOString().split("T")[0],
+            categoryId,
+            mesFatura: mesFatura || undefined,
+            parcela: t.parcela,
+            totalParcelas: t.totalParcelas,
+          })
+
+          // Criar parcelas futuras (da próxima até a última)
+          if (mesFatura) {
+            for (let i = t.parcela + 1; i <= t.totalParcelas; i++) {
+              const monthsToAdd = i - t.parcela
+              const futureMesFatura = incrementMonth(mesFatura, monthsToAdd)
+
+              // Data da parcela futura será o mesmo dia, mas no mês correspondente
+              const futureDate = new Date(finalDate)
+              futureDate.setMonth(futureDate.getMonth() + monthsToAdd)
+
+              transactionsToImport.push({
+                descricao: `${descricaoBase} (${i}/${t.totalParcelas})`,
+                valor,
+                tipo,
+                data: futureDate.toISOString().split("T")[0],
+                categoryId,
+                mesFatura: futureMesFatura,
+                parcela: i,
+                totalParcelas: t.totalParcelas,
+              })
+            }
+          }
+        } else {
+          // Transação sem parcelas ou parcela única
+          let descricao = descricaoBase
+          if (t.parcela && t.totalParcelas) {
+            descricao = `${descricaoBase} (${t.parcela}/${t.totalParcelas})`
+          }
+
+          transactionsToImport.push({
+            descricao,
+            valor,
+            tipo,
+            data: finalDate.toISOString().split("T")[0],
+            categoryId,
+          })
         }
       })
 
@@ -603,8 +761,11 @@ export function ImportDocumentModal({
             categoryId: transaction.categoryId,
           }
 
-          // Se temos mesFatura (importação de fatura de cartão), usar ele
-          if (mesFatura) {
+          // Se a transação tem mesFatura específico (parcela futura), usar ele
+          // Senão, usar o mesFatura geral da fatura
+          if (transaction.mesFatura) {
+            transactionData.mesFatura = transaction.mesFatura
+          } else if (mesFatura) {
             transactionData.mesFatura = mesFatura
           }
 
