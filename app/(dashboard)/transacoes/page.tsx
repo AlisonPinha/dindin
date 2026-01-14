@@ -40,6 +40,11 @@ function mapTransactionType(type: TransactionType): "ENTRADA" | "SAIDA" | "TRANS
   }
 }
 
+// Helper para formatar data local (evita problemas de fuso horário)
+function formatDateLocal(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+}
+
 export default function TransacoesPage() {
   const { toast } = useToast()
   const {
@@ -205,7 +210,7 @@ export default function TransacoesPage() {
             descricao: data.description,
             valor: data.amount,
             tipo: mapTransactionType(data.type),
-            data: data.date.toISOString(),
+            data: formatDateLocal(data.date),
             mesFatura: data.mesFatura || null, // Invoice month for credit cards
             categoryId: data.categoryId || null,
             accountId: data.accountId || null,
@@ -259,7 +264,7 @@ export default function TransacoesPage() {
             descricao: data.description,
             valor: data.amount,
             tipo: mapTransactionType(data.type),
-            data: data.date.toISOString(),
+            data: formatDateLocal(data.date),
             mesFatura: data.mesFatura || null,
             categoryId: data.categoryId || null,
             accountId: data.accountId || null,
@@ -328,7 +333,7 @@ export default function TransacoesPage() {
           descricao: `${transaction.description} (cópia)`,
           valor: transaction.amount,
           tipo: mapTransactionType(transaction.type),
-          data: new Date().toISOString(),
+          data: formatDateLocal(new Date()),
           categoryId: transaction.categoryId || null,
           accountId: transaction.accountId || null,
           notas: transaction.notes || null,

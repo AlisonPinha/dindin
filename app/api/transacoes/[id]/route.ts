@@ -90,7 +90,11 @@ export async function PUT(request: NextRequest, { params }: Params) {
     if (descricao !== undefined) updateData.descricao = descricao;
     if (valor !== undefined) updateData.valor = valor;
     if (tipo !== undefined) updateData.tipo = tipo as DbTransactionType;
-    if (data !== undefined) updateData.data = new Date(data).toISOString();
+    if (data !== undefined) {
+      // Usar data local no formato YYYY-MM-DD para evitar problemas de fuso horário
+      const d = new Date(data);
+      updateData.data = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
     if (recorrente !== undefined) updateData.recorrente = recorrente;
     if (categoryId !== undefined) updateData.category_id = categoryId;
     if (accountId !== undefined) updateData.account_id = accountId;

@@ -342,12 +342,15 @@ export async function POST(request: NextRequest) {
             mesFatura = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, "0")}-01`;
           }
 
+          // Usar data local no formato YYYY-MM-DD para evitar problemas de fuso horário
+          const dataLocal = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, "0")}-${String(txDate.getDate()).padStart(2, "0")}`;
+
           return {
             user_id: auth.user.id,
             descricao: tx.descricao.trim(),
             valor: tx.valor,
             tipo: tx.tipo,
-            data: new Date(tx.data).toISOString(),
+            data: dataLocal,
             mes_fatura: mesFatura,
             recorrente: tx.recorrente || false,
             parcelas: tx.parcelas || null,

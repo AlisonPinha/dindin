@@ -240,8 +240,9 @@ export async function POST(request: NextRequest) {
       const checkingAccount = createdAccounts?.find((acc: { tipo: string }) => acc.tipo === "CORRENTE");
 
       const today = new Date();
-      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      const mesFatura = `${firstDayOfMonth.getFullYear()}-${String(firstDayOfMonth.getMonth() + 1).padStart(2, "0")}-01`;
+      // Usar data local no formato YYYY-MM-DD para evitar problemas de fuso horário
+      const dataLocal = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
+      const mesFatura = dataLocal;
 
       const { data: newTransaction, error: transactionError } = await supabase
         .from("transacoes")
@@ -250,7 +251,7 @@ export async function POST(request: NextRequest) {
           descricao: "Salário",
           valor: rendaMensal,
           tipo: "ENTRADA",
-          data: firstDayOfMonth.toISOString(),
+          data: dataLocal,
           mes_fatura: mesFatura,
           recorrente: true,
           category_id: salaryCategory.id,
