@@ -7,11 +7,15 @@ export { useMediaQuery } from "./use-media-query"
 export { useNotifications } from "./use-notifications"
 export { useTheme } from "./use-theme"
 export { useTransacoesDoMes } from "./use-transacoes-do-mes"
+export { usePatrimonio } from "./use-patrimonio"
+export { useCashForecast } from "./use-cash-forecast"
+export { useSelicRate } from "./use-selic-rate"
+export { useDesafios } from "./use-desafios"
+export { useMonthlyCheckin } from "./use-monthly-checkin"
 export type {
   TotaisDoMes,
   DespesasPorCategoria,
   DespesasPorMembro,
-  DespesasPorContexto,
   VariacaoPercentual,
   FluxoSemanal,
   Regra503020,

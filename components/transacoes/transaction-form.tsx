@@ -20,8 +20,7 @@ import {
 } from "@/components/ui/dialog"
 import { useStore } from "@/hooks/use-store"
 import { TRANSACTION_TYPES } from "@/lib/constants"
-import type { TransactionType, OwnershipType } from "@/types"
-import { Home, User } from "lucide-react"
+import type { TransactionType } from "@/types"
 
 interface TransactionFormProps {
   trigger?: React.ReactNode
@@ -36,12 +35,11 @@ export interface TransactionFormData {
   categoryId?: string
   accountId?: string
   notes?: string
-  ownership?: OwnershipType
   userId?: string
 }
 
 export function TransactionForm({ trigger, onSubmit }: TransactionFormProps) {
-  const { categories, accounts, familyMembers, user } = useStore()
+  const { categories, accounts } = useStore()
   const [open, setOpen] = useState(false)
   const [formData, setFormData] = useState<TransactionFormData>({
     description: "",
@@ -51,7 +49,6 @@ export function TransactionForm({ trigger, onSubmit }: TransactionFormProps) {
     categoryId: "",
     accountId: "",
     notes: "",
-    ownership: "household",
     userId: "",
   })
 
@@ -67,7 +64,6 @@ export function TransactionForm({ trigger, onSubmit }: TransactionFormProps) {
       categoryId: "",
       accountId: "",
       notes: "",
-      ownership: "household",
       userId: "",
     })
   }
@@ -187,43 +183,6 @@ export function TransactionForm({ trigger, onSubmit }: TransactionFormProps) {
               </SelectContent>
             </Select>
           </div>
-
-          {/* Ownership - Casa ou Pessoal */}
-          {formData.type === "expense" && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Tipo de Despesa</label>
-              <Select
-                value={formData.ownership === "personal" ? formData.userId || "personal" : "household"}
-                onValueChange={(value) => {
-                  if (value === "household") {
-                    setFormData({ ...formData, ownership: "household", userId: user?.id || "" })
-                  } else {
-                    setFormData({ ...formData, ownership: "personal", userId: value })
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="household">
-                    <div className="flex items-center gap-2">
-                      <Home className="h-4 w-4" />
-                      <span>Casa (Compartilhado)</span>
-                    </div>
-                  </SelectItem>
-                  {familyMembers.map((member) => (
-                    <SelectItem key={member.id} value={member.id}>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        <span>Pessoal de {member.name}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>

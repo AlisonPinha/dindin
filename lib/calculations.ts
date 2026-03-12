@@ -648,3 +648,56 @@ export function safeVariation(
   }
   return Math.round(variation * 10) / 10
 }
+
+// ================================
+// Emergency Reserve Calculation
+// ================================
+
+export interface EmergencyReserveResult {
+  avgMonthlyExpenses: number
+  targetAmount: number
+  currentReserve: number
+  monthsCovered: number
+  percentage: number
+  targetMonths: number
+}
+
+/**
+ * Calculates emergency reserve based on average expenses over the last N months
+ */
+export function calculateEmergencyReserve(
+  transactions: Transaction[],
+  accountBalances: number,
+  investmentBalances: number,
+  currentMonth: number,
+  currentYear: number,
+  monthsToAverage = 6
+): EmergencyReserveResult {
+  let totalExpenses = 0
+  let monthsWithData = 0
+
+  for (let i = 0; i < monthsToAverage; i++) {
+    let m = currentMonth - i
+    let y = currentYear
+    while (m < 0) { m += 12; y -= 1 }
+
+    const monthTx = getTransacoesDoMes(transactions, m, y)
+    const expenses = monthTx
+      .filter(t => t.type === "expense")
+      .reduce((sum, t) => sum + t.amount, 0)
+
+    if (expenses > 0) {
+      totalExpenses += expenses
+      monthsWithData++
+    }
+  }
+
+  const avgMonthlyExpenses = monthsWithData > 0 ? totalExpenses / monthsWithData : 0
+  const targetMonths = 6
+  const targetAmount = avgMonthlyExpenses * targetMonths
+  const currentReserve = accountBalances + investmentBalances
+  const monthsCovered = avgMonthlyExpenses > 0 ? currentReserve / avgMonthlyExpenses : 0
+  const percentage = targetAmount > 0 ? Math.min(100, (currentReserve / targetAmount) * 100) : 0
+
+  return { avgMonthlyExpenses, targetAmount, currentReserve, monthsCovered, percentage, targetMonths }
+}

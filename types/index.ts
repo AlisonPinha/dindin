@@ -293,3 +293,42 @@ export interface AdvancedGoal {
   createdAt: Date
   updatedAt: Date
 }
+
+// ============================================
+// PATRIMÔNIO TYPES
+// ============================================
+
+export interface PatrimonioSnapshot {
+  id: string
+  userId: string
+  mesAno: Date
+  saldoContas: number
+  saldoInvestimentos: number
+  dividas: number
+  patrimonioLiquido: number
+  createdAt: Date
+}
+
+// ============================================
+// CHALLENGE TYPES
+// ============================================
+
+export type ChallengeStatus = "active" | "completed" | "failed" | "cancelled"
+export type ChallengeType = "weekly" | "monthly" | "annual" | "custom"
+
+export interface Challenge {
+  id: string
+  userId: string
+  name: string
+  description?: string | null
+  type: ChallengeType
+  template?: string | null
+  startDate: Date
+  endDate: Date
+  targetValue?: number | null
+  currentValue: number
+  status: ChallengeStatus
+  streakCount: number
+  createdAt: Date
+  updatedAt: Date
+}

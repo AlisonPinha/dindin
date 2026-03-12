@@ -122,7 +122,6 @@ export interface DadosDoMes {
   // Agrupamentos
   despesasPorCategoria: DespesasPorCategoria
   despesasPorMembro: DespesasPorMembro
-  despesasPorContexto: DespesasPorContexto
   receitasPorCategoria: DespesasPorCategoria
   receitasPorMembro: DespesasPorMembro
 
@@ -270,28 +269,6 @@ function agruparPorMembro(
     })
 
   return resultado
-}
-
-/**
- * Agrupa por contexto (casa/pessoal)
- */
-function agruparPorContexto(
-  transacoes: TransactionWithInstallment[]
-): DespesasPorContexto {
-  let casa = 0
-  let pessoal = 0
-
-  transacoes
-    .filter((t) => t.type === "expense")
-    .forEach((t) => {
-      if (t.ownership === "personal") {
-        pessoal += t.amount
-      } else {
-        casa += t.amount
-      }
-    })
-
-  return { casa, pessoal }
 }
 
 /**
@@ -543,11 +520,6 @@ export function useTransacoesDoMes(): DadosDoMes {
     [transacoes]
   )
 
-  const despesasPorContexto = useMemo(
-    () => agruparPorContexto(transacoes),
-    [transacoes]
-  )
-
   // Variações
   const variacoes = useMemo(
     () => ({
@@ -618,7 +590,6 @@ export function useTransacoesDoMes(): DadosDoMes {
     // Agrupamentos
     despesasPorCategoria,
     despesasPorMembro,
-    despesasPorContexto,
     receitasPorCategoria,
     receitasPorMembro,
 

@@ -3,7 +3,7 @@
  * Arquivo centralizado para evitar duplicação de código
  */
 
-import type { Transaction, Category, Account, User, Investment, Goal } from "@/types"
+import type { Transaction, Category, Account, User, Investment, Goal, PatrimonioSnapshot, Challenge } from "@/types"
 import type {
   DbUser,
   DbCategory,
@@ -11,6 +11,8 @@ import type {
   DbTransaction,
   DbInvestment,
   DbGoal,
+  DbPatrimonioSnapshot,
+  DbDesafio,
 } from "@/lib/supabase"
 
 // ============================================
@@ -205,5 +207,51 @@ export function mapDbGoalToGoal(dbGoal: DbGoal): Goal {
     userId: dbGoal.user_id,
     createdAt: new Date(dbGoal.created_at),
     updatedAt: new Date(dbGoal.updated_at),
+  }
+}
+
+export function mapDbPatrimonioToUI(db: DbPatrimonioSnapshot): PatrimonioSnapshot {
+  return {
+    id: db.id,
+    userId: db.user_id,
+    mesAno: parseLocalDate(db.mes_ano),
+    saldoContas: db.saldo_contas,
+    saldoInvestimentos: db.saldo_investimentos,
+    dividas: db.dividas,
+    patrimonioLiquido: db.patrimonio_liquido,
+    createdAt: new Date(db.created_at),
+  }
+}
+
+const challengeStatusMap: Record<string, "active" | "completed" | "failed" | "cancelled"> = {
+  ATIVO: "active",
+  COMPLETO: "completed",
+  FALHOU: "failed",
+  CANCELADO: "cancelled",
+}
+
+const challengeTypeMap: Record<string, "weekly" | "monthly" | "annual" | "custom"> = {
+  SEMANAL: "weekly",
+  MENSAL: "monthly",
+  ANUAL: "annual",
+  CUSTOM: "custom",
+}
+
+export function mapDbDesafioToChallenge(db: DbDesafio): Challenge {
+  return {
+    id: db.id,
+    userId: db.user_id,
+    name: db.nome,
+    description: db.descricao,
+    type: challengeTypeMap[db.tipo] || "custom",
+    template: db.template,
+    startDate: parseLocalDate(db.data_inicio),
+    endDate: parseLocalDate(db.data_fim),
+    targetValue: db.meta_valor,
+    currentValue: db.valor_atual,
+    status: challengeStatusMap[db.status] || "active",
+    streakCount: db.streak_conjunto,
+    createdAt: new Date(db.created_at),
+    updatedAt: new Date(db.updated_at),
   }
 }

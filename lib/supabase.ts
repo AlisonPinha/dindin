@@ -118,6 +118,34 @@ export interface DbBudget {
   updated_at: string
 }
 
+export interface DbPatrimonioSnapshot {
+  id: string
+  user_id: string
+  mes_ano: string
+  saldo_contas: number
+  saldo_investimentos: number
+  dividas: number
+  patrimonio_liquido: number
+  created_at: string
+}
+
+export interface DbDesafio {
+  id: string
+  user_id: string
+  nome: string
+  descricao: string | null
+  tipo: string
+  template: string | null
+  data_inicio: string
+  data_fim: string
+  meta_valor: number | null
+  valor_atual: number
+  status: string
+  streak_conjunto: number
+  created_at: string
+  updated_at: string
+}
+
 // ===========================================
 // Environment Variables
 // ===========================================

@@ -17,7 +17,6 @@ export async function GET(request: NextRequest) {
     const categoryId = searchParams.get("categoryId");
     const accountId = searchParams.get("accountId");
     const tipo = searchParams.get("tipo");
-    const ownership = searchParams.get("ownership");
     const dataInicio = searchParams.get("dataInicio");
     const dataFim = searchParams.get("dataFim");
     const mesFatura = searchParams.get("mesFatura"); // NOVO: filtro por mês da fatura (YYYY-MM-01)
@@ -33,7 +32,7 @@ export async function GET(request: NextRequest) {
     if (categoryId) query = query.eq("category_id", categoryId);
     if (accountId) query = query.eq("account_id", accountId);
     if (tipo) query = query.eq("tipo", tipo);
-    if (ownership) query = query.eq("ownership", ownership);
+
     if (dataInicio) query = query.gte("data", dataInicio);
     if (dataFim) query = query.lte("data", dataFim);
     if (mesFatura) query = query.eq("mes_fatura", mesFatura); // Filtro exato por mês da fatura
@@ -62,7 +61,6 @@ export async function GET(request: NextRequest) {
     if (categoryId) countQuery = countQuery.eq("category_id", categoryId);
     if (accountId) countQuery = countQuery.eq("account_id", accountId);
     if (tipo) countQuery = countQuery.eq("tipo", tipo);
-    if (ownership) countQuery = countQuery.eq("ownership", ownership);
     if (dataInicio) countQuery = countQuery.gte("data", dataInicio);
     if (dataFim) countQuery = countQuery.lte("data", dataFim);
     if (mesFatura) countQuery = countQuery.eq("mes_fatura", mesFatura);

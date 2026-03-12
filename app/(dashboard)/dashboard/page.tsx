@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, lazy, Suspense } from "react"
+import { useState, useMemo, lazy, Suspense } from "react"
 import {
   SummaryCards,
   RecentTransactions,
@@ -12,6 +12,11 @@ import { useTransacoesDoMes } from "@/hooks"
 import { safePercentage, getTransacoesDoMes } from "@/lib/calculations"
 import type { Transaction, Account } from "@/types"
 import { Skeleton } from "@/components/animations/skeleton"
+import { Button } from "@/components/ui/button"
+import { Calculator, ClipboardCheck } from "lucide-react"
+import { SimulatorModal } from "@/components/simulador/simulator-modal"
+import { MonthlyCheckinModal } from "@/components/dashboard/monthly-checkin-modal"
+import { useMonthlyCheckin } from "@/hooks/use-monthly-checkin"
 
 // Lazy load heavy chart components
 const BudgetRuleChart = lazy(() => import("@/components/dashboard/budget-rule-chart").then(m => ({ default: m.BudgetRuleChart })))
@@ -20,9 +25,10 @@ const EndOfMonthProjection = lazy(() => import("@/components/dashboard/end-of-mo
 const MonthlySavings = lazy(() => import("@/components/dashboard/monthly-savings").then(m => ({ default: m.MonthlySavings })))
 const MonthlyComparison = lazy(() => import("@/components/dashboard/monthly-comparison").then(m => ({ default: m.MonthlyComparison })))
 const TopExpenses = lazy(() => import("@/components/dashboard/top-expenses").then(m => ({ default: m.TopExpenses })))
-const CoupleRanking = lazy(() => import("@/components/dashboard/couple-ranking").then(m => ({ default: m.CoupleRanking })))
-const PersonalExpensesSummary = lazy(() => import("@/components/dashboard/personal-expenses-summary").then(m => ({ default: m.PersonalExpensesSummary })))
 const FinancialHealthScore = lazy(() => import("@/components/dashboard/financial-health-score").then(m => ({ default: m.FinancialHealthScore })))
+const NetWorthEvolution = lazy(() => import("@/components/dashboard/net-worth-evolution").then(m => ({ default: m.NetWorthEvolution })))
+const EmergencyReserve = lazy(() => import("@/components/dashboard/emergency-reserve").then(m => ({ default: m.EmergencyReserve })))
+const CashForecast = lazy(() => import("@/components/dashboard/cash-forecast").then(m => ({ default: m.CashForecast })))
 
 // Loading skeleton for charts
 function ChartSkeleton({ className = "" }: { className?: string }) {
@@ -35,6 +41,9 @@ function ChartSkeleton({ className = "" }: { className?: string }) {
 }
 
 export default function DashboardPage() {
+  const [simulatorOpen, setSimulatorOpen] = useState(false)
+  const { isOpen: checkinOpen, setIsOpen: setCheckinOpen, markCheckinDone } = useMonthlyCheckin()
+
   const {
     user,
     selectedPeriod,
@@ -42,7 +51,6 @@ export default function DashboardPage() {
     accounts,
     goals,
     categories,
-    familyMembers,
     investments,
   } = useStore()
 
@@ -58,8 +66,6 @@ export default function DashboardPage() {
     mesAnterior,
     anoAnterior,
     despesasPorCategoria,
-    despesasPorMembro,
-    despesasPorContexto,
   } = useTransacoesDoMes()
 
   const MONTHS = [
@@ -255,67 +261,6 @@ export default function DashboardPage() {
     }
   }, [despesasPorCategoria, totais.despesas])
 
-  // Calculate couple ranking using despesasPorMembro from hook
-  const coupleRanking = useMemo(() => {
-    const allMembers = user ? [user, ...familyMembers] : familyMembers
-
-    const members = allMembers.slice(0, 2).map(member => {
-      const memberData = despesasPorMembro[member.id]
-      const memberExpenses = memberData?.total || 0
-
-      return {
-        id: member.id,
-        name: member.name,
-        avatar: member.avatar || "",
-        savedAmount: 0,
-        unnecessarySpent: memberExpenses,
-        streak: 0,
-        isWinner: false,
-      }
-    })
-
-    // Mark winner (lowest unnecessary spending)
-    const member0 = members[0]
-    const member1 = members[1]
-    if (member0 && member1) {
-      const winnerIndex = member0.unnecessarySpent <= member1.unnecessarySpent ? 0 : 1
-      const winner = members[winnerIndex]
-      if (winner) {
-        winner.isWinner = true
-      }
-    }
-
-    return {
-      members,
-      categoryName: "Gastos",
-    }
-  }, [despesasPorMembro, user, familyMembers])
-
-  // Calculate personal expenses summary using despesasPorContexto from hook
-  const personalExpensesData = useMemo(() => {
-    const allMembers = user ? [user, ...familyMembers] : familyMembers
-
-    const members = allMembers.slice(0, 2).map(member => {
-      // Calculate personal expense for each member from transacoes
-      const memberPersonalExpense = transacoes
-        .filter(t => t.type === "expense" && t.userId === member.id && t.ownership === "personal")
-        .reduce((sum, t) => sum + t.amount, 0)
-
-      return {
-        id: member.id,
-        name: member.name,
-        avatar: member.avatar || "",
-        personalExpense: memberPersonalExpense,
-      }
-    })
-
-    return {
-      members,
-      householdExpense: despesasPorContexto.casa,
-      totalExpense: totais.despesas,
-    }
-  }, [transacoes, despesasPorContexto, totais.despesas, user, familyMembers])
-
   // Calculate Financial Health Score using SAFE calculations
   const healthScoreData = useMemo(() => {
     // Taxa de poupança usando safePercentage
@@ -377,14 +322,30 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 page-transition">
       {/* Header */}
-      <div className="w-full">
-        <h1 className="text-display">
-          Olá, {user?.name || "Usuário"}
-        </h1>
-        <p className="text-callout text-secondary mt-1">
-          Aqui está o resumo das suas finanças em {MONTHS[selectedPeriod.month]} de {selectedPeriod.year}
-        </p>
+      <div className="w-full flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-display">
+            Olá, {user?.name || "Usuário"}
+          </h1>
+          <p className="text-callout text-secondary mt-1">
+            Aqui está o resumo das suas finanças em {MONTHS[selectedPeriod.month]} de {selectedPeriod.year}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setSimulatorOpen(true)} className="gap-2">
+            <Calculator className="h-4 w-4" />
+            Simular
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setCheckinOpen(true)} className="gap-2">
+            <ClipboardCheck className="h-4 w-4" />
+            Check-in
+          </Button>
+        </div>
       </div>
+
+      {/* Modals */}
+      <SimulatorModal open={simulatorOpen} onOpenChange={setSimulatorOpen} />
+      <MonthlyCheckinModal open={checkinOpen} onOpenChange={setCheckinOpen} onDone={markCheckinDone} />
 
       {/* Summary Cards */}
       <div className="w-full">
@@ -452,21 +413,28 @@ export default function DashboardPage() {
           </Suspense>
         </div>
 
-        {/* Insights Row 3 - Top Expenses and Personal Expenses */}
+        {/* Insights Row 3 - Top Expenses and Emergency Reserve */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Suspense fallback={<ChartSkeleton />}>
             <TopExpenses {...topExpensesData} />
           </Suspense>
 
           <Suspense fallback={<ChartSkeleton />}>
-            <PersonalExpensesSummary {...personalExpensesData} />
+            <EmergencyReserve />
           </Suspense>
         </div>
 
-        {/* Insights Row 4 - Couple Ranking */}
+        {/* Insights Row 4 - Net Worth Evolution */}
         <div className="w-full">
           <Suspense fallback={<ChartSkeleton />}>
-            <CoupleRanking {...coupleRanking} />
+            <NetWorthEvolution />
+          </Suspense>
+        </div>
+
+        {/* Insights Row 5 - Cash Forecast */}
+        <div className="w-full">
+          <Suspense fallback={<ChartSkeleton />}>
+            <CashForecast />
           </Suspense>
         </div>
       </div>
