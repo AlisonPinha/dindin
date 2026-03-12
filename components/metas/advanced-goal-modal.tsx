@@ -689,7 +689,7 @@ export function AdvancedGoalModal({
                         className="[&_[role=slider]]:bg-emerald-500"
                       />
                       <p className="text-xs text-muted-foreground">
-                        Poupança, ações, renda fixa, fundos
+                        CDB, ações, renda fixa, fundos
                       </p>
                     </div>
 

@@ -121,7 +121,7 @@ export function IncomeStep({ rendaMensal, onChange, errors }: IncomeStepProps) {
                   <div>
                     <p className="font-medium text-sm">Investimentos</p>
                     <p className="text-xs text-muted-foreground">
-                      Poupança, ações, fundos
+                      CDB, ações, fundos
                     </p>
                   </div>
                 </div>

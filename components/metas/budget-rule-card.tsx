@@ -266,7 +266,7 @@ export function BudgetRuleCard({
                   <ul className="text-sm mt-1 space-y-1">
                     <li>• 50% para necessidades essenciais</li>
                     <li>• 30% para estilo de vida</li>
-                    <li>• 20% para investimentos e poupança</li>
+                    <li>• 20% para investimentos (CDB, fundos, ações)</li>
                   </ul>
                 </TooltipContent>
               </Tooltip>

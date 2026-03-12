@@ -66,7 +66,7 @@ const groupConfig = [
   {
     key: "investments" as BudgetGroup,
     label: "Investimentos",
-    description: "Poupança, investimentos, reservas",
+    description: "CDB, ações, fundos, reservas",
     icon: TrendingUp,
     color: "text-emerald-500",
     bgColor: "bg-emerald-500",
@@ -182,7 +182,7 @@ export function BudgetRuleTab({
                   <TooltipContent className="max-w-xs">
                     <p className="text-sm">
                       A regra 50/30/20 é uma diretriz popular para orçamento:
-                      50% para necessidades, 30% para desejos, 20% para poupança/investimentos.
+                      50% para necessidades, 30% para desejos, 20% para investimentos (CDB, fundos, ações).
                       Ajuste conforme sua realidade.
                     </p>
                   </TooltipContent>

@@ -32,7 +32,7 @@ export function FinancialHealthScore({
   // Métricas individuais
   const metrics = [
     {
-      label: "Taxa de Poupança",
+      label: "Taxa de Investimento",
       value: savingsRate,
       target: 20,
       format: (v: number) => `${v.toFixed(1)}%`,
@@ -62,7 +62,7 @@ export function FinancialHealthScore({
     const tips: string[] = []
 
     if (savingsRate < 20) {
-      tips.push("Tente poupar pelo menos 20% da sua renda mensal")
+      tips.push("Tente investir pelo menos 20% da sua renda mensal (CDB, fundos, ações)")
     }
     if (budgetAdherence < 90) {
       tips.push("Revise seus gastos para ficar dentro do orçamento")
