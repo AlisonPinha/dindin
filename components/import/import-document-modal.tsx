@@ -17,6 +17,7 @@ import {
   ChevronUp,
   Pencil,
   Filter,
+  CalendarClock,
 } from "lucide-react"
 import {
   Dialog,
@@ -32,6 +33,7 @@ import {
 } from "@/components/ui/drawer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
@@ -219,7 +221,7 @@ export function ImportDocumentModal({
   const { toast } = useToast()
   const isDesktop = useMediaQuery("(min-width: 768px)")
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const { categories, transactions: existingTransactions } = useStore()
+  const { categories, transactions: existingTransactions, accounts } = useStore()
   const { mutators } = useSWRData()
 
   const [step, setStep] = useState<Step>("select")
@@ -231,6 +233,8 @@ export function ImportDocumentModal({
   const [error, setError] = useState<string | null>(null)
   const [duplicateIndices, setDuplicateIndices] = useState<Set<number>>(new Set())
   const [mesFatura, setMesFatura] = useState<string | null>(null) // Mês da fatura para cartão de crédito
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null) // Conta/cartão associado
+  const [createFutureInstallments, setCreateFutureInstallments] = useState(true) // Criar parcelas futuras automaticamente
 
   // Novos estados para filtros, busca e edição
   const [searchQuery, setSearchQuery] = useState("")
@@ -250,6 +254,8 @@ export function ImportDocumentModal({
     setError(null)
     setDuplicateIndices(new Set())
     setMesFatura(null)
+    setSelectedAccountId(null)
+    setCreateFutureInstallments(true)
     setSearchQuery("")
     setFilterType("all")
     setFilterCategory("all")
@@ -928,6 +934,88 @@ export function ImportDocumentModal({
         }
       })
 
+      // Gerar parcelas futuras para transações parceladas
+      const selectedAccount = accounts.find((a) => a.id === selectedAccountId)
+      const diaFechamento = selectedAccount?.closingDay || null
+
+      if (createFutureInstallments && documentType === "fatura") {
+        const futureTransactions: typeof transactionsToImport = []
+
+        for (const t of transactionsToImport) {
+          // Detectar parcelas pela descrição (ex: "Descrição (4/12)")
+          const parcelaMatch = t.descricao.match(/\((\d+)\/(\d+)\)\s*$/)
+          if (!parcelaMatch) continue
+
+          const parcelaAtual = parseInt(parcelaMatch[1]!)
+          const totalParcelas = parseInt(parcelaMatch[2]!)
+
+          // Só criar futuras se não for a última parcela
+          if (parcelaAtual >= totalParcelas) continue
+
+          // Descrição base sem a info de parcela
+          const descBase = t.descricao.replace(/\s*\(\d+\/\d+\)\s*$/, "").trim()
+
+          // Calcular mesFatura base da transação atual
+          let baseMesFatura: Date
+          if (t.mesFatura) {
+            baseMesFatura = new Date(t.mesFatura + "T00:00:00")
+          } else if (mesFatura) {
+            baseMesFatura = new Date(mesFatura + "T00:00:00")
+          } else {
+            // Fallback: usar a data da transação
+            baseMesFatura = new Date(t.data + "T00:00:00")
+            baseMesFatura.setDate(1)
+          }
+
+          // Criar parcelas futuras (parcelaAtual+1 até totalParcelas)
+          for (let p = parcelaAtual + 1; p <= totalParcelas; p++) {
+            const monthsAhead = p - parcelaAtual
+            const futureMesFatura = new Date(baseMesFatura)
+            futureMesFatura.setMonth(futureMesFatura.getMonth() + monthsAhead)
+            const futureMesFaturaStr = `${futureMesFatura.getFullYear()}-${String(futureMesFatura.getMonth() + 1).padStart(2, "0")}-01`
+
+            // Data da transação futura: usar dia_fechamento como referência
+            // A compra "acontece" dentro do período de faturamento
+            let futureDataStr: string
+            if (diaFechamento) {
+              // Usar dia anterior ao fechamento do mês da fatura
+              const faturaDate = new Date(futureMesFaturaStr + "T00:00:00")
+              futureDataStr = `${faturaDate.getFullYear()}-${String(faturaDate.getMonth() + 1).padStart(2, "0")}-01`
+            } else {
+              // Sem dia de fechamento, usar primeiro dia do mês da fatura
+              futureDataStr = futureMesFaturaStr
+            }
+
+            // Verificar se essa parcela futura já existe no sistema
+            const futureTransaction: ExtractedTransaction = {
+              descricao: `${descBase} (${p}/${totalParcelas})`,
+              valor: t.valor,
+              tipo: t.tipo,
+              data: futureDataStr,
+              parcela: p,
+              totalParcelas: totalParcelas,
+            }
+
+            const isDuplicate = checkDuplicate(futureTransaction, existingTransactions, futureMesFaturaStr)
+            if (!isDuplicate) {
+              futureTransactions.push({
+                descricao: `${descBase} (${p}/${totalParcelas})`,
+                valor: t.valor,
+                tipo: t.tipo,
+                data: futureDataStr,
+                categoryId: t.categoryId,
+                mesFatura: futureMesFaturaStr,
+              })
+            }
+          }
+        }
+
+        // Adicionar parcelas futuras ao lote de importação
+        if (futureTransactions.length > 0) {
+          transactionsToImport.push(...futureTransactions)
+        }
+      }
+
       // Importar transações em lote
       let successCount = 0
       let errorCount = 0
@@ -942,6 +1030,7 @@ export function ImportDocumentModal({
             tipo: transaction.tipo,
             data: transaction.data,
             categoryId: transaction.categoryId,
+            accountId: selectedAccountId || undefined,
           }
 
           // Se a transação tem mesFatura específico (parcela futura), usar ele
@@ -978,9 +1067,14 @@ export function ImportDocumentModal({
         // Atualizar dados do SWR para refletir as novas transações
         await mutators.transactions()
         setStep("success")
+
+        // Contar parcelas futuras criadas
+        const originalCount = selectedTransactions.length
+        const futureCount = successCount - Math.min(originalCount, successCount)
+        const futureMsg = futureCount > 0 ? ` + ${futureCount} parcela(s) futura(s)` : ""
         toast({
           title: "Importação concluída",
-          description: `${successCount} transação(ões) importada(s) com sucesso.${errorCount > 0 ? ` ${errorCount} falharam.` : ""}`,
+          description: `${Math.min(originalCount, successCount)} transação(ões) importada(s)${futureMsg}.${errorCount > 0 ? ` ${errorCount} falharam.` : ""}`,
         })
       } else {
         const errorDetails = errors.length > 0 ? `\n\nErros:\n${errors.slice(0, 3).join("\n")}${errors.length > 3 ? `\n... e mais ${errors.length - 3} erro(s)` : ""}` : ""
@@ -1537,6 +1631,68 @@ export function ImportDocumentModal({
 
           {/* Footer com resumo e botão */}
           <div className="pt-3 border-t mt-2 space-y-3">
+            {/* Seletor de conta (para faturas de cartão) */}
+            {documentType === "fatura" && (
+              <div className="space-y-2">
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Cartão de crédito</Label>
+                  <Select
+                    value={selectedAccountId || "none"}
+                    onValueChange={(v) => setSelectedAccountId(v === "none" ? null : v)}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Selecionar cartão..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum (sem conta)</SelectItem>
+                      {accounts
+                        .filter((a) => a.type === "credit")
+                        .map((a) => (
+                          <SelectItem key={a.id} value={a.id}>
+                            <div className="flex items-center gap-2">
+                              <CreditCard className="h-3 w-3" />
+                              {a.name}
+                              {a.closingDay && (
+                                <span className="text-muted-foreground">(fecha dia {a.closingDay})</span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Toggle de parcelas futuras */}
+                {transactions.some((t) => t.parcela && t.totalParcelas && t.parcela < t.totalParcelas) && (
+                  <div
+                    className={cn(
+                      "flex items-center gap-3 p-2.5 rounded-lg border transition-colors cursor-pointer",
+                      createFutureInstallments
+                        ? "border-blue-500/30 bg-blue-500/5"
+                        : "border-muted"
+                    )}
+                    onClick={() => setCreateFutureInstallments(!createFutureInstallments)}
+                  >
+                    <Checkbox
+                      checked={createFutureInstallments}
+                      onCheckedChange={(checked) => setCreateFutureInstallments(!!checked)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <CalendarClock className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                        <span className="text-xs font-medium">Criar parcelas futuras</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Ex: parcela 4/12 cria automaticamente 5/12 até 12/12
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex items-center justify-between">
               <div className="text-sm text-muted-foreground">
                 <span className="font-medium text-foreground">{selectedCount}</span> selecionada{selectedCount !== 1 ? 's' : ''}
