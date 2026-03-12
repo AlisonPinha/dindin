@@ -9,6 +9,7 @@ import {
   Check,
   Undo2,
 } from "lucide-react"
+import { apiFetch } from "@/lib/api/fetch"
 import {
   Dialog,
   DialogContent,
@@ -278,7 +279,7 @@ export function QuickTransactionModal({
     const isRealCategory = formState.categoryId && !formState.categoryId.startsWith("default-")
 
     try {
-      const response = await fetch("/api/transacoes", {
+      const response = await apiFetch("/api/transacoes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

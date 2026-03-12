@@ -11,6 +11,7 @@ import {
   Plug,
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { apiFetch } from "@/lib/api/fetch"
 import {
   FamilyMembersTab,
   AccountsTab,
@@ -221,7 +222,7 @@ export default function ConfiguracoesPage() {
       if (!currentIds.includes(acc.id)) {
         try {
           // Call API to persist
-          const response = await fetch("/api/contas", {
+          const response = await apiFetch("/api/contas", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -260,7 +261,7 @@ export default function ConfiguracoesPage() {
     for (const acc of newAccounts) {
       if (currentIds.includes(acc.id)) {
         try {
-          await fetch("/api/contas", {
+          await apiFetch("/api/contas", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -292,7 +293,7 @@ export default function ConfiguracoesPage() {
     for (const id of currentIds) {
       if (!newIds.includes(id)) {
         try {
-          await fetch(`/api/contas?id=${id}`, {
+          await apiFetch(`/api/contas?id=${id}`, {
             method: "DELETE",
           })
           deleteAccount(id)

@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { SocialAuthButtons } from "@/components/auth/social-auth-buttons"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
+import { apiFetch } from "@/lib/api/fetch"
 
 export default function SignupPage() {
   const router = useRouter()
@@ -107,7 +108,7 @@ export default function SignupPage() {
 
         // Criar usuário no banco de dados Prisma
         try {
-          const createUserResponse = await fetch("/api/usuarios", {
+          const createUserResponse = await apiFetch("/api/usuarios", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({

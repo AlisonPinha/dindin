@@ -4,6 +4,7 @@ import { useMemo, useState } from "react"
 import { Plus, Wallet, Building2, CreditCard, TrendingUp, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { apiFetch } from "@/lib/api/fetch"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -64,7 +65,7 @@ export default function ContasPage() {
 
     const account = accounts.find(a => a.id === deleteId)
     try {
-      await fetch(`/api/contas?id=${deleteId}`, { method: "DELETE" })
+      await apiFetch(`/api/contas?id=${deleteId}`, { method: "DELETE" })
       deleteAccount(deleteId)
       toast({
         title: "Conta excluída",

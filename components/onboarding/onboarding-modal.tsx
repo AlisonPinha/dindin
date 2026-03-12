@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { useToast } from "@/hooks/use-toast"
+import { apiFetch } from "@/lib/api/fetch"
 import { ProfileStep } from "./steps/profile-step"
 import { AccountsStep, type AccountData } from "./steps/accounts-step"
 import { IncomeStep } from "./steps/income-step"
@@ -126,7 +127,7 @@ export function OnboardingModal({
     setIsLoading(true)
 
     try {
-      const response = await fetch("/api/onboarding", {
+      const response = await apiFetch("/api/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

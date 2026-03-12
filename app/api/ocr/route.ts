@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/supabase/auth-helper";
 import Anthropic from "@anthropic-ai/sdk";
 import { logger } from "@/lib/logger";
+import { validateFileSignature } from "@/lib/file-validation";
 
 // Configurar runtime para suportar uploads maiores
 export const runtime = 'nodejs';
@@ -138,6 +139,20 @@ export async function POST(request: NextRequest) {
       });
       return NextResponse.json(
         { error: `Arquivo não foi enviado completamente. Recebido: ${bytes.byteLength} bytes, esperado: ${file.size} bytes` },
+        { status: 400 }
+      );
+    }
+
+    // Validar magic bytes do arquivo
+    const fileValidation = validateFileSignature(bytes, file.type);
+    if (!fileValidation.valid) {
+      logger.warn("OCR: File signature mismatch", {
+        declaredType: file.type,
+        detectedType: fileValidation.detectedType,
+        fileName: file.name,
+      });
+      return NextResponse.json(
+        { error: "Tipo de arquivo não corresponde ao conteúdo" },
         { status: 400 }
       );
     }

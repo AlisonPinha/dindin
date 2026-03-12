@@ -12,6 +12,7 @@ export { useCashForecast } from "./use-cash-forecast"
 export { useSelicRate } from "./use-selic-rate"
 export { useDesafios } from "./use-desafios"
 export { useMonthlyCheckin } from "./use-monthly-checkin"
+export { useCsrf } from "./use-csrf"
 export type {
   TotaisDoMes,
   DespesasPorCategoria,

@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 import { checkRateLimit, getClientIP, rateLimitConfigs } from "@/lib/rate-limit"
+import { validateCsrfToken, generateCsrfToken, CSRF_COOKIE_NAME } from "@/lib/csrf"
 
 /**
  * Middleware for Supabase Auth session refresh + API protection
@@ -22,6 +23,16 @@ const PUBLIC_API_ROUTES = [
   "/api/health",
   "/api/quick-add",
 ]
+
+// APIs que NÃO precisam de CSRF (usam autenticação alternativa ou são públicas)
+const CSRF_EXEMPT_ROUTES = [
+  "/api/quick-add",   // usa API key auth
+  "/api/auth/",       // callbacks de autenticação
+  "/api/health",      // health check
+]
+
+// Métodos HTTP que precisam de CSRF protection
+const CSRF_PROTECTED_METHODS = ["POST", "PUT", "DELETE", "PATCH"]
 
 // APIs que precisam de rate limit mais restritivo
 const STRICT_RATE_LIMIT_ROUTES = [
@@ -86,6 +97,20 @@ export async function middleware(request: NextRequest) {
       )
     }
 
+    // ===== CSRF PROTECTION =====
+    if (CSRF_PROTECTED_METHODS.includes(request.method)) {
+      const isCsrfExempt = CSRF_EXEMPT_ROUTES.some((route) =>
+        pathname.startsWith(route)
+      )
+
+      if (!isCsrfExempt && !validateCsrfToken(request)) {
+        return NextResponse.json(
+          { error: "Token CSRF inválido" },
+          { status: 403 }
+        )
+      }
+    }
+
     // Apply rate limiting
     const isStrictRoute = STRICT_RATE_LIMIT_ROUTES.some((route) =>
       pathname.startsWith(route)
@@ -115,6 +140,17 @@ export async function middleware(request: NextRequest) {
       isStrictRoute ? "strict" : "normal"
     )
 
+    // Set CSRF cookie on API responses too if not present
+    if (!request.cookies.get(CSRF_COOKIE_NAME)) {
+      const csrfToken = generateCsrfToken()
+      supabaseResponse.cookies.set(CSRF_COOKIE_NAME, csrfToken, {
+        httpOnly: false,
+        sameSite: "strict",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+      })
+    }
+
     return supabaseResponse
   }
 
@@ -142,6 +178,18 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = "/dashboard"
     return NextResponse.redirect(url)
+  }
+
+  // ===== CSRF COOKIE =====
+  // Set CSRF token cookie on all responses if not already present
+  if (!request.cookies.get(CSRF_COOKIE_NAME)) {
+    const csrfToken = generateCsrfToken()
+    supabaseResponse.cookies.set(CSRF_COOKIE_NAME, csrfToken, {
+      httpOnly: false, // JS needs to read this cookie
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+    })
   }
 
   return supabaseResponse

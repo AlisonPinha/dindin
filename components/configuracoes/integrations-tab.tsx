@@ -13,6 +13,7 @@ import {
   EyeOff,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { apiFetch } from "@/lib/api/fetch"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
@@ -63,7 +64,7 @@ export function IntegrationsTab() {
   const generateKey = async () => {
     try {
       setIsLoading(true)
-      const res = await fetch("/api/usuarios/api-key", { method: "POST" })
+      const res = await apiFetch("/api/usuarios/api-key", { method: "POST" })
       const data = await res.json()
       setRawApiKey(data.apiKey) // Store raw key temporarily for display
       setApiKey(data.apiKey)
@@ -83,7 +84,7 @@ export function IntegrationsTab() {
   const revokeKey = async () => {
     try {
       setIsLoading(true)
-      await fetch("/api/usuarios/api-key", { method: "DELETE" })
+      await apiFetch("/api/usuarios/api-key", { method: "DELETE" })
       setApiKey(null)
       setRawApiKey(null)
       setHasKey(false)

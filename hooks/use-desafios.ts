@@ -3,6 +3,7 @@
 import useSWR from "swr"
 import type { Challenge } from "@/types"
 import { parseLocalDate } from "@/lib/mappers"
+import { apiFetch } from "@/lib/api/fetch"
 
 interface DbDesafioRaw {
   id: string
@@ -76,7 +77,7 @@ export function useDesafios() {
     dataFim: string
     metaValor?: number
   }) => {
-    await fetch("/api/desafios", {
+    await apiFetch("/api/desafios", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
@@ -85,7 +86,7 @@ export function useDesafios() {
   }
 
   const updateChallenge = async (id: string, updates: Record<string, unknown>) => {
-    await fetch("/api/desafios", {
+    await apiFetch("/api/desafios", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, ...updates }),
@@ -94,7 +95,7 @@ export function useDesafios() {
   }
 
   const deleteChallenge = async (id: string) => {
-    await fetch(`/api/desafios?id=${id}`, { method: "DELETE" })
+    await apiFetch(`/api/desafios?id=${id}`, { method: "DELETE" })
     mutate()
   }
 

@@ -13,6 +13,7 @@ import type { TransactionFilters } from "@/components/transacoes"
 import { useToast } from "@/hooks/use-toast"
 import { useStore } from "@/hooks/use-store"
 import { useSWRData } from "@/hooks/use-swr-data"
+import { apiFetch } from "@/lib/api/fetch"
 import { getTransacoesDoMes } from "@/lib/calculations"
 import type { Transaction, TransactionType } from "@/types"
 
@@ -203,7 +204,7 @@ export default function TransacoesPage() {
     try {
       if (modalMode === "create") {
         // Chamar API para criar transação
-        const response = await fetch("/api/transacoes", {
+        const response = await apiFetch("/api/transacoes", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -256,7 +257,7 @@ export default function TransacoesPage() {
         })
       } else if (editingTransaction) {
         // Chamar API para atualizar transação
-        const response = await fetch("/api/transacoes", {
+        const response = await apiFetch("/api/transacoes", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -326,7 +327,7 @@ export default function TransacoesPage() {
   const handleDuplicateTransaction = useCallback(async (transaction: TransactionWithExtras) => {
     setIsSubmitting(true)
     try {
-      const response = await fetch("/api/transacoes", {
+      const response = await apiFetch("/api/transacoes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -376,7 +377,7 @@ export default function TransacoesPage() {
   const handleDeleteTransaction = useCallback(async (id: string) => {
     setIsSubmitting(true)
     try {
-      const response = await fetch(`/api/transacoes?id=${id}`, {
+      const response = await apiFetch(`/api/transacoes?id=${id}`, {
         method: "DELETE",
       })
 

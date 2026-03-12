@@ -2,6 +2,7 @@
 
 import { useState, useRef, useMemo } from "react"
 import Image from "next/image"
+import { apiFetch } from "@/lib/api/fetch"
 import {
   FileText,
   CreditCard,
@@ -446,7 +447,7 @@ export function ImportDocumentModal({
       formData.append("file", file)
       formData.append("type", documentType)
 
-      const response = await fetch("/api/ocr", {
+      const response = await apiFetch("/api/ocr", {
         method: "POST",
         body: formData,
       })
@@ -1041,7 +1042,7 @@ export function ImportDocumentModal({
             transactionData.mesFatura = mesFatura
           }
 
-          const response = await fetch("/api/transacoes", {
+          const response = await apiFetch("/api/transacoes", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(transactionData),

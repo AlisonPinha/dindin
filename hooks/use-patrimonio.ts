@@ -4,6 +4,7 @@ import { useMemo, useEffect, useRef } from "react"
 import useSWR from "swr"
 import { useStore } from "./use-store"
 import { parseLocalDate } from "@/lib/mappers"
+import { apiFetch } from "@/lib/api/fetch"
 
 interface PatrimonioSnapshotRaw {
   id: string
@@ -51,7 +52,7 @@ export function usePatrimonio(): PatrimonioData {
     if (hasCreatedSnapshot.current) return
     hasCreatedSnapshot.current = true
 
-    fetch("/api/patrimonio", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) })
+    apiFetch("/api/patrimonio", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) })
       .then(() => mutate())
       .catch((err) => {
         console.error("[usePatrimonio] Failed to auto-create snapshot:", err)
