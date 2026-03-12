@@ -8,6 +8,7 @@ import {
   PieChart,
   Bell,
   Database,
+  Plug,
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -17,6 +18,7 @@ import {
   BudgetRuleTab,
   NotificationsTab,
   DataTab,
+  IntegrationsTab,
 } from "@/components/configuracoes"
 import { useStore } from "@/hooks/use-store"
 import type { Account, Category, User } from "@/types"
@@ -427,6 +429,13 @@ export default function ConfiguracoesPage() {
             <Database className="h-4 w-4" />
             Dados
           </TabsTrigger>
+          <TabsTrigger
+            value="integrations"
+            className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
+            <Plug className="h-4 w-4" />
+            Integrações
+          </TabsTrigger>
         </TabsList>
 
         {/* Profile Tab */}
@@ -481,6 +490,11 @@ export default function ConfiguracoesPage() {
             onBackup={handleBackup}
             onRestore={handleRestore}
           />
+        </TabsContent>
+
+        {/* Integrations Tab */}
+        <TabsContent value="integrations">
+          <IntegrationsTab />
         </TabsContent>
       </Tabs>
     </div>
