@@ -19,6 +19,7 @@ const PUBLIC_API_ROUTES = [
   "/api/auth/callback",
   "/api/auth/signout",
   "/api/health",
+  "/api/quick-add",
 ]
 
 // APIs que precisam de rate limit mais restritivo
