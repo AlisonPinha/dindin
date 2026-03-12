@@ -144,6 +144,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Verify backup belongs to current user
+    if (backup.user?.id && backup.user.id !== auth.user.id) {
+      return ErrorResponses.badRequest(
+        "Este backup pertence a outro usuário. Você só pode restaurar seus próprios backups."
+      );
+    }
+
     // Preview - mostrar o que será restaurado
     if (backup.preview) {
       return NextResponse.json({

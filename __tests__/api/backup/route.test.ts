@@ -221,7 +221,7 @@ describe("POST /api/backup (restore)", () => {
     const request = createPostRequest("/api/backup", {
       version: "1.0.0",
       createdAt: new Date().toISOString(),
-      user: { id: "old-user", email: "old@test.com" },
+      user: { id: "test-user-123", email: "test@example.com" },
       data: backupData,
       checksum: generateChecksum(backupData),
       preview: true,

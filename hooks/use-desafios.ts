@@ -2,6 +2,7 @@
 
 import useSWR from "swr"
 import type { Challenge } from "@/types"
+import { parseLocalDate } from "@/lib/mappers"
 
 interface DbDesafioRaw {
   id: string
@@ -42,8 +43,8 @@ function mapToChallenge(db: DbDesafioRaw): Challenge {
     description: db.descricao,
     type: typeMap[db.tipo] || "custom",
     template: db.template,
-    startDate: new Date(db.data_inicio + "T00:00:00"),
-    endDate: new Date(db.data_fim + "T00:00:00"),
+    startDate: parseLocalDate(db.data_inicio),
+    endDate: parseLocalDate(db.data_fim),
     targetValue: db.meta_valor,
     currentValue: db.valor_atual,
     status: statusMap[db.status] || "active",

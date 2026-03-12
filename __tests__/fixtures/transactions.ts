@@ -7,6 +7,7 @@ export const mockTransacaoEntrada: DbTransaction = {
   valor: 5000.00,
   tipo: "ENTRADA" as DbTransactionType,
   data: "2025-01-05T00:00:00.000Z",
+  mes_fatura: "2025-01-01",
   recorrente: true,
   parcelas: null,
   parcela_atual: null,
@@ -29,6 +30,7 @@ export const mockTransacaoSaida: DbTransaction = {
   valor: 450.00,
   tipo: "SAIDA" as DbTransactionType,
   data: "2025-01-10T00:00:00.000Z",
+  mes_fatura: "2025-01-01",
   recorrente: false,
   parcelas: null,
   parcela_atual: null,
@@ -51,6 +53,7 @@ export const mockTransacaoTransferencia: DbTransaction = {
   valor: 1000.00,
   tipo: "TRANSFERENCIA" as DbTransactionType,
   data: "2025-01-15T00:00:00.000Z",
+  mes_fatura: "2025-01-01",
   recorrente: true,
   parcelas: null,
   parcela_atual: null,
@@ -73,6 +76,7 @@ export const mockTransacaoInvestimento: DbTransaction = {
   valor: 500.00,
   tipo: "INVESTIMENTO" as DbTransactionType,
   data: "2025-01-20T00:00:00.000Z",
+  mes_fatura: "2025-01-01",
   recorrente: true,
   parcelas: null,
   parcela_atual: null,
@@ -95,6 +99,7 @@ export const mockTransacaoParcelada: DbTransaction = {
   valor: 100.00,
   tipo: "SAIDA" as DbTransactionType,
   data: "2025-01-25T00:00:00.000Z",
+  mes_fatura: "2025-02-01",
   recorrente: false,
   parcelas: 6,
   parcela_atual: 1,
@@ -117,6 +122,7 @@ export const mockTransacaoPessoal: DbTransaction = {
   valor: 150.00,
   tipo: "SAIDA" as DbTransactionType,
   data: "2025-01-02T00:00:00.000Z",
+  mes_fatura: "2025-01-01",
   recorrente: true,
   parcelas: null,
   parcela_atual: null,
@@ -145,10 +151,12 @@ export const mockTransactionsList: DbTransaction[] = [
 export function createMockTransaction(
   overrides: Partial<DbTransaction> = {}
 ): DbTransaction {
+  const now = new Date()
   return {
     ...mockTransacaoSaida,
     id: `tx-${Date.now()}`,
-    data: new Date().toISOString(),
+    data: now.toISOString(),
+    mes_fatura: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`,
     ...overrides,
   }
 }

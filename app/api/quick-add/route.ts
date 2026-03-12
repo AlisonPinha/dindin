@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
+import { hashApiKey } from "@/lib/api-key";
 
-// Supabase admin client (bypasses RLS) for API key auth
+const ALLOWED_TIPOS = ["ENTRADA", "SAIDA", "TRANSFERENCIA", "INVESTIMENTO"] as const;
+const MAX_DESC_LENGTH = 255;
+// dd_ prefix (3 chars) + 64 hex chars = 67 total
+const API_KEY_LENGTH = 67;
+
+// Supabase admin client (bypasses RLS) - used ONLY for API key lookup
 function getAdminClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,13 +22,17 @@ async function authenticateByApiKey(request: NextRequest): Promise<{ userId: str
   if (!authHeader?.startsWith("Bearer ")) return null;
 
   const apiKey = authHeader.slice(7).trim();
-  if (!apiKey || apiKey.length < 32) return null;
+  if (!apiKey || apiKey.length !== API_KEY_LENGTH) return null;
 
-  const supabase = getAdminClient();
-  const { data: user } = await supabase
+  // Hash the incoming key and compare against stored hash
+  const hashedKey = hashApiKey(apiKey);
+
+  // Use admin client ONLY for key lookup (no RLS on usuarios table for this query)
+  const adminClient = getAdminClient();
+  const { data: user } = await adminClient
     .from("usuarios")
     .select("id")
-    .eq("api_key", apiKey)
+    .eq("api_key", hashedKey)
     .single();
 
   if (!user) return null;
@@ -35,12 +45,11 @@ export async function POST(request: NextRequest) {
     const auth = await authenticateByApiKey(request);
     if (!auth) {
       return NextResponse.json(
-        { error: "API key inválida ou ausente. Use: Authorization: Bearer <sua-api-key>" },
+        { error: "Autenticação falhou" },
         { status: 401 }
       );
     }
 
-    const supabase = getAdminClient();
     const body = await request.json();
 
     const {
@@ -53,12 +62,18 @@ export async function POST(request: NextRequest) {
       tags,
     } = body;
 
-    // Validações mínimas
+    // Input validation
     if (!descricao?.trim()) {
       return NextResponse.json({ error: "descricao é obrigatório" }, { status: 400 });
     }
-    if (!valor || valor <= 0) {
-      return NextResponse.json({ error: "valor deve ser maior que zero" }, { status: 400 });
+    if (typeof descricao !== "string" || descricao.trim().length > MAX_DESC_LENGTH) {
+      return NextResponse.json({ error: `descricao deve ter no máximo ${MAX_DESC_LENGTH} caracteres` }, { status: 400 });
+    }
+    if (typeof valor !== "number" || !isFinite(valor) || valor <= 0) {
+      return NextResponse.json({ error: "valor deve ser um número positivo" }, { status: 400 });
+    }
+    if (!ALLOWED_TIPOS.includes(tipo as typeof ALLOWED_TIPOS[number])) {
+      return NextResponse.json({ error: `tipo deve ser um dos: ${ALLOWED_TIPOS.join(", ")}` }, { status: 400 });
     }
 
     // Data: usar hoje se não informada
@@ -72,8 +87,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Buscar conta (se informada) para calcular mes_fatura
+    // Admin client is required since this route uses API key auth (no session cookies)
     let accountData: { id: string; tipo: string; dia_fechamento: number | null } | null = null;
     if (accountId) {
+      const supabase = getAdminClient();
       const { data: account } = await supabase
         .from("contas")
         .select("id, tipo, dia_fechamento")
@@ -117,6 +134,9 @@ export async function POST(request: NextRequest) {
       tags: tags || [],
     };
 
+    // Admin client required since this route uses API key auth (no session cookies)
+    // user_id is always set in insertData to scope to the authenticated user
+    const supabase = getAdminClient();
     const { data: transaction, error } = await supabase
       .from("transacoes")
       .insert(insertData)

@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
+import { checkRateLimit, getClientIP, rateLimitConfigs } from "@/lib/rate-limit"
 
 /**
  * Middleware for Supabase Auth session refresh + API protection
@@ -85,11 +86,30 @@ export async function middleware(request: NextRequest) {
       )
     }
 
-    // Add rate limit headers (informational)
+    // Apply rate limiting
     const isStrictRoute = STRICT_RATE_LIMIT_ROUTES.some((route) =>
       pathname.startsWith(route)
     )
 
+    const clientIP = getClientIP(request)
+    const rateLimitKey = `${clientIP}:${isStrictRoute ? "strict" : "normal"}`
+    const config = isStrictRoute ? rateLimitConfigs.strict : rateLimitConfigs.normal
+    const rateLimitResult = checkRateLimit(rateLimitKey, config.maxRequests, config.windowMs)
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: "Limite de requisições excedido. Tente novamente em breve." },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000)),
+            "X-RateLimit-Remaining": "0",
+          },
+        }
+      )
+    }
+
+    supabaseResponse.headers.set("X-RateLimit-Remaining", String(rateLimitResult.remaining))
     supabaseResponse.headers.set(
       "X-RateLimit-Policy",
       isStrictRoute ? "strict" : "normal"

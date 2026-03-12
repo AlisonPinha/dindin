@@ -5,6 +5,7 @@ import "./globals.css"
 import { Toaster } from "@/components/ui/toaster"
 import { NotificationProvider } from "@/components/notifications"
 import { PWARegister } from "@/components/pwa-register"
+import { ErrorBoundary } from "@/components/error-boundary"
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -44,9 +45,11 @@ export default function RootLayout({
       <body
         className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased`}
       >
-        <NotificationProvider>
-          {children}
-        </NotificationProvider>
+        <ErrorBoundary>
+          <NotificationProvider>
+            {children}
+          </NotificationProvider>
+        </ErrorBoundary>
         <Toaster />
         <PWARegister />
       </body>

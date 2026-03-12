@@ -32,6 +32,8 @@ export function IntegrationsTab() {
   const { toast } = useToast()
   const { accounts } = useStore()
   const [apiKey, setApiKey] = useState<string | null>(null)
+  const [rawApiKey, setRawApiKey] = useState<string | null>(null) // Only set right after generation
+  const [hasKey, setHasKey] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isFetching, setIsFetching] = useState(true)
   const [showKey, setShowKey] = useState(false)
@@ -49,6 +51,8 @@ export function IntegrationsTab() {
       const res = await fetch("/api/usuarios/api-key")
       const data = await res.json()
       setApiKey(data.apiKey || null)
+      setHasKey(data.hasKey || false)
+      setRawApiKey(null) // Clear any previously shown raw key
     } catch {
       // Silenciar erro
     } finally {
@@ -61,7 +65,9 @@ export function IntegrationsTab() {
       setIsLoading(true)
       const res = await fetch("/api/usuarios/api-key", { method: "POST" })
       const data = await res.json()
+      setRawApiKey(data.apiKey) // Store raw key temporarily for display
       setApiKey(data.apiKey)
+      setHasKey(true)
       setShowKey(true)
       toast({
         title: "API Key gerada",
@@ -79,6 +85,8 @@ export function IntegrationsTab() {
       setIsLoading(true)
       await fetch("/api/usuarios/api-key", { method: "DELETE" })
       setApiKey(null)
+      setRawApiKey(null)
+      setHasKey(false)
       setShowKey(false)
       setShowRevokeDialog(false)
       toast({ title: "API Key revogada", description: "A key foi removida. Shortcuts que a usam vão parar de funcionar." })
@@ -121,12 +129,12 @@ export function IntegrationsTab() {
               <Loader2 className="h-4 w-4 animate-spin" />
               Carregando...
             </div>
-          ) : apiKey ? (
+          ) : hasKey ? (
             <>
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Input
-                    value={showKey ? apiKey : apiKey.replace(/./g, "\u2022")}
+                    value={showKey && rawApiKey ? rawApiKey : (apiKey || "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022")}
                     readOnly
                     className="pr-10 font-mono text-sm"
                   />
@@ -140,7 +148,8 @@ export function IntegrationsTab() {
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => copyToClipboard(apiKey)}
+                  onClick={() => rawApiKey && copyToClipboard(rawApiKey)}
+                  disabled={!rawApiKey}
                 >
                   {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
                 </Button>
@@ -219,7 +228,7 @@ export function IntegrationsTab() {
                 </Button>
               </li>
               <li>Método: <strong>POST</strong></li>
-              <li>Headers: <code className="bg-muted px-1 py-0.5 rounded text-[11px]">Authorization: Bearer {apiKey ? apiKey.slice(0, 10) + "..." : "<sua-key>"}</code></li>
+              <li>Headers: <code className="bg-muted px-1 py-0.5 rounded text-[11px]">Authorization: Bearer {rawApiKey ? rawApiKey.slice(0, 10) + "..." : "<sua-key>"}</code></li>
               <li>Body (JSON):
                 <pre className="bg-muted p-2 rounded text-[11px] mt-1 overflow-x-auto">{JSON.stringify({
                   descricao: "Merchant Name (variavel)",

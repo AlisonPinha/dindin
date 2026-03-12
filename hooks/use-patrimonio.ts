@@ -3,6 +3,7 @@
 import { useMemo, useEffect, useRef } from "react"
 import useSWR from "swr"
 import { useStore } from "./use-store"
+import { parseLocalDate } from "@/lib/mappers"
 
 interface PatrimonioSnapshotRaw {
   id: string
@@ -52,7 +53,9 @@ export function usePatrimonio(): PatrimonioData {
 
     fetch("/api/patrimonio", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) })
       .then(() => mutate())
-      .catch(() => {})
+      .catch((err) => {
+        console.error("[usePatrimonio] Failed to auto-create snapshot:", err)
+      })
   }, [mutate])
 
   // Calculate current values from store (real-time)
@@ -89,7 +92,7 @@ export function usePatrimonio(): PatrimonioData {
     return [...snapshots]
       .sort((a, b) => a.mes_ano.localeCompare(b.mes_ano))
       .map(s => {
-        const date = new Date(s.mes_ano + "T00:00:00")
+        const date = parseLocalDate(s.mes_ano)
         return {
           mesAno: s.mes_ano,
           patrimonioLiquido: Number(s.patrimonio_liquido),

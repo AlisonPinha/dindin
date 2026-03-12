@@ -240,9 +240,9 @@ export async function POST(request: NextRequest) {
         );
       }
       
-      // Erro genérico da Claude
+      // Erro genérico da Claude - don't leak internal details
       return NextResponse.json(
-        { error: `Erro na API Claude: ${error?.error?.message || error?.message || "Erro desconhecido"}` },
+        { error: "Erro ao processar documento. Tente novamente." },
         { status: 500 }
       );
     }
@@ -268,7 +268,7 @@ export async function POST(request: NextRequest) {
       logger.error("OCR: Failed to extract JSON from response", undefined, {
         action: "json_extraction",
         resource: "ocr",
-        responsePreview: responseText.substring(0, 200)
+        responsePreview: responseText.substring(0, 500),
       });
       return NextResponse.json(
         { error: "Não foi possível extrair dados do documento. O Claude pode não ter conseguido ler o documento corretamente." },
@@ -283,7 +283,7 @@ export async function POST(request: NextRequest) {
       logger.error("OCR: JSON parse error", parseError, {
         action: "json_parse",
         resource: "ocr",
-        jsonPreview: jsonMatch[0].substring(0, 200)
+        jsonPreview: jsonMatch[0].substring(0, 500),
       });
       return NextResponse.json(
         { error: "Erro ao interpretar os dados extraídos. O Claude pode não ter conseguido ler o documento corretamente." },
@@ -416,18 +416,17 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Erro genérico com mais detalhes no log
-    const errorMessage = err?.message || err?.error?.message || "Erro desconhecido";
+    // Log full error details server-side, return generic message to client
     logger.error("OCR: Error details", error, {
       action: "ocr_error_details",
       resource: "ocr",
-      errorMessage,
+      errorMessage: err?.message || err?.error?.message,
       errorName: err?.name,
       errorStatus: err?.status,
     });
-    
+
     return NextResponse.json(
-      { error: `Erro ao processar documento: ${errorMessage}` },
+      { error: "Erro ao processar documento. Tente novamente." },
       { status: 500 }
     );
   }

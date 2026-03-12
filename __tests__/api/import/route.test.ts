@@ -351,7 +351,7 @@ describe("POST /api/import", () => {
 
     const request = createPostRequest("/api/import", {
       categorias: [
-        { nome: "Alimentação", tipo: "SAIDA", cor: "#ff0000", grupo: "ESSENCIAL" },
+        { nome: "Alimentação", tipo: "DESPESA", cor: "#ff0000", grupo: "ESSENCIAL" },
       ],
     })
     const response = await POST(request as any)

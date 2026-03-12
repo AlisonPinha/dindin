@@ -310,22 +310,18 @@ export async function POST(request: NextRequest) {
       account: transaction.contas,
     });
   } catch (error) {
-    // Capturar erro do Supabase que tem formato específico
+    // Log full error details server-side only
     const supabaseError = error as { message?: string; code?: string; details?: string; hint?: string };
-    const errorMessage = supabaseError?.message ||
-      (error instanceof Error ? error.message : "Erro ao criar transação");
-    const errorDetails = supabaseError?.details || supabaseError?.hint || supabaseError?.code;
-
     logger.error("Failed to create transaction", error, {
       action: "create",
       resource: "transacoes",
       errorCode: supabaseError?.code,
       errorHint: supabaseError?.hint,
+      errorDetails: supabaseError?.details,
     });
 
-    return ErrorResponses.serverError(
-      errorDetails ? `${errorMessage} (${errorDetails})` : errorMessage
-    );
+    // Return generic error message to client - never expose internal details
+    return ErrorResponses.serverError("Erro ao criar transação");
   }
 }
 

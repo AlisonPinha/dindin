@@ -27,11 +27,12 @@ export async function GET(_request: NextRequest, { params }: Params) {
       );
     }
 
-    // Calculate current balance
+    // Calculate current balance - filter by user_id to prevent IDOR
     const { data: transactions } = await supabase
       .from("transacoes")
       .select("valor, tipo")
-      .eq("account_id", account.id);
+      .eq("account_id", account.id)
+      .eq("user_id", auth.user.id);
 
     let saldoTransacoes = 0;
     (transactions || []).forEach((t: { valor: number; tipo: string }) => {

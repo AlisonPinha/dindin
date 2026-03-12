@@ -10,6 +10,7 @@ export const mockContaCorrente: DbAccount = {
   cor: "#8B5CF6",
   icone: "Wallet",
   ativo: true,
+  dia_fechamento: null,
   user_id: "test-user-123",
   created_at: "2025-01-01T00:00:00.000Z",
   updated_at: "2025-01-01T00:00:00.000Z",
@@ -25,6 +26,7 @@ export const mockCartaoCredito: DbAccount = {
   cor: "#EF4444",
   icone: "CreditCard",
   ativo: true,
+  dia_fechamento: 5,
   user_id: "test-user-123",
   created_at: "2025-01-01T00:00:00.000Z",
   updated_at: "2025-01-01T00:00:00.000Z",
@@ -40,6 +42,7 @@ export const mockContaInvestimento: DbAccount = {
   cor: "#3B82F6",
   icone: "TrendingUp",
   ativo: true,
+  dia_fechamento: null,
   user_id: "test-user-123",
   created_at: "2025-01-01T00:00:00.000Z",
   updated_at: "2025-01-01T00:00:00.000Z",
@@ -55,6 +58,7 @@ export const mockContaInativa: DbAccount = {
   cor: "#6B7280",
   icone: "Wallet",
   ativo: false,
+  dia_fechamento: null,
   user_id: "test-user-123",
   created_at: "2024-01-01T00:00:00.000Z",
   updated_at: "2024-12-01T00:00:00.000Z",
@@ -72,6 +76,7 @@ export function createMockAccount(overrides: Partial<DbAccount> = {}): DbAccount
   return {
     ...mockContaCorrente,
     id: `conta-${Date.now()}`,
+    dia_fechamento: null,
     ...overrides,
   }
 }

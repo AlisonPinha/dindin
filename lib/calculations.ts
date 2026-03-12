@@ -613,22 +613,6 @@ export function safePercentage(
 }
 
 /**
- * Formats a percentage for display, returning "—" for invalid values
- * @param value - The percentage value
- * @param decimalPlaces - Number of decimal places (default: 1)
- * @returns Formatted string like "25.5%" or "—"
- */
-export function formatPercentage(
-  value: number | null | undefined,
-  decimalPlaces = 1
-): string {
-  if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—"
-  }
-  return `${value.toFixed(decimalPlaces)}%`
-}
-
-/**
  * Safely calculates variation between two values
  * @param current - Current value
  * @param previous - Previous value

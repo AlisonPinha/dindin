@@ -137,7 +137,7 @@ export function mapDbAccountToAccount(dbAcc: DbAccountWithBalance): Account {
  * Parse date string as local date (avoid timezone issues)
  * "2026-01-01" → Date at midnight local time, not UTC
  */
-function parseLocalDate(dateStr: string): Date {
+export function parseLocalDate(dateStr: string): Date {
   // Se a string já contém timezone info (T ou Z), usar diretamente
   if (dateStr.includes("T") || dateStr.includes("Z")) {
     return new Date(dateStr)
