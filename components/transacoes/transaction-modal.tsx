@@ -126,23 +126,6 @@ const defaultFormData: TransactionFormData = {
   notes: "",
 }
 
-// Helper to generate invoice month options (current month + 6 months ahead)
-function getInvoiceMonthOptions(baseDate: Date): { value: string; label: string }[] {
-  const options: { value: string; label: string }[] = []
-  const months = [
-    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
-  ]
-
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(baseDate.getFullYear(), baseDate.getMonth() + i, 1)
-    const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`
-    const label = `${months[date.getMonth()]} ${date.getFullYear()}`
-    options.push({ value, label })
-  }
-
-  return options
-}
 
 export function TransactionModal({
   open,
@@ -503,36 +486,45 @@ export function TransactionModal({
             </Select>
           </div>
 
-          {/* Invoice Month - Only for Credit Cards */}
+          {/* Invoice Month Info - Only for Credit Cards */}
           {(() => {
             const selectedAccount = accounts.find(a => a.id === formData.accountId)
-            const isCartaoCredito = selectedAccount?.type === "credit"
+            if (selectedAccount?.type !== "credit") return null
 
-            if (!isCartaoCredito) return null
+            const closingDay = selectedAccount.closingDay
+            if (!closingDay) return (
+              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 animate-in slide-in-from-top-2">
+                <p className="text-xs text-amber-600">
+                  Configure o dia de fechamento deste cartão nas Configurações para calcular a fatura automaticamente.
+                </p>
+              </div>
+            )
 
-            const invoiceOptions = getInvoiceMonthOptions(formData.date)
+            // Calcular em qual fatura a compra vai cair
+            const txDay = formData.date.getDate()
+            const txMonth = formData.date.getMonth()
+            const txYear = formData.date.getFullYear()
+            const months = [
+              "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+              "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+            ]
+
+            let faturaMonth: number, faturaYear: number
+            if (txDay > closingDay) {
+              // Após fechamento → mês seguinte
+              const next = new Date(txYear, txMonth + 1, 1)
+              faturaMonth = next.getMonth()
+              faturaYear = next.getFullYear()
+            } else {
+              faturaMonth = txMonth
+              faturaYear = txYear
+            }
 
             return (
-              <div className="space-y-2 animate-in slide-in-from-top-2">
-                <Label htmlFor="mesFatura-trigger">Fatura do Mês</Label>
-                <p className="text-xs text-muted-foreground">
-                  Em qual fatura essa compra vai aparecer?
+              <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 animate-in slide-in-from-top-2">
+                <p className="text-xs text-blue-600">
+                  Fechamento dia {closingDay} → Fatura de <span className="font-semibold">{months[faturaMonth]} {faturaYear}</span>
                 </p>
-                <Select
-                  value={formData.mesFatura || invoiceOptions[0]?.value || ""}
-                  onValueChange={(value) => updateField("mesFatura", value)}
-                >
-                  <SelectTrigger id="mesFatura-trigger">
-                    <SelectValue placeholder="Selecione o mês da fatura" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {invoiceOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
             )
           })()}

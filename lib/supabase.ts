@@ -32,6 +32,7 @@ export interface DbAccount {
   saldo: number
   cor: string | null
   icone: string | null
+  dia_fechamento: number | null
   ativo: boolean
   user_id: string
   created_at: string

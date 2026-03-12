@@ -79,6 +79,7 @@ export interface Account {
   color?: string | null
   icon?: string | null
   bank?: string | null
+  closingDay?: number | null
   userId: string
   createdAt: Date
   updatedAt: Date

@@ -55,6 +55,7 @@ interface AccountWithStatus {
   color: string
   icon?: string
   bank?: string
+  closingDay?: number | null
   isActive: boolean
 }
 
@@ -128,6 +129,7 @@ export function AccountsTab({ accounts, onAccountsChange }: AccountsTabProps) {
     color: "#3b82f6",
     icon: "wallet",
     bank: "",
+    closingDay: null as number | null,
     isActive: true,
   })
 
@@ -140,6 +142,7 @@ export function AccountsTab({ accounts, onAccountsChange }: AccountsTabProps) {
       color: "#3b82f6",
       icon: "wallet",
       bank: "",
+      closingDay: null,
       isActive: true,
     })
     setIsDialogOpen(true)
@@ -154,6 +157,7 @@ export function AccountsTab({ accounts, onAccountsChange }: AccountsTabProps) {
       color: account.color,
       icon: account.icon || "wallet",
       bank: account.bank || "",
+      closingDay: account.closingDay || null,
       isActive: account.isActive,
     })
     setIsDialogOpen(true)
@@ -312,6 +316,7 @@ export function AccountsTab({ accounts, onAccountsChange }: AccountsTabProps) {
                       <p className="text-sm text-muted-foreground">
                         {getAccountTypeLabel(account.type)}
                         {account.bank && ` • ${getBankLabel(account.bank)}`}
+                        {account.type === "credit" && account.closingDay && ` • Fecha dia ${account.closingDay}`}
                       </p>
                     </div>
                   </div>
@@ -465,6 +470,33 @@ export function AccountsTab({ accounts, onAccountsChange }: AccountsTabProps) {
                 placeholder="0,00"
               />
             </div>
+
+            {/* Closing Day - Only for Credit Cards */}
+            {formData.type === "credit" && (
+              <div className="space-y-2">
+                <Label htmlFor="closingDay">Dia de Fechamento da Fatura</Label>
+                <p className="text-xs text-muted-foreground">
+                  Compras após esse dia entram na fatura do mês seguinte
+                </p>
+                <Select
+                  value={formData.closingDay ? String(formData.closingDay) : ""}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, closingDay: value ? parseInt(value) : null })
+                  }
+                >
+                  <SelectTrigger id="closingDay">
+                    <SelectValue placeholder="Selecione o dia" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
+                      <SelectItem key={day} value={String(day)}>
+                        Dia {day}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Color */}
             <div className="space-y-2">

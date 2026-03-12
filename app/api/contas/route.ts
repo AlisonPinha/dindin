@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const supabase = await getSupabaseClient();
 
-    const { nome, tipo, banco, saldoInicial, cor, icone } = body;
+    const { nome, tipo, banco, saldoInicial, cor, icone, diaFechamento } = body;
 
     // Validação
     if (!nome?.trim()) {
@@ -131,6 +131,13 @@ export async function POST(request: NextRequest) {
 
     if (!tipo) {
       return ErrorResponses.badRequest("Tipo é obrigatório");
+    }
+
+    // Validar dia de fechamento (1-28, apenas para cartão de crédito)
+    if (diaFechamento !== undefined && diaFechamento !== null) {
+      if (diaFechamento < 1 || diaFechamento > 28) {
+        return ErrorResponses.badRequest("Dia de fechamento deve ser entre 1 e 28");
+      }
     }
 
     const { data: account, error } = await supabase
@@ -143,6 +150,7 @@ export async function POST(request: NextRequest) {
         saldo: saldoInicial || 0,
         cor: cor || "#6366f1",
         icone: icone || null,
+        dia_fechamento: tipo === "CARTAO_CREDITO" ? (diaFechamento || null) : null,
         ativo: true,
       })
       .select()
@@ -166,10 +174,17 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const supabase = await getSupabaseClient();
 
-    const { id, nome, tipo, banco, saldoInicial, cor, icone, ativo } = body;
+    const { id, nome, tipo, banco, saldoInicial, cor, icone, ativo, diaFechamento } = body;
 
     if (!id) {
       return ErrorResponses.badRequest("ID da conta é obrigatório");
+    }
+
+    // Validar dia de fechamento (1-28)
+    if (diaFechamento !== undefined && diaFechamento !== null) {
+      if (diaFechamento < 1 || diaFechamento > 28) {
+        return ErrorResponses.badRequest("Dia de fechamento deve ser entre 1 e 28");
+      }
     }
 
     // Verificar se a conta pertence ao usuário
@@ -192,6 +207,7 @@ export async function PUT(request: NextRequest) {
     if (cor !== undefined) updateData.cor = cor;
     if (icone !== undefined) updateData.icone = icone;
     if (ativo !== undefined) updateData.ativo = ativo;
+    if (diaFechamento !== undefined) updateData.dia_fechamento = diaFechamento;
 
     const { data: account, error } = await supabase
       .from("contas")

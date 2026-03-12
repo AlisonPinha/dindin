@@ -137,13 +137,14 @@ export async function POST(request: NextRequest) {
       .eq("user_id", userId);
 
     // 3. Criar novas contas
-    const accountsToInsert = accounts.map((account) => ({
+    const accountsToInsert = accounts.map((account: { nome: string; tipo: string; banco: string; saldoInicial: number; cor: string; diaFechamento?: number | null }) => ({
       nome: account.nome,
       tipo: account.tipo,
       banco: account.banco,
       saldo: account.saldoInicial,
       cor: account.cor,
       icone: getIconForAccountType(account.tipo),
+      dia_fechamento: account.tipo === "CARTAO_CREDITO" ? (account.diaFechamento || null) : null,
       ativo: true,
       user_id: userId,
     }));

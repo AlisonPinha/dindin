@@ -138,11 +138,12 @@ export async function POST(request: NextRequest) {
       return ErrorResponses.badRequest("Data é obrigatória");
     }
 
-    // Verificar se a conta pertence ao usuário (se fornecida)
+    // Verificar se a conta pertence ao usuário e buscar tipo + dia_fechamento
+    let accountData: { id: string; tipo: string; dia_fechamento: number | null } | null = null;
     if (accountId) {
       const { data: account } = await supabase
         .from("contas")
-        .select("id")
+        .select("id, tipo, dia_fechamento")
         .eq("id", accountId)
         .eq("user_id", auth.user.id)
         .single();
@@ -150,19 +151,35 @@ export async function POST(request: NextRequest) {
       if (!account) {
         return ErrorResponses.notFound("Conta", true);
       }
+      accountData = account;
     }
 
-    // Função para calcular mes_fatura
-    // Se mesFatura foi enviado explicitamente (importação de fatura), usa ele
-    // Para cartão de crédito sem mesFatura: usa mesFatura enviado pelo frontend
+    // Função para calcular mes_fatura baseado no dia de fechamento da conta
+    // Para cartão de crédito com dia_fechamento:
+    //   - compra <= dia_fechamento → fatura do mês atual
+    //   - compra > dia_fechamento → fatura do mês seguinte
     // Para outras contas: primeiro dia do mês da transação
     const calcularMesFatura = (dataTransacao: string, mesFaturaParam?: string): string => {
       // Se mesFatura foi enviado explicitamente, SEMPRE usar ele
-      // Isso é importante para importação de faturas de cartão
       if (mesFaturaParam) {
         return mesFaturaParam;
       }
-      const date = new Date(dataTransacao);
+
+      const date = new Date(dataTransacao + "T00:00:00");
+      const day = date.getDate();
+
+      // Cartão de crédito com dia de fechamento configurado
+      if (accountData?.tipo === "CARTAO_CREDITO" && accountData.dia_fechamento) {
+        if (day > accountData.dia_fechamento) {
+          // Compra após fechamento → fatura do mês seguinte
+          const nextMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+          return `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, "0")}-01`;
+        }
+        // Compra no dia ou antes do fechamento → fatura do mês atual
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`;
+      }
+
+      // Contas sem dia_fechamento: usa mês da transação
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`;
     };
 
@@ -181,28 +198,42 @@ export async function POST(request: NextRequest) {
       const dataBase = new Date(data);
 
       // Para parcelas, calcular mes_fatura de cada uma
-      // Se mesFatura foi informado (cartão), incrementa o mês para cada parcela
-      // Se não foi informado, usa o mês da data da parcela
+      // Se mesFatura foi informado explicitamente, usa ele como base
+      // Se não, calcula automaticamente usando dia_fechamento da conta
       const mesFaturaBase = mesFatura ? new Date(mesFatura) : null;
+      const usaDiaFechamento = !mesFatura && accountData?.tipo === "CARTAO_CREDITO" && accountData.dia_fechamento;
+
+      // Pré-calcular mesFatura da primeira parcela (para referência nas demais)
+      const primeiraMesFaturaRef = usaDiaFechamento
+        ? calcularMesFatura(`${dataBase.getFullYear()}-${String(dataBase.getMonth() + 1).padStart(2, "0")}-${String(dataBase.getDate()).padStart(2, "0")}`)
+        : null;
 
       for (let i = 0; i < parcelas; i++) {
         const dataParcela = new Date(dataBase);
         dataParcela.setMonth(dataParcela.getMonth() + i);
 
+        // Usar data local para evitar problemas de fuso horário
+        const dataParcelaLocal = `${dataParcela.getFullYear()}-${String(dataParcela.getMonth() + 1).padStart(2, "0")}-${String(dataParcela.getDate()).padStart(2, "0")}`;
+
         // Calcular mes_fatura da parcela
         let mesFaturaParcela: string;
         if (mesFaturaBase) {
-          // Cartão de crédito: incrementa o mês da fatura base
+          // mesFatura explícito: incrementa o mês da fatura base
           const mesFaturaParcelaDate = new Date(mesFaturaBase);
           mesFaturaParcelaDate.setMonth(mesFaturaParcelaDate.getMonth() + i);
           mesFaturaParcela = `${mesFaturaParcelaDate.getFullYear()}-${String(mesFaturaParcelaDate.getMonth() + 1).padStart(2, "0")}-01`;
+        } else if (usaDiaFechamento && i === 0) {
+          // Primeira parcela: calcular baseado no dia de fechamento
+          mesFaturaParcela = calcularMesFatura(dataParcelaLocal);
+        } else if (usaDiaFechamento && primeiraMesFaturaRef && i > 0) {
+          // Parcelas seguintes: incrementa mês a partir da primeira
+          const base = new Date(primeiraMesFaturaRef);
+          base.setMonth(base.getMonth() + i);
+          mesFaturaParcela = `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, "0")}-01`;
         } else {
           // Outras contas: usa o mês da data da parcela
           mesFaturaParcela = `${dataParcela.getFullYear()}-${String(dataParcela.getMonth() + 1).padStart(2, "0")}-01`;
         }
-
-        // Usar data local para evitar problemas de fuso horário
-        const dataParcelaLocal = `${dataParcela.getFullYear()}-${String(dataParcela.getMonth() + 1).padStart(2, "0")}-${String(dataParcela.getDate()).padStart(2, "0")}`;
 
         const transactionData: Record<string, unknown> = {
           descricao: `${descricao} (${i + 1}/${parcelas})`,

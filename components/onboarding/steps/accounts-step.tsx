@@ -30,6 +30,7 @@ export interface AccountData {
   banco: string
   saldoInicial: number
   cor: string
+  diaFechamento?: number | null
 }
 
 interface AccountsStepProps {
@@ -88,6 +89,7 @@ export function AccountsStep({ accounts, onChange, errors }: AccountsStepProps) 
     banco: "bradesco",
     saldoInicial: 0,
     cor: "#3b82f6",
+    diaFechamento: null,
   })
 
   const handleAddAccount = () => {
@@ -104,6 +106,7 @@ export function AccountsStep({ accounts, onChange, errors }: AccountsStepProps) 
       banco: "bradesco",
       saldoInicial: 0,
       cor: "#3b82f6",
+      diaFechamento: null,
     })
     setIsAdding(false)
   }
@@ -258,6 +261,33 @@ export function AccountsStep({ accounts, onChange, errors }: AccountsStepProps) 
               placeholder="0,00"
             />
           </div>
+
+          {/* Dia de Fechamento - Apenas para Cartão */}
+          {newAccount.tipo === "CARTAO_CREDITO" && (
+            <div className="space-y-2">
+              <Label>Dia de Fechamento</Label>
+              <p className="text-xs text-muted-foreground">
+                Compras após esse dia entram na fatura do mês seguinte
+              </p>
+              <Select
+                value={newAccount.diaFechamento ? String(newAccount.diaFechamento) : ""}
+                onValueChange={(value) =>
+                  setNewAccount({ ...newAccount, diaFechamento: value ? parseInt(value) : null })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o dia" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
+                    <SelectItem key={day} value={String(day)}>
+                      Dia {day}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Cor</Label>

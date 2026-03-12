@@ -273,7 +273,6 @@ export function QuickTransactionModal({
     const now = new Date()
     // Usar data local no formato YYYY-MM-DD para evitar problemas de fuso horário
     const dataLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
-    const mesFatura = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`
 
     // Only send category_id if it's a real UUID (not a default category)
     const isRealCategory = formState.categoryId && !formState.categoryId.startsWith("default-")
@@ -287,7 +286,6 @@ export function QuickTransactionModal({
           valor: formState.value,
           tipo: mapTypeToDb(type),
           data: dataLocal,
-          mesFatura: mesFatura,
           categoryId: isRealCategory ? formState.categoryId : null,
           accountId: formState.accountId || null,
           notas: null,

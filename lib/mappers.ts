@@ -124,6 +124,7 @@ export function mapDbAccountToAccount(dbAcc: DbAccountWithBalance): Account {
     balance: finalBalance,
     color: dbAcc.cor || "#6366f1",
     bank: dbAcc.banco || undefined,
+    closingDay: dbAcc.dia_fechamento || undefined,
     userId: dbAcc.user_id,
     createdAt: new Date(dbAcc.created_at),
     updatedAt: new Date(dbAcc.updated_at),
