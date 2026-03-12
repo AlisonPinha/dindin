@@ -38,9 +38,9 @@ const nextConfig = {
       // Fontes: self + Google Fonts
       "font-src 'self' https://fonts.gstatic.com data:",
       // Imagens: self + data + blob + avatares + Supabase storage
-      "img-src 'self' data: blob: https://*.googleusercontent.com https://*.supabase.co https://lh3.googleusercontent.com",
+      "img-src 'self' data: blob: https://*.googleusercontent.com https://*.supabase.co https://supabase.nsmvps.com.br https://lh3.googleusercontent.com https://api.dicebear.com",
       // Conexões: self + Supabase + Google Auth + Apple Auth + Anthropic Claude
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://accounts.google.com https://appleid.apple.com https://api.anthropic.com",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://supabase.nsmvps.com.br wss://supabase.nsmvps.com.br https://accounts.google.com https://appleid.apple.com https://api.anthropic.com",
       // Frames: Google Sign-In + Apple Sign-In
       "frame-src 'self' https://accounts.google.com https://appleid.apple.com",
       // Prevenir clickjacking

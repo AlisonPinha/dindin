@@ -35,7 +35,7 @@ interface ImportCategory {
   cor: string;
   icone?: string;
   grupo: DbCategoryGroup;
-  limite_mensal?: number;
+  orcamento_mensal?: number;
 }
 
 interface ImportData {
@@ -276,7 +276,7 @@ export async function POST(request: NextRequest) {
         cor: cat.cor,
         icone: cat.icone || null,
         grupo: cat.grupo,
-        limite_mensal: cat.limite_mensal || null,
+        orcamento_mensal: cat.orcamento_mensal || null,
       }));
 
       const { data: insertedCategories, error } = await supabase

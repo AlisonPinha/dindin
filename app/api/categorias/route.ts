@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
         cor,
         icone: icone || null,
         grupo: grupo as DbCategoryGroup,
-        limite_mensal: orcamentoMensal || null,
+        orcamento_mensal: orcamentoMensal || null,
       })
       .select()
       .single();
@@ -130,7 +130,7 @@ export async function PUT(request: NextRequest) {
     if (cor !== undefined) updateData.cor = cor;
     if (icone !== undefined) updateData.icone = icone;
     if (grupo !== undefined) updateData.grupo = grupo;
-    if (orcamentoMensal !== undefined) updateData.limite_mensal = orcamentoMensal;
+    if (orcamentoMensal !== undefined) updateData.orcamento_mensal = orcamentoMensal;
 
     const { data: category, error } = await supabase
       .from("categorias")

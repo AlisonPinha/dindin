@@ -171,9 +171,9 @@ export async function POST(request: NextRequest) {
       const { data: updatedBudget, error: budgetUpdateError } = await supabase
         .from("orcamentos")
         .update({
-          essenciais_projetado: rendaMensal * 0.5,
-          lifestyle_projetado: rendaMensal * 0.3,
-          investimentos_projetado: rendaMensal * 0.2,
+          projetado_50: rendaMensal * 0.5,
+          projetado_30: rendaMensal * 0.3,
+          projetado_20: rendaMensal * 0.2,
         })
         .eq("id", existingBudget.id)
         .select()
@@ -186,12 +186,12 @@ export async function POST(request: NextRequest) {
         .from("orcamentos")
         .insert({
           mes_ano: mesAno,
-          essenciais_projetado: rendaMensal * 0.5,
-          lifestyle_projetado: rendaMensal * 0.3,
-          investimentos_projetado: rendaMensal * 0.2,
-          essenciais_realizado: 0,
-          lifestyle_realizado: 0,
-          investimentos_realizado: 0,
+          projetado_50: rendaMensal * 0.5,
+          projetado_30: rendaMensal * 0.3,
+          projetado_20: rendaMensal * 0.2,
+          realizado_50: 0,
+          realizado_30: 0,
+          realizado_20: 0,
           user_id: userId,
         })
         .select()

@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
     if (resource === "categorias" || resource === "all") {
       const { data: categorias, error } = await supabase
         .from("categorias")
-        .select("id, nome, tipo, cor, icone, grupo, limite_mensal, created_at")
+        .select("id, nome, tipo, cor, icone, grupo, orcamento_mensal, created_at")
         .eq("user_id", auth.user.id)
         .order("tipo")
         .order("nome");
