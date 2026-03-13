@@ -18,6 +18,9 @@ export type GoalHealthStatus = "on_track" | "attention" | "risk"
 
 export type AlertThreshold = 70 | 80 | 90
 
+// Transaction origin type
+export type TransactionOrigin = "manual" | "quick_add" | "apple_pay" | "ocr_import"
+
 // Ownership type for transactions
 export type OwnershipType = "household" | "personal"
 
@@ -35,6 +38,7 @@ export type DbCategoryGroup = "ESSENCIAL" | "INVESTIMENTO" | "LIVRE"
 export type DbTransactionType = "ENTRADA" | "SAIDA" | "TRANSFERENCIA" | "INVESTIMENTO"
 export type DbInvestmentType = "RENDA_FIXA" | "RENDA_VARIAVEL" | "CRIPTO" | "FUNDO"
 export type DbGoalType = "ECONOMIA_CATEGORIA" | "INVESTIMENTO_MENSAL" | "PATRIMONIO" | "REGRA_PERCENTUAL"
+export type DbTransactionOrigin = "manual" | "quick_add" | "apple_pay" | "ocr_import"
 
 // ============================================
 // UI MODELS (used by existing components)
@@ -112,6 +116,9 @@ export interface Transaction {
   parentTransactionId?: string | null // ID da transação pai (para agrupar parcelas)
   tags?: string[]
   ownership?: OwnershipType  // "household" (Casa) ou "personal" (Pessoal)
+  origin?: TransactionOrigin
+  invoiceReference?: string | null
+  matchedTransactionId?: string | null
   userId: string
   categoryId?: string | null
   accountId?: string | null
@@ -171,6 +178,23 @@ export interface Budget {
   userId: string
   createdAt: Date
   updatedAt: Date
+}
+
+// ============================================
+// ALERT TYPES
+// ============================================
+
+export type AlertChannel = "whatsapp" | "dashboard"
+
+export interface Alert {
+  id: string
+  userId: string
+  categoryId?: string | null
+  threshold: number
+  message: string
+  channel: AlertChannel
+  sentAt: Date
+  createdAt: Date
 }
 
 // ============================================

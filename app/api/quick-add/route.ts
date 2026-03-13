@@ -4,6 +4,7 @@ import { logger } from "@/lib/logger";
 import { hashApiKey } from "@/lib/api-key";
 
 const ALLOWED_TIPOS = ["ENTRADA", "SAIDA", "TRANSFERENCIA", "INVESTIMENTO"] as const;
+const ALLOWED_ORIGINS = ["manual", "quick_add", "apple_pay", "ocr_import"] as const;
 const MAX_DESC_LENGTH = 255;
 // dd_ prefix (3 chars) + 64 hex chars = 67 total
 const API_KEY_LENGTH = 67;
@@ -60,6 +61,7 @@ export async function POST(request: NextRequest) {
       accountId,
       categoryId,
       tags,
+      origem,
     } = body;
 
     // Input validation
@@ -74,6 +76,9 @@ export async function POST(request: NextRequest) {
     }
     if (!ALLOWED_TIPOS.includes(tipo as typeof ALLOWED_TIPOS[number])) {
       return NextResponse.json({ error: `tipo deve ser um dos: ${ALLOWED_TIPOS.join(", ")}` }, { status: 400 });
+    }
+    if (origem && !ALLOWED_ORIGINS.includes(origem as typeof ALLOWED_ORIGINS[number])) {
+      return NextResponse.json({ error: `origem deve ser um dos: ${ALLOWED_ORIGINS.join(", ")}` }, { status: 400 });
     }
 
     // Data: usar hoje se não informada
@@ -132,6 +137,7 @@ export async function POST(request: NextRequest) {
       account_id: accountId || null,
       user_id: auth.userId,
       tags: tags || [],
+      origem: origem || "quick_add",
     };
 
     // Admin client required since this route uses API key auth (no session cookies)
@@ -140,7 +146,7 @@ export async function POST(request: NextRequest) {
     const { data: transaction, error } = await supabase
       .from("transacoes")
       .insert(insertData)
-      .select("id, descricao, valor, tipo, data, mes_fatura")
+      .select("id, descricao, valor, tipo, data, mes_fatura, origem")
       .single();
 
     if (error) {

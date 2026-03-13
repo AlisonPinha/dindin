@@ -3,7 +3,7 @@
  * Arquivo centralizado para evitar duplicação de código
  */
 
-import type { Transaction, Category, Account, User, Investment, Goal, PatrimonioSnapshot, Challenge } from "@/types"
+import type { Transaction, Category, Account, User, Investment, Goal, PatrimonioSnapshot, Challenge, Alert, AlertChannel } from "@/types"
 import type {
   DbUser,
   DbCategory,
@@ -13,6 +13,7 @@ import type {
   DbGoal,
   DbPatrimonioSnapshot,
   DbDesafio,
+  DbAlert,
 } from "@/lib/supabase"
 
 // ============================================
@@ -167,6 +168,9 @@ export function mapDbTransactionToTransaction(
     user: users.find((u) => u.id === dbTx.user_id) || null,
     notes: dbTx.notas || undefined,
     ownership: mapOwnershipToUI(dbTx.ownership),
+    origin: dbTx.origem || "manual",
+    invoiceReference: dbTx.fatura_referencia || undefined,
+    matchedTransactionId: dbTx.matched_transacao_id || undefined,
     isRecurring: dbTx.recorrente,
     installments: dbTx.parcelas || undefined,
     currentInstallment: dbTx.parcela_atual || undefined,
@@ -253,5 +257,27 @@ export function mapDbDesafioToChallenge(db: DbDesafio): Challenge {
     streakCount: db.streak_conjunto,
     createdAt: new Date(db.created_at),
     updatedAt: new Date(db.updated_at),
+  }
+}
+
+// ============================================
+// ALERT MAPPER
+// ============================================
+
+const alertChannelMap: Record<string, AlertChannel> = {
+  whatsapp: "whatsapp",
+  dashboard: "dashboard",
+}
+
+export function mapDbAlertToAlert(db: DbAlert): Alert {
+  return {
+    id: db.id,
+    userId: db.user_id,
+    categoryId: db.categoria_id || undefined,
+    threshold: db.threshold,
+    message: db.mensagem,
+    channel: alertChannelMap[db.canal] || "whatsapp",
+    sentAt: new Date(db.enviado_em),
+    createdAt: new Date(db.created_at),
   }
 }

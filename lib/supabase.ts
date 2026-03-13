@@ -12,6 +12,7 @@ export type DbTransactionType = "ENTRADA" | "SAIDA" | "TRANSFERENCIA" | "INVESTI
 export type DbInvestmentType = "RENDA_FIXA" | "RENDA_VARIAVEL" | "CRIPTO" | "FUNDO"
 export type DbGoalType = "ECONOMIA_CATEGORIA" | "INVESTIMENTO_MENSAL" | "PATRIMONIO" | "REGRA_PERCENTUAL"
 export type DbOwnershipType = "CASA" | "PESSOAL"
+export type DbTransactionOrigin = "manual" | "quick_add" | "apple_pay" | "ocr_import"
 
 export interface DbUser {
   id: string
@@ -68,6 +69,9 @@ export interface DbTransaction {
   anexo_url: string | null
   notas: string | null
   ownership: DbOwnershipType
+  origem: DbTransactionOrigin
+  fatura_referencia: string | null
+  matched_transacao_id: string | null
   category_id: string | null
   account_id: string | null
   user_id: string
@@ -126,6 +130,17 @@ export interface DbPatrimonioSnapshot {
   saldo_investimentos: number
   dividas: number
   patrimonio_liquido: number
+  created_at: string
+}
+
+export interface DbAlert {
+  id: string
+  user_id: string
+  categoria_id: string | null
+  threshold: number
+  mensagem: string
+  canal: string
+  enviado_em: string
   created_at: string
 }
 

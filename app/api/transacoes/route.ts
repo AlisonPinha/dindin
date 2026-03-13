@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
     const dataInicio = searchParams.get("dataInicio");
     const dataFim = searchParams.get("dataFim");
     const mesFatura = searchParams.get("mesFatura"); // NOVO: filtro por mês da fatura (YYYY-MM-01)
+    const origem = searchParams.get("origem"); // Filtro por origem (manual, quick_add, apple_pay, ocr_import)
     const limit = searchParams.get("limit");
     const offset = searchParams.get("offset");
 
@@ -36,6 +37,7 @@ export async function GET(request: NextRequest) {
     if (dataInicio) query = query.gte("data", dataInicio);
     if (dataFim) query = query.lte("data", dataFim);
     if (mesFatura) query = query.eq("mes_fatura", mesFatura); // Filtro exato por mês da fatura
+    if (origem) query = query.eq("origem", origem);
 
     query = query
       .order("data", { ascending: false })
@@ -64,6 +66,7 @@ export async function GET(request: NextRequest) {
     if (dataInicio) countQuery = countQuery.gte("data", dataInicio);
     if (dataFim) countQuery = countQuery.lte("data", dataFim);
     if (mesFatura) countQuery = countQuery.eq("mes_fatura", mesFatura);
+    if (origem) countQuery = countQuery.eq("origem", origem);
 
     const { count } = await countQuery;
 
