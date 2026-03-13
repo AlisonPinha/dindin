@@ -634,6 +634,70 @@ export function safeVariation(
 }
 
 // ================================
+// Canonical Variation Calculation
+// ================================
+
+export interface VariationResult {
+  /** Percentage variation, or null when comparison is not possible */
+  value: number | null
+  /** Human-readable label (e.g. "+12.3%", "Novo", "0%", "—") */
+  label: string
+  /** True when previous was 0 and current > 0 (new value) */
+  isNew: boolean
+  /** Semantic direction */
+  direction: "up" | "down" | "neutral"
+}
+
+/**
+ * Calculates percentage variation between two values with full edge-case handling.
+ *
+ * Edge cases:
+ * - Invalid (NaN/Infinity) inputs → { value: null, label: "—" }
+ * - Both zero → { value: 0, label: "0%" }
+ * - Previous zero, current > 0 → { value: null, label: "Novo", isNew: true }
+ * - Previous zero, current < 0 → { value: null, label: "—" }
+ * - Normal → clamped to [-9999, 9999]
+ */
+export function calculateVariation(current: number, previous: number): VariationResult {
+  // Handle invalid inputs
+  if (!Number.isFinite(current) || !Number.isFinite(previous)) {
+    return { value: null, label: "—", isNew: false, direction: "neutral" }
+  }
+
+  // Both zero — no variation
+  if (current === 0 && previous === 0) {
+    return { value: 0, label: "0%", isNew: false, direction: "neutral" }
+  }
+
+  // Previous was zero — cannot compute percentage
+  if (previous === 0) {
+    if (current > 0) {
+      return { value: null, label: "Novo", isNew: true, direction: "up" }
+    }
+    return { value: null, label: "—", isNew: false, direction: "neutral" }
+  }
+
+  // Normal calculation
+  const raw = ((current - previous) / previous) * 100
+
+  // Guard against NaN/Infinity from edge-case arithmetic
+  if (!Number.isFinite(raw)) {
+    return { value: null, label: "—", isNew: false, direction: "neutral" }
+  }
+
+  const clamped = Math.max(-9999, Math.min(9999, raw))
+  const prefix = clamped >= 0 ? "+" : ""
+  const direction = clamped > 0 ? "up" : clamped < 0 ? "down" : "neutral"
+
+  return {
+    value: clamped,
+    label: `${prefix}${clamped.toFixed(1)}%`,
+    isNew: false,
+    direction,
+  }
+}
+
+// ================================
 // Emergency Reserve Calculation
 // ================================
 

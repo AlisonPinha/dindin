@@ -36,6 +36,7 @@ function createResolvedQueryBuilder(data: unknown) {
     gte: vi.fn().mockReturnThis(),
     lte: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
   }
 
   builder.then = (resolve: (v: typeof result) => unknown) => Promise.resolve(result).then(resolve)

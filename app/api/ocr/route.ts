@@ -3,6 +3,7 @@ import { getAuthenticatedUser } from "@/lib/supabase/auth-helper";
 import Anthropic from "@anthropic-ai/sdk";
 import { logger } from "@/lib/logger";
 import { validateFileSignature } from "@/lib/file-validation";
+import { validateOcrResponse } from "@/lib/ocr-validation";
 
 // Configurar runtime para suportar uploads maiores
 export const runtime = 'nodejs';
@@ -306,17 +307,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validar estrutura básica
-    if (!resultado.transactions || !Array.isArray(resultado.transactions)) {
-      logger.error("OCR: Invalid response structure", undefined, {
-        action: "response_validation",
+    // Validar estrutura da resposta com validação tipada
+    const validation = validateOcrResponse(resultado);
+    if (!validation.valid) {
+      logger.error("OCR: Schema validation failed", undefined, {
+        action: "schema_validation",
         resource: "ocr",
-        hasTransactions: !!resultado.transactions,
-        isArray: Array.isArray(resultado.transactions)
+        type: typeof resultado.type === "string" ? resultado.type : "missing",
+        transactionsIsArray: Array.isArray(resultado.transactions),
+        transactionsLength: Array.isArray(resultado.transactions) ? resultado.transactions.length : 0,
       });
       return NextResponse.json(
-        { error: "Formato de resposta inválido da API. O documento pode não conter transações reconhecíveis." },
-        { status: 500 }
+        { error: "Resposta do OCR em formato inválido" },
+        { status: 422 }
       );
     }
 

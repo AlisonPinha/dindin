@@ -6,6 +6,8 @@ import { ErrorResponses } from "@/lib/api";
 type ExportFormat = "json" | "csv";
 type ExportResource = "transacoes" | "contas" | "categorias" | "all";
 
+const MAX_EXPORT_RECORDS = 10000;
+
 // Converte array de objetos para CSV
 function toCSV(data: Record<string, unknown>[], columns?: string[]): string {
   if (data.length === 0) return "";
@@ -63,6 +65,7 @@ export async function GET(request: NextRequest) {
     }
 
     const exportData: Record<string, unknown[]> = {};
+    let hasLimitWarning = false;
 
     // Exportar transações
     if (resource === "transacoes" || resource === "all") {
@@ -70,7 +73,9 @@ export async function GET(request: NextRequest) {
         .from("transacoes")
         .select("id, descricao, valor, tipo, data, recorrente, parcelas, parcela_atual, tags, notas, ownership, category_id, account_id, created_at")
         .eq("user_id", auth.user.id)
-        .order("data", { ascending: false });
+        .order("created_at", { ascending: false })
+        .order("data", { ascending: false })
+        .limit(MAX_EXPORT_RECORDS);
 
       if (dataInicio) query = query.gte("data", dataInicio);
       if (dataFim) query = query.lte("data", dataFim);
@@ -79,6 +84,7 @@ export async function GET(request: NextRequest) {
       if (error) throw error;
 
       exportData.transacoes = transacoes || [];
+      if ((transacoes || []).length >= MAX_EXPORT_RECORDS) hasLimitWarning = true;
     }
 
     // Exportar contas
@@ -87,10 +93,13 @@ export async function GET(request: NextRequest) {
         .from("contas")
         .select("id, nome, tipo, banco, saldo, cor, icone, ativo, created_at")
         .eq("user_id", auth.user.id)
-        .order("nome");
+        .order("created_at", { ascending: false })
+        .order("nome")
+        .limit(MAX_EXPORT_RECORDS);
 
       if (error) throw error;
       exportData.contas = contas || [];
+      if ((contas || []).length >= MAX_EXPORT_RECORDS) hasLimitWarning = true;
     }
 
     // Exportar categorias (apenas do usuário, não do sistema)
@@ -99,11 +108,14 @@ export async function GET(request: NextRequest) {
         .from("categorias")
         .select("id, nome, tipo, cor, icone, grupo, orcamento_mensal, created_at")
         .eq("user_id", auth.user.id)
+        .order("created_at", { ascending: false })
         .order("tipo")
-        .order("nome");
+        .order("nome")
+        .limit(MAX_EXPORT_RECORDS);
 
       if (error) throw error;
       exportData.categorias = categorias || [];
+      if ((categorias || []).length >= MAX_EXPORT_RECORDS) hasLimitWarning = true;
     }
 
     // Gerar resposta baseada no formato
@@ -112,7 +124,11 @@ export async function GET(request: NextRequest) {
         ? `dindin-export-${new Date().toISOString().split("T")[0]}.json`
         : `dindin-${resource}-${new Date().toISOString().split("T")[0]}.json`;
 
-      return new NextResponse(JSON.stringify(exportData, null, 2), {
+      const responsePayload = hasLimitWarning
+        ? { ...exportData, warning: "Exportação limitada a 10.000 registros por tipo" }
+        : exportData;
+
+      return new NextResponse(JSON.stringify(responsePayload, null, 2), {
         status: 200,
         headers: {
           "Content-Type": "application/json",
@@ -135,11 +151,16 @@ export async function GET(request: NextRequest) {
         csvData.categorias = toCSV(exportData.categorias as Record<string, unknown>[]);
       }
 
-      return NextResponse.json({
+      const csvResponse: Record<string, unknown> = {
         format: "csv",
         files: csvData,
         message: "Use os dados de cada propriedade para salvar como arquivos CSV separados",
-      });
+      };
+      if (hasLimitWarning) {
+        csvResponse.warning = "Exportação limitada a 10.000 registros por tipo";
+      }
+
+      return NextResponse.json(csvResponse);
     }
 
     // CSV para recurso específico

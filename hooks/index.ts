@@ -1,5 +1,4 @@
 export { useStore } from "./use-store"
-export { useDataLoader } from "./use-data-loader"
 export { useSWRData } from "./use-swr-data"
 export { useToast, toast } from "./use-toast"
 export { useCountUp, useCurrencyCountUp, usePercentageCountUp } from "./use-count-up"

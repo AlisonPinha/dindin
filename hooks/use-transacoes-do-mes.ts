@@ -5,6 +5,7 @@ import { useStore } from "./use-store"
 import {
   getTransacoesDoMes,
   safePercentage,
+  calculateVariation,
   type TransactionWithInstallment,
 } from "@/lib/calculations"
 import type { Category } from "@/types"
@@ -148,34 +149,18 @@ export interface DadosDoMes {
 // ================================
 
 /**
- * Calcula variação percentual de forma segura
+ * Adapts the canonical calculateVariation to the VariacaoPercentual interface
  */
 function calcularVariacaoPercentual(
   valorAtual: number,
   valorAnterior: number
 ): VariacaoPercentual {
-  // Caso 1: Ambos zero
-  if (valorAtual === 0 && valorAnterior === 0) {
-    return { percentual: 0, texto: "0%", tipo: "neutro" }
-  }
-
-  // Caso 2: Valor anterior é zero
-  if (valorAnterior === 0) {
-    return {
-      percentual: null,
-      texto: valorAtual > 0 ? "Novo" : "—",
-      tipo: valorAtual > 0 ? "aumento" : "neutro",
-    }
-  }
-
-  // Caso 3: Cálculo normal
-  const variacao = ((valorAtual - valorAnterior) / valorAnterior) * 100
-  const variacaoLimitada = Math.max(-9999, Math.min(9999, variacao))
-
+  const v = calculateVariation(valorAtual, valorAnterior)
+  const tipoMap = { up: "aumento", down: "reducao", neutral: "neutro" } as const
   return {
-    percentual: variacaoLimitada,
-    texto: `${variacao >= 0 ? "+" : ""}${variacaoLimitada.toFixed(1)}%`,
-    tipo: variacao > 0 ? "aumento" : variacao < 0 ? "reducao" : "neutro",
+    percentual: v.value,
+    texto: v.label,
+    tipo: tipoMap[v.direction],
   }
 }
 

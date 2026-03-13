@@ -3,6 +3,7 @@
 import { TrendingUp, TrendingDown, Wallet, PiggyBank, ArrowUpRight, ArrowDownRight, Scale, Minus } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { formatCurrency, cn } from "@/lib/utils"
+import { calculateVariation } from "@/lib/calculations"
 
 interface SummaryCardData {
   title: string
@@ -21,39 +22,6 @@ interface SummaryCardsProps {
   previousExpenses: number
   totalInvested: number
   previousInvested: number
-}
-
-interface VariationResult {
-  value: number | null // null significa "sem comparação"
-  label: string
-  isNew: boolean // true quando é novo (anterior era 0)
-}
-
-function calculateVariation(current: number, previous: number): VariationResult {
-  // Handle invalid inputs
-  if (!Number.isFinite(current) || !Number.isFinite(previous)) {
-    return { value: null, label: "—", isNew: false }
-  }
-
-  // Ambos são zero - sem variação
-  if (current === 0 && previous === 0) {
-    return { value: 0, label: "0%", isNew: false }
-  }
-
-  // Anterior era zero - é um valor novo
-  if (previous === 0) {
-    return { value: null, label: "Novo", isNew: true }
-  }
-
-  const result = ((current - previous) / previous) * 100
-
-  // Handle potential NaN/Infinity results
-  if (!Number.isFinite(result)) {
-    return { value: null, label: "—", isNew: false }
-  }
-
-  const prefix = result >= 0 ? "+" : ""
-  return { value: result, label: `${prefix}${result.toFixed(1)}%`, isNew: false }
 }
 
 function SummaryCard({ data }: { data: SummaryCardData }) {
