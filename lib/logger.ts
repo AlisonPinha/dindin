@@ -3,6 +3,11 @@
  *
  * Fornece logging consistente e estruturado para toda a aplicação.
  * Em produção, pode ser integrado com serviços como Sentry, LogRocket, etc.
+ *
+ * Política de retenção:
+ * - Logs em memória são limitados a 1000 entradas (FIFO).
+ * - Campos sensíveis (password, token, api_key, etc.) são auto-redactados.
+ * - Para persistência de logs em produção, configure Sentry ou serviço externo.
  */
 
 type LogLevel = "debug" | "info" | "warn" | "error"
@@ -29,6 +34,69 @@ interface LogEntry {
 
 const isDev = process.env.NODE_ENV === "development"
 
+/** Limite máximo de entradas de log em memória */
+const MAX_LOG_BUFFER = 1000
+
+/** Buffer circular de logs em memória */
+const logBuffer: LogEntry[] = []
+
+/** Campos sensíveis que devem ser redactados */
+const SENSITIVE_FIELDS = new Set([
+  "password",
+  "senha",
+  "api_key",
+  "apiKey",
+  "token",
+  "secret",
+  "authorization",
+  "cookie",
+  "credit_card",
+  "cartao",
+])
+
+/**
+ * Redacta recursivamente campos sensíveis de um objeto.
+ * Retorna uma cópia do objeto com valores sensíveis substituídos por "[REDACTED]".
+ */
+function sanitizeData<T>(data: T): T {
+  if (data === null || data === undefined || typeof data !== "object") {
+    return data
+  }
+
+  if (Array.isArray(data)) {
+    return data.map((item) => sanitizeData(item)) as unknown as T
+  }
+
+  const sanitized: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
+    if (SENSITIVE_FIELDS.has(key.toLowerCase())) {
+      sanitized[key] = "[REDACTED]"
+    } else if (typeof value === "object" && value !== null) {
+      sanitized[key] = sanitizeData(value)
+    } else {
+      sanitized[key] = value
+    }
+  }
+  return sanitized as T
+}
+
+/**
+ * Adiciona uma entrada ao buffer em memória, respeitando o limite MAX_LOG_BUFFER.
+ */
+function addToBuffer(entry: LogEntry): void {
+  if (logBuffer.length >= MAX_LOG_BUFFER) {
+    logBuffer.shift()
+  }
+  logBuffer.push(entry)
+}
+
+/**
+ * Retorna uma cópia do buffer de logs atual (para diagnóstico).
+ */
+export function getLogBuffer(): readonly LogEntry[] {
+  return [...logBuffer]
+}
+
 /**
  * Formata entrada de log para JSON estruturado
  */
@@ -45,7 +113,7 @@ function formatLogEntry(
   }
 
   if (context && Object.keys(context).length > 0) {
-    entry.context = context
+    entry.context = sanitizeData(context)
   }
 
   if (error) {
@@ -63,6 +131,7 @@ function formatLogEntry(
  * Output do log baseado no ambiente
  */
 function output(entry: LogEntry): void {
+  addToBuffer(entry)
   const jsonString = JSON.stringify(entry)
 
   switch (entry.level) {

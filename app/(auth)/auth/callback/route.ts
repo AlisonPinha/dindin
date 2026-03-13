@@ -12,6 +12,7 @@ const ALLOWED_REDIRECTS = [
   "/investimentos",
   "/metas",
   "/configuracoes",
+  "/update-password",
 ]
 
 export async function GET(request: Request) {
