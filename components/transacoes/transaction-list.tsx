@@ -8,6 +8,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { TooltipProvider } from "@/components/ui/tooltip"
+import { OriginBadge } from "@/components/transacoes/origin-badge"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import type { Transaction } from "@/types"
 
@@ -36,6 +38,7 @@ export function TransactionList({
   }
 
   return (
+    <TooltipProvider>
     <div className="space-y-2">
       {transactions.map((transaction) => (
         <div
@@ -59,7 +62,10 @@ export function TransactionList({
               )}
             </div>
             <div>
-              <p className="font-medium">{transaction.description}</p>
+              <div className="flex items-center gap-2">
+                <p className="font-medium">{transaction.description}</p>
+                <OriginBadge origin={transaction.origin} />
+              </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 {transaction.category && (
                   <>
@@ -119,5 +125,6 @@ export function TransactionList({
         </div>
       ))}
     </div>
+    </TooltipProvider>
   )
 }

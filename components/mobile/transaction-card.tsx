@@ -12,6 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import type { TransactionOrigin } from "@/types"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -40,6 +41,7 @@ interface TransactionCardProps {
     total: number
   }
   tags?: string[]
+  origin?: TransactionOrigin
   onEdit?: (id: string) => void
   onDelete?: (id: string) => void
   onMore?: (id: string) => void
@@ -60,6 +62,7 @@ export function TransactionCard({
   isRecurring,
   installment,
   tags,
+  origin,
   onEdit,
   onDelete,
   onMore,
@@ -207,8 +210,18 @@ export function TransactionCard({
           </div>
 
           {/* Badges */}
-          {(isRecurring || installment) && (
+          {(isRecurring || installment || (origin && origin !== "manual")) && (
             <div className="flex items-center gap-2 mt-2">
+              {origin && origin !== "manual" && (
+                <span className={cn(
+                  "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs",
+                  origin === "apple_pay" && "bg-indigo-500/10 text-indigo-600",
+                  origin === "quick_add" && "bg-yellow-500/10 text-yellow-600",
+                  origin === "ocr_import" && "bg-teal-500/10 text-teal-600",
+                )}>
+                  {origin === "apple_pay" ? "Apple Pay" : origin === "quick_add" ? "Quick Add" : "OCR"}
+                </span>
+              )}
               {isRecurring && (
                 <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                   <Repeat className="h-3 w-3" />

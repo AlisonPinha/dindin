@@ -21,7 +21,7 @@
 ### Captura Automática via Apple Pay
 > Goal: Fernanda compra via Apple Pay e a transação entra automaticamente no DinDin — sem digitação, com categorização por IA.
 
-- [ ] Story 2.1: Quick-Add com Origem Apple Pay
+- [x] Story 2.1: Quick-Add com Origem Apple Pay
   > As a Fernanda
   > I want que compras feitas via Apple Pay sejam registradas automaticamente no DinDin através do iOS Shortcuts
   > So that 99% das minhas compras entrem no sistema sem digitação.

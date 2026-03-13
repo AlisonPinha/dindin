@@ -49,6 +49,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { OriginBadge } from "@/components/transacoes/origin-badge"
 import { formatCurrency, formatDate, cn } from "@/lib/utils"
 import type { Transaction } from "@/types"
 
@@ -257,6 +258,8 @@ export function TransactionTable({
                         </TooltipContent>
                       </Tooltip>
                     )}
+                    {/* Origin Badge */}
+                    <OriginBadge origin={transaction.origin} />
                     {transaction.attachment && (
                       <Tooltip>
                         <TooltipTrigger asChild>
