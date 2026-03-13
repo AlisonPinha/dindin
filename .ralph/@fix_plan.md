@@ -30,7 +30,7 @@
   > AC: Given um POST com `origem` inválido (ex: `"foo"`), When a validação é executada, Then retorna `400 Bad Request` com mensagem de erro apropriada
   > AC: Given uma transação criada via Apple Pay, When o usuário visualiza a transação na lista, Then a origem é exibida como badge/indicador visual (ex: ícone Apple Pay)
   > Spec: specs/planning-artifacts/epics.md#story-2-1
-- [ ] Story 2.2: Categorização Automática via IA para Apple Pay
+- [x] Story 2.2: Categorização Automática via IA para Apple Pay
   > As a Fernanda
   > I want que transações do Apple Pay sejam categorizadas automaticamente pela IA
   > So that eu não precise abrir o app para escolher categoria manualmente.

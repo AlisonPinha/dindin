@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
 import { hashApiKey } from "@/lib/api-key";
+import { categorizeTransaction } from "@/lib/services/ai-categorizer";
 
 const ALLOWED_TIPOS = ["ENTRADA", "SAIDA", "TRANSFERENCIA", "INVESTIMENTO"] as const;
 const ALLOWED_ORIGINS = ["manual", "quick_add", "apple_pay", "ocr_import"] as const;
@@ -154,9 +155,74 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Erro ao criar transação" }, { status: 500 });
     }
 
+    // AI auto-categorization for Apple Pay transactions without a category
+    let categorizedTransaction = transaction;
+    const effectiveOrigem = origem || "quick_add";
+    if (effectiveOrigem === "apple_pay" && !categoryId && transaction) {
+      try {
+        // Fetch user's expense categories
+        const { data: userCategories } = await supabase
+          .from("categorias")
+          .select("id, nome, tipo")
+          .or(`user_id.eq.${auth.userId},user_id.is.null`)
+          .in("tipo", ["DESPESA", "INVESTIMENTO"]);
+
+        // Fetch historical categorizations for similar descriptions
+        const { data: historicalMatches } = await supabase
+          .from("transacoes")
+          .select("descricao, category_id, categorias!inner(nome)")
+          .eq("user_id", auth.userId)
+          .not("category_id", "is", null)
+          .ilike("descricao", `%${descricao.trim().split(" ")[0]}%`)
+          .limit(5);
+
+        const categories = (userCategories || []).map((c: { id: string; nome: string; tipo: string }) => ({
+          id: c.id,
+          nome: c.nome,
+          tipo: c.tipo,
+        }));
+
+        const history = (historicalMatches || []).map((h: Record<string, unknown>) => ({
+          descricao: h.descricao as string,
+          category_id: h.category_id as string,
+          nome: (h.categorias as { nome: string })?.nome || "",
+        }));
+
+        const result = await categorizeTransaction(descricao.trim(), categories, history);
+
+        if (result.categoryId) {
+          const { data: updated } = await supabase
+            .from("transacoes")
+            .update({ category_id: result.categoryId })
+            .eq("id", transaction.id)
+            .eq("user_id", auth.userId)
+            .select("id, descricao, valor, tipo, data, mes_fatura, origem, category_id")
+            .single();
+
+          if (updated) {
+            categorizedTransaction = updated;
+          }
+
+          logger.info("AI Categorizer: Transaction auto-categorized", {
+            transactionId: transaction.id,
+            categoryId: result.categoryId,
+            categoryName: result.categoryName,
+            confidence: result.confidence,
+          });
+        }
+      } catch (catError) {
+        // Categorization failure should never block the transaction
+        logger.error("AI Categorizer: Failed to auto-categorize", catError, {
+          action: "ai_categorize",
+          resource: "transacoes",
+          transactionId: transaction.id,
+        });
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      transaction,
+      transaction: categorizedTransaction,
     }, { status: 201 });
   } catch (error) {
     logger.error("Quick-add error", error, { action: "quick-add", resource: "transacoes" });
