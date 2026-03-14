@@ -87,7 +87,8 @@ ${JSON.stringify(pairs, null, 2)}`
       messages: [{ role: "user", content: prompt }],
     })
 
-    const text = response.content[0].type === "text" ? response.content[0].text : ""
+    const firstBlock = response.content[0]
+    const text = firstBlock?.type === "text" ? firstBlock.text : ""
 
     // Extrair JSON da resposta
     const jsonMatch = text.match(/\[[\s\S]*\]/)

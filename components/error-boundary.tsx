@@ -3,7 +3,7 @@
 import { Component, type ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import { AlertCircle, RefreshCw } from "lucide-react"
-import { ErrorBoundaryHandler } from "@/lib"
+import { ErrorBoundaryHandler } from "@/lib/error-monitor"
 
 interface Props {
   children: ReactNode

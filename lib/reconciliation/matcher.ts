@@ -64,13 +64,14 @@ export function matchTransactions(
 
     if (highScoreCandidates.length === 1) {
       // Match único e confiante
+      const best = highScoreCandidates[0]!
       matched.push({
         ocrIndex: ocr.index,
-        existingId: highScoreCandidates[0].existingId,
-        score: highScoreCandidates[0].score,
+        existingId: best.existingId,
+        score: best.score,
         source: "deterministic",
       })
-      usedExistingIds.add(highScoreCandidates[0].existingId)
+      usedExistingIds.add(best.existingId)
       processedOcrIndices.add(ocr.index)
     } else if (highScoreCandidates.length > 1) {
       // Múltiplos matches com score alto — conflito

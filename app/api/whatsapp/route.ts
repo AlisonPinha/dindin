@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       return ErrorResponses.serverError("Falha ao enviar mensagem WhatsApp")
     }
 
-    logger.action("whatsapp_sent", auth.user.id, {
+    logger.action("whatsapp_sent", "whatsapp", auth.user.id, {
       template,
     })
 
