@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { AlertConfigPanel } from "./alert-config-panel"
 
 interface NotificationSettings {
   categoryLimitEnabled: boolean
@@ -37,9 +38,16 @@ interface NotificationSettings {
   budgetAlertThreshold: number
 }
 
+interface CategoryInfo {
+  id: string
+  name: string
+  color: string
+}
+
 interface NotificationsTabProps {
   settings: NotificationSettings
   onSettingsChange: (settings: NotificationSettings) => void
+  categories?: CategoryInfo[]
 }
 
 const weekDays = [
@@ -59,7 +67,7 @@ const reminderTimes = [
   { value: "night", label: "Noite (21h)" },
 ]
 
-export function NotificationsTab({ settings, onSettingsChange }: NotificationsTabProps) {
+export function NotificationsTab({ settings, onSettingsChange, categories = [] }: NotificationsTabProps) {
   const { toast } = useToast()
   const [localSettings, setLocalSettings] = useState(settings)
   const [isDirty, setIsDirty] = useState(false)
@@ -320,6 +328,11 @@ export function NotificationsTab({ settings, onSettingsChange }: NotificationsTa
           </div>
         </CardContent>
       </Card>
+
+      {/* Alert Config Panel (WhatsApp / Dashboard per category) */}
+      {categories.length > 0 && (
+        <AlertConfigPanel categories={categories} />
+      )}
 
       {/* Summary */}
       <Card className="bg-muted/50">

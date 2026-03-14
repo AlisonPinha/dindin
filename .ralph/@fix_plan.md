@@ -42,7 +42,7 @@
 ### Reconciliação Inteligente de Faturas
 > Goal: Fernanda importa a fatura do cartão e o sistema cruza automaticamente com transações já registradas via Apple Pay — zero duplicatas, 30 segundos do início ao fim.
 
-- [ ] Story 3.1: Engine de Matching Determinístico
+- [x] Story 3.1: Engine de Matching Determinístico
   > As a sistema DinDin
   > I want comparar transações extraídas da fatura com transações já registradas usando scoring por valor e data
   > So that matches óbvios sejam identificados automaticamente sem depender de IA.
@@ -53,7 +53,7 @@
   > AC: Given uma transação da fatura que matcha com múltiplas existentes (score ≥ 70 para mais de uma), When o matcher classifica, Then marca como `conflict` (usuário precisa resolver)
   > AC: Given o matcher recebe a lista completa de transações, When processa todas, Then retorna objeto com 4 listas: `matched`, `ambiguous`, `new`, `conflict`, And testes unitários cobrem todos os cenários de scoring e classificação, And testes usam fixtures em `__tests__/fixtures/reconciliation.ts`
   > Spec: specs/planning-artifacts/epics.md#story-3-1
-- [ ] Story 3.2: Resolução IA para Transações Ambíguas
+- [x] Story 3.2: Resolução IA para Transações Ambíguas
   > As a sistema DinDin
   > I want usar Claude AI para resolver transações com score ambíguo (40-69)
   > So that o casal tenha menos itens para revisar manualmente.
@@ -61,7 +61,7 @@
   > AC: Given a API Claude está indisponível ou timeout (60s), When o ai-resolver tenta processar, Then mantém as transações como `ambiguous` para revisão manual pelo usuário, And registra erro via `logger.error()`, And o fluxo de reconciliação não é bloqueado
   > AC: Given que ~90% das transações são resolvidas deterministicamente (Story 3.1), When apenas ~10% restantes vão para IA, Then o custo de tokens Claude é otimizado — batch de ambíguos em uma única chamada, And testes unitários cobrem sucesso, falha e timeout da IA
   > Spec: specs/planning-artifacts/epics.md#story-3-2
-- [ ] Story 3.3: API de Reconciliação, UI de Revisão e Integração no Fluxo de Importação
+- [x] Story 3.3: API de Reconciliação, UI de Revisão e Integração no Fluxo de Importação
   > As a Fernanda
   > I want revisar o resultado da reconciliação em uma tela clara e confirmar transações novas em lote
   > So that a fatura do cartão seja importada sem duplicatas em 30 segundos.
@@ -74,7 +74,7 @@
 ### Alertas Proativos via WhatsApp
 > Goal: O casal recebe mensagem no WhatsApp ANTES de estourar o orçamento de qualquer categoria — prevenção, não reação.
 
-- [ ] Story 4.1: Evolution API Client e Templates de Mensagem
+- [x] Story 4.1: Evolution API Client e Templates de Mensagem
   > As a sistema DinDin
   > I want integrar com a Evolution API para enviar mensagens WhatsApp
   > So that o casal receba alertas de orçamento diretamente no WhatsApp.
@@ -83,7 +83,7 @@
   > AC: Given `WHATSAPP_NUMBERS` contém múltiplos números (comma-separated), When um alerta é disparado, Then a mensagem é enviada para todos os números configurados (Alison + Fernanda)
   > AC: Given um alerta de orçamento de categoria "Delivery" a 90% (R$ 450/R$ 500), When o template de mensagem é renderizado, Then produz texto formatado: "⚠️ Vocês já usaram 90% do orçamento de Delivery (R$ 450/R$ 500). Restam X dias no mês.", And endpoint `POST /api/whatsapp/send` expõe o envio (uso interno, protegido por auth), And evolution-client é server-only — nunca importado no frontend, And testes cobrem envio, retry, falha e templates
   > Spec: specs/planning-artifacts/epics.md#story-4-1
-- [ ] Story 4.2: Budget Checker, API de Alertas e Vercel Cron
+- [x] Story 4.2: Budget Checker, API de Alertas e Vercel Cron
   > As a casal (Alison e Fernanda)
   > I want que o sistema verifique diariamente se estamos perto de estourar alguma categoria
   > So that recebamos alertas preventivos no WhatsApp antes de ultrapassar o orçamento.
@@ -93,7 +93,7 @@
   > AC: Given um request para `/api/cron/check-alerts` sem `CRON_SECRET` válido, When o endpoint processa, Then retorna `401 Unauthorized`
   > AC: Given `vercel.json` não existe ainda no projeto, When esta story é implementada, Then cria `vercel.json` com cron config: `{ "crons": [{ "path": "/api/cron/check-alerts", "schedule": "0 12 * * *" }] }` (12h UTC = 9h BRT), And `POST /api/alertas` permite CRUD de configurações de threshold por categoria, And `GET /api/alertas` retorna configurações e histórico de alertas enviados, And testes cobrem budget-checker, cron endpoint e API de alertas
   > Spec: specs/planning-artifacts/epics.md#story-4-2
-- [ ] Story 4.3: UI de Configuração de Alertas e Fallback no Dashboard
+- [x] Story 4.3: UI de Configuração de Alertas e Fallback no Dashboard
   > As a Alison ou Fernanda
   > I want configurar quais categorias recebem alertas e em quais thresholds
   > So that eu controle quais avisos o casal recebe no WhatsApp.
@@ -105,7 +105,7 @@
 ### Core Financeiro Existente (Manutenção & Polish)
 > Goal: Todas as capabilities já construídas — gestão de transações, contas, categorias, orçamento, dashboard, patrimônio, metas, auth, backup, OCR. Já funcionais, precisam apenas de manutenção evolutiva.
 
-- [ ] Story 5.1: Manutenção e Polish do Core Financeiro
+- [x] Story 5.1: Manutenção e Polish do Core Financeiro
   > As a casal (Alison e Fernanda)
   > I want que todas as funcionalidades existentes do DinDin continuem funcionando corretamente após a implementação das novas features
   > So that a base do app permaneça estável enquanto Apple Pay, Reconciliação e Alertas são adicionados.

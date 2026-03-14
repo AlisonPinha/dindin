@@ -6,6 +6,7 @@ import {
   RecentTransactions,
   GoalAlerts,
   AccountsSummary,
+  BudgetAlerts,
 } from "@/components/dashboard"
 import { useStore } from "@/hooks/use-store"
 import { useTransacoesDoMes } from "@/hooks"
@@ -261,6 +262,20 @@ export default function DashboardPage() {
     }
   }, [despesasPorCategoria, totais.despesas])
 
+  // Budget alerts (categories over 70% of budget)
+  const budgetAlerts = useMemo(() => {
+    return savingsData.categorySavings
+      .filter((c) => c.budgetAmount > 0 && c.spentAmount / c.budgetAmount >= 0.7)
+      .map((c) => ({
+        categoryName: c.categoryName,
+        categoryColor: c.categoryColor,
+        spent: c.spentAmount,
+        budget: c.budgetAmount,
+        percent: (c.spentAmount / c.budgetAmount) * 100,
+      }))
+      .sort((a, b) => b.percent - a.percent)
+  }, [savingsData])
+
   // Calculate Financial Health Score using SAFE calculations
   const healthScoreData = useMemo(() => {
     // Taxa de poupança usando safePercentage
@@ -385,6 +400,9 @@ export default function DashboardPage() {
         {/* Goal Alerts */}
         <GoalAlerts goals={goalAlerts} />
       </div>
+
+      {/* Budget Alerts (dashboard fallback) */}
+      <BudgetAlerts alerts={budgetAlerts} />
 
       {/* Insights Section */}
       <div className="space-y-4 w-full">

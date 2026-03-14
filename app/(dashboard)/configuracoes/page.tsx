@@ -479,6 +479,7 @@ export default function ConfiguracoesPage() {
           <NotificationsTab
             settings={notificationSettings}
             onSettingsChange={setNotificationSettings}
+            categories={categories.map(c => ({ id: c.id, name: c.name, color: c.color }))}
           />
         </TabsContent>
 
