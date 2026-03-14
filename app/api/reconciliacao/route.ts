@@ -39,6 +39,24 @@ export async function POST(request: NextRequest) {
       return ErrorResponses.badRequest("Transações OCR são obrigatórias")
     }
 
+    if (ocrInputs.length > 500) {
+      return ErrorResponses.badRequest("Máximo de 500 transações por reconciliação")
+    }
+
+    // Validar campos obrigatórios de cada transação
+    for (let i = 0; i < ocrInputs.length; i++) {
+      const t = ocrInputs[i]
+      if (!t || typeof t.descricao !== "string" || typeof t.valor !== "number" || typeof t.data !== "string") {
+        return ErrorResponses.badRequest(`Transação ${i}: campos descricao (string), valor (number) e data (string) são obrigatórios`)
+      }
+      if (!Number.isFinite(t.valor) || t.valor <= 0) {
+        return ErrorResponses.badRequest(`Transação ${i}: valor deve ser um número positivo`)
+      }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(t.data)) {
+        return ErrorResponses.badRequest(`Transação ${i}: data deve estar no formato YYYY-MM-DD`)
+      }
+    }
+
     if (!accountId) {
       return ErrorResponses.badRequest("Conta (accountId) é obrigatória")
     }

@@ -21,7 +21,7 @@ export function budgetAlert(params: {
   threshold: number
 }): string {
   const { categoryName, spent, budget, threshold } = params
-  const percent = Math.round((spent / budget) * 100)
+  const percent = budget > 0 ? Math.round((spent / budget) * 100) : 0
 
   return [
     `*DinDin - Alerta de Orcamento*`,

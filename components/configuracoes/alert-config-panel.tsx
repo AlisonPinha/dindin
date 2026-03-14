@@ -46,7 +46,7 @@ export function AlertConfigPanel({ categories }: AlertConfigPanelProps) {
 
   const fetchAlerts = useCallback(async () => {
     try {
-      const res = await fetch("/api/alertas")
+      const res = await apiFetch("/api/alertas")
       if (res.ok) {
         const data = await res.json()
         setAlerts(data)

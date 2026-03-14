@@ -22,6 +22,7 @@ const PUBLIC_API_ROUTES = [
   "/api/auth/signout",
   "/api/health",
   "/api/quick-add",
+  "/api/cron/",         // cron jobs autenticam via CRON_SECRET
 ]
 
 // APIs que NÃO precisam de CSRF (usam autenticação alternativa ou são públicas)
@@ -29,6 +30,7 @@ const CSRF_EXEMPT_ROUTES = [
   "/api/quick-add",   // usa API key auth
   "/api/auth/",       // callbacks de autenticação
   "/api/health",      // health check
+  "/api/cron/",       // cron jobs autenticam via CRON_SECRET
 ]
 
 // Métodos HTTP que precisam de CSRF protection
